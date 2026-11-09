@@ -1,0 +1,11 @@
+[submodule "computer/donors/Back-up-"]
+	path = computer/donors/Back-up-
+	url = https://github.com/justappgrabbin/Back-up-.git
+
+[submodule "sources/Simlish"]
+	path = sources/Simlish
+	url = https://github.com/justappgrabbin/Simlish.git
+
+[submodule "sources/Generative-address-system"]
+	path = sources/Generative-address-system
+	url = https://github.com/justappgrabbin/Generative-address-system.git

@@ -1,0 +1,17 @@
+{
+  "reason": "Credential-safe GitHub publication; original source remains local",
+  "changes": [
+    {
+      "path": "computer/donors/recovered/glowing-winner/SynthiaClient.ts",
+      "originalSha256": "79ccb0a690b0673e727b8f2eb9d08d1b685053c4972fe7b7a02ad2825c270815",
+      "publishedSha256": "4ede7f9c69eae667542610c11118d7bd633281f7f96b496d708cf8f66be318e1",
+      "removedSensitiveValues": 2
+    },
+    {
+      "path": "computer/donors/recovered/synthai-r21.22-self-cultivation-graph-integrated/organism/UploadMorphCoordinator.mjs",
+      "originalSha256": "7cefd75ff84ae2a780264f3616e249434e660347144910a0e86577b402bde748",
+      "publishedSha256": "7e0208331139ddd0296bad9021c22bebebe34ae96ffc17497386189ef2d111ba",
+      "removedSensitiveValues": 1
+    }
+  ]
+}

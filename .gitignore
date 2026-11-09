@@ -1,0 +1,7 @@
+node_modules/
+.local-state/
+computer/runtime/data/
+computer/shell/kimi-linux/dist/
+*.tsbuildinfo
+__pycache__/
+.DS_Store

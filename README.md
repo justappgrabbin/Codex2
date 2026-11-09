@@ -26,7 +26,7 @@ npm --prefix computer run test:reassembly
 - Existing Computer donor: `justappgrabbin/Back-up-`, commit `1c45318a668de3bb3c54ae488b3d5f4109d1ba6b`, retained as the original submodule under `computer/donors/Back-up-`.
 - Additional recovered candidates, pinned as source submodules rather than falsely claimed integrated: `Simlish` at `239fbbd28194aa72b9f0db5800d685d492468d64` and `Generative-address-system` at `ce1704d5d53d5729b499463f7eeaf5dcd5091550`.
 
-Tracked original Computer files are preserved. Root documentation, development exclusions, and the source submodule list are additive integration metadata. No private runtime state, personal files, installed dependencies, or raw private continuity documents are included.
+Recovered Computer source is retained with documented credential redactions in publication copies. Unredacted originals remain local. Root documentation, development exclusions, and the source submodule list are additive integration metadata. No private runtime state, personal files, installed dependencies, or raw private continuity documents are included. See `docs/recovery/PUBLICATION-REDACTIONS.json` for exact changed paths and integrity hashes. Hardcoded credentials and live Supabase project URLs were removed; optional external connections must be configured locally before use.
 
 ## Verified at this checkpoint
 
