@@ -58,6 +58,12 @@ export class AutomataEngineGateway {
     }
   }
 
+  /** Shared semantic authority for Computer services; never constructs a second engine. */
+  async semanticEngine() {
+    await this._boot();
+    return this._synthia.meshRuntime.engine;
+  }
+
   async snapshot() {
     const swarm = await this._boot();
     return { provider: this.providerId, ...swarm.snapshot() };

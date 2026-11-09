@@ -15,6 +15,7 @@ import { EventEmitter } from './events/event-emitter.mjs';
 import { AutomataEngineGateway } from './services/automata-engine.mjs';
 import { WorldEngineGateway } from './services/world-engine.mjs';
 import { PentaEphemerisService } from './services/penta-ephemeris.mjs';
+import { GenerativeAssemblyService } from './services/generative-assembly.mjs';
 import { ExperimentLoop } from './services/experiment-loop.mjs';
 
 export class ComputerRuntime {
@@ -103,6 +104,11 @@ export class ComputerRuntime {
     // v0.4.0 swarm behind execute/route; gateway only, donor stays sovereign).
     this.automataGateway = new AutomataEngineGateway({ bus: this.bus, state: this.state });
     this.services.register('automata-engine', { provider: this.automataGateway, contract: 'execute' });
+    // Mount source morphology on the same resident engine at boot. This also
+    // keeps the original neural organs resident, rather than optional retrieval.
+    this.generative = new GenerativeAssemblyService({ gateway: this.automataGateway, state: this.state, bus: this.bus });
+    this.semanticEngine = (await this.generative.connected()).engine;
+    this.services.register('generative-assembly', { provider: this.generative, contract: 'inspect' });
     // Stage-4e: glowing-winner embodied world (donor EmbodiedWorldEngine) +
     // Synthai2 penta ephemeris (python child_process donor boundary).
     this.worldGateway = new WorldEngineGateway({ bus: this.bus });

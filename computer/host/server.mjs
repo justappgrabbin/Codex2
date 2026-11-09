@@ -31,6 +31,7 @@ const computer = await new ComputerRuntime({
 }).boot();
 const conversation = new ConversationExecution(computer);
 const files = new FileAdmission(computer, conversation.execution);
+const generative = computer.generative;
 
 // Import names are allocated before the first asynchronous write. This prevents
 // an upload with the same filename from replacing an earlier user's original.
@@ -131,6 +132,9 @@ const server = createServer(async (req, res) => {
         const swarm = await computer.automataGateway.snapshot();
         return json(res, 200, { ready: true, computer: 'SynthAI Computer', swarmProcesses: swarm.processCount, files: computer.vfs.list('/').length });
       }
+      if (req.method === 'GET' && url.pathname === '/api/generative/status') return json(res, 200, await generative.status());
+      if (req.method === 'GET' && url.pathname === '/api/generative/history') return json(res, 200, generative.history());
+      if (req.method === 'POST' && url.pathname === '/api/generative/structure') return json(res, 200, await generative.inspect(await body(req)));
       if (req.method === 'GET' && url.pathname === '/api/history') return json(res, 200, conversation.history());
       if (req.method === 'POST' && url.pathname === '/api/chat') return json(res, 200, await conversation.talk((await body(req)).text));
       if (req.method === 'GET' && url.pathname === '/api/filesystem') return json(res, 200, computer.state.get('computer.desktop.filesystem', null));

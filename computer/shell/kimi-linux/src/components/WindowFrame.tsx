@@ -97,16 +97,6 @@ const WindowFrame = memo(function WindowFrame({ window: win, children }: WindowF
     [isMaximized, getEdge, win.size, win.position]
   );
 
-  const getCursor = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
-    if (isMaximized) return 'default';
-    const edge = getEdge(e);
-    const cursors: Record<string, string> = {
-      n: 'n-resize', s: 's-resize', e: 'e-resize', w: 'w-resize',
-      nw: 'nw-resize', ne: 'ne-resize', sw: 'sw-resize', se: 'se-resize',
-    };
-    return cursors[edge] || 'default';
-  }, [isMaximized, getEdge]);
-
   // ---- Global mouse events for drag/resize ----
   useEffect(() => {
     const onMove = (e: MouseEvent) => {
@@ -216,19 +206,18 @@ const WindowFrame = memo(function WindowFrame({ window: win, children }: WindowF
       <div
         className="computer-window-resize absolute inset-0 z-50"
         style={{
-          cursor: getCursor as unknown as string,
-          pointerEvents: isDragging ? 'none' : 'auto',
+          pointerEvents: 'none',
         }}
         onMouseDown={handleResizeMouseDown}
       >
-        <div style={{ position: 'absolute', top: 0, left: RESIZE_HANDLE, right: RESIZE_HANDLE, height: RESIZE_HANDLE, cursor: 'n-resize' }} />
-        <div style={{ position: 'absolute', bottom: 0, left: RESIZE_HANDLE, right: RESIZE_HANDLE, height: RESIZE_HANDLE, cursor: 's-resize' }} />
-        <div style={{ position: 'absolute', left: 0, top: RESIZE_HANDLE, bottom: RESIZE_HANDLE, width: RESIZE_HANDLE, cursor: 'w-resize' }} />
-        <div style={{ position: 'absolute', right: 0, top: RESIZE_HANDLE, bottom: RESIZE_HANDLE, width: RESIZE_HANDLE, cursor: 'e-resize' }} />
-        <div style={{ position: 'absolute', top: 0, left: 0, width: RESIZE_HANDLE * 2, height: RESIZE_HANDLE * 2, cursor: 'nw-resize' }} />
-        <div style={{ position: 'absolute', top: 0, right: 0, width: RESIZE_HANDLE * 2, height: RESIZE_HANDLE * 2, cursor: 'ne-resize' }} />
-        <div style={{ position: 'absolute', bottom: 0, left: 0, width: RESIZE_HANDLE * 2, height: RESIZE_HANDLE * 2, cursor: 'sw-resize' }} />
-        <div style={{ position: 'absolute', bottom: 0, right: 0, width: RESIZE_HANDLE * 2, height: RESIZE_HANDLE * 2, cursor: 'se-resize' }} />
+        <div style={{ pointerEvents: isDragging || isMaximized ? 'none' : 'auto', position: 'absolute', top: 0, left: RESIZE_HANDLE, right: RESIZE_HANDLE, height: RESIZE_HANDLE, cursor: 'n-resize' }} />
+        <div style={{ pointerEvents: isDragging || isMaximized ? 'none' : 'auto', position: 'absolute', bottom: 0, left: RESIZE_HANDLE, right: RESIZE_HANDLE, height: RESIZE_HANDLE, cursor: 's-resize' }} />
+        <div style={{ pointerEvents: isDragging || isMaximized ? 'none' : 'auto', position: 'absolute', left: 0, top: RESIZE_HANDLE, bottom: RESIZE_HANDLE, width: RESIZE_HANDLE, cursor: 'w-resize' }} />
+        <div style={{ pointerEvents: isDragging || isMaximized ? 'none' : 'auto', position: 'absolute', right: 0, top: RESIZE_HANDLE, bottom: RESIZE_HANDLE, width: RESIZE_HANDLE, cursor: 'e-resize' }} />
+        <div style={{ pointerEvents: isDragging || isMaximized ? 'none' : 'auto', position: 'absolute', top: 0, left: 0, width: RESIZE_HANDLE * 2, height: RESIZE_HANDLE * 2, cursor: 'nw-resize' }} />
+        <div style={{ pointerEvents: isDragging || isMaximized ? 'none' : 'auto', position: 'absolute', top: 0, right: 0, width: RESIZE_HANDLE * 2, height: RESIZE_HANDLE * 2, cursor: 'ne-resize' }} />
+        <div style={{ pointerEvents: isDragging || isMaximized ? 'none' : 'auto', position: 'absolute', bottom: 0, left: 0, width: RESIZE_HANDLE * 2, height: RESIZE_HANDLE * 2, cursor: 'sw-resize' }} />
+        <div style={{ pointerEvents: isDragging || isMaximized ? 'none' : 'auto', position: 'absolute', bottom: 0, right: 0, width: RESIZE_HANDLE * 2, height: RESIZE_HANDLE * 2, cursor: 'se-resize' }} />
       </div>
 
       {/* Title bar */}

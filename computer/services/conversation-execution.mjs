@@ -5,7 +5,10 @@ const serializable = (value) => JSON.parse(JSON.stringify(value, (_key, item) =>
 export class ConversationExecution {
   constructor(computer) {
     this.computer = computer;
+    const engine = computer.semanticEngine;
+    if (!engine) throw new Error('Boot the Computer before creating its execution service.');
     this.execution = new SynthiaSystem({
+      engine,
       executionPipelineStore: {
         load: async () => computer.state.get('computer.execution.pipeline', null),
         save: async (value) => {

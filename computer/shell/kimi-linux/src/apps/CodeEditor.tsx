@@ -181,6 +181,27 @@ export default function CodeEditor() {
     finally { setRunning(false); }
   };
 
+  const analyzeStructure = async () => {
+    if (!activeTab || running) return;
+    setRunning(true);
+    setExecutionOutput('Analyzing structure through the shared Computer engine…');
+    try {
+      const response = await fetch('/api/generative/structure', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: activeTab.content }),
+      });
+      const receipt = await response.json();
+      if (!response.ok) throw new Error(receipt.error || 'Structure analysis failed');
+      setExecutionOutput(JSON.stringify({
+        receiptId: receipt.id,
+        derivationId: receipt.derivation.id,
+        summary: receipt.derivation.output.summary,
+        structure: receipt.derivation.output.snapshot?.structure,
+      }, null, 2));
+    } catch (error) { setExecutionOutput(String(error)); }
+    finally { setRunning(false); }
+  };
+
   const userNodeId = useMemo(() => {
     const rootChildren = Object.values(fs.fs.nodes).filter((n) => n.parentId === null);
     const homeNode = rootChildren.find((n) => n.name === 'home');
@@ -346,9 +367,9 @@ export default function CodeEditor() {
   }, [activeTab]);
 
   return (
-    <div className="h-full flex flex-col" style={{ background: 'var(--bg-window)' }}>
+    <div className="h-full flex flex-col" style={{ background: 'var(--bg-window)', color: 'var(--text-primary)' }}>
       {/* Menu Bar */}
-      <div className="flex items-center gap-1 px-2 shrink-0" style={{ height: 32, background: 'var(--bg-titlebar)', borderBottom: '1px solid var(--border-subtle)' }}>
+      <div className="flex items-center gap-1 px-2 shrink-0 overflow-x-auto whitespace-nowrap [&>button]:shrink-0" style={{ height: 32, background: 'var(--bg-titlebar)', borderBottom: '1px solid var(--border-subtle)' }}>
         <button onClick={newFile} className="flex items-center gap-1 px-2 py-1 rounded hover:bg-[var(--bg-hover)] transition-colors" title="New File">
           <Plus size={14} /><span className="text-xs">New</span>
         </button>
@@ -363,6 +384,9 @@ export default function CodeEditor() {
         </button>
         <button onClick={runFile} disabled={!activeTab || running} className="flex items-center gap-1 px-2 py-1 rounded hover:bg-[var(--bg-hover)] disabled:opacity-40" title="Execute current file through Synthia">
           <Code2 size={14} /><span className="text-xs">{running ? 'Running' : 'Run'}</span>
+        </button>
+        <button onClick={analyzeStructure} disabled={!activeTab || !activeTab.content.trim() || running} className="flex items-center gap-1 px-2 py-1 rounded hover:bg-[var(--bg-hover)] disabled:opacity-40" title="Analyze structure through the existing shared Computer engine">
+          <Search size={14} /><span className="text-xs">Analyze structure</span>
         </button>
         <div className="ml-auto flex items-center gap-2">
           {activeTab && (

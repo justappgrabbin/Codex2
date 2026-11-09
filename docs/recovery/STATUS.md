@@ -1,5 +1,7 @@
 # Recovery checkpoint — 2026-11-08
 
+Current integration update (2026-11-09): [Resident Computer / Generative integration](SHARED-ENGINE-2026-11-09.md). The compatibility adapter, shared execution engine, saved analysis receipts and editor action are implemented and tested. The full Computer remains unfinished. Historical recovery results below retain their original scope.
+
 ## Executed evidence
 
 - Computer `npm run test:reassembly`: 32 passed, zero failed. Run outside the development sandbox because its local-port restrictions otherwise caused native test-process failures.
@@ -15,7 +17,7 @@ These are separate donor and recovery checks. They do not establish complete int
 ## Confirmed integration gaps
 
 1. The existing file-admission resolver assigns a complete computational coordinate from file bits and execution evidence, explicitly disclaiming intrinsic semantic meaning. Whether that is the intended semantic addressing mechanism requires clarification. Do not silently turn a content hash or byte statistic into semantic meaning.
-2. Directly sharing the older Computer/Back-up- semantic engine with the newer Generative assembly currently fails: expected Klein context and tool context/observation interfaces differ. These need an explicit tested adapter or source reconciliation; a second disconnected brain is not an acceptable workaround.
+2. The originally incompatible Klein context and tool context/observation interfaces now have a tested adapter. Structural analysis and execution reuse the resident semantic engine. This resolves that compatibility failure; the broader single-RSS and complete learned-state restoration requirements remain open.
 3. Auto App, Auto Build, Auto Tile and Versatile have not been identified in accessible filenames or relevant recovered source paths. Their locations are pending.
 4. Computational dodecahedral placement and the semantic meanings of the six independent 3/2/1 bits remain unresolved in recovered sources. Displaying a solid or guessing bits does not implement these rules.
 5. Full acceptance gates for neural/adaptive development, promises, capability composition, memory, experiments, world integration and device qualification remain unfinished.

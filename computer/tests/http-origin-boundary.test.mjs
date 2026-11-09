@@ -72,6 +72,27 @@ test('full Computer rejects foreign HTTP origins and hosts without breaking loca
     for (const name of ['webview.js', 'native.js'])
       assert.equal(files.some(x => x.endsWith('/' + name)), true, name);
   });
+  await t.test('Generative analysis uses the same origin boundary', async () => {
+    const response = await http(port, '/api/generative/structure', 'POST',
+      { Host: host, Origin: 'https://foreign.example', 'Content-Type': 'application/json' },
+      JSON.stringify({ text: 'The player moves toward the goal.' }));
+    assert.equal(response.status, 403);
+    assert.deepEqual(JSON.parse((await http(port, '/api/generative/history')).body), []);
+  });
+  await t.test('Generative endpoint analyzes through the live shared engine and saves a receipt', async () => {
+    const response = await http(port, '/api/generative/structure', 'POST',
+      { Host: host, Origin: 'http://' + host, 'Content-Type': 'application/json' },
+      JSON.stringify({ text: 'The player moves toward the goal.' }));
+    assert.equal(response.status, 200, response.body);
+    const receipt = JSON.parse(response.body);
+    assert.ok(receipt.derivation.output.summary.recognizedRelationshipCount > 0);
+    assert.equal(receipt.derivation.output.summary.addressCount, 0);
+    const status = JSON.parse((await http(port, '/api/generative/status')).body);
+    assert.equal(status.sameEngine, true);
+    assert.equal(status.savedAnalyses, 1);
+    const history = JSON.parse((await http(port, '/api/generative/history')).body);
+    assert.equal(history[0].id, receipt.id);
+  });
   await t.test('foreign Origin cannot read API GET', async () =>
     assert.equal((await http(port, '/api/files', 'GET', { Host: host, Origin: 'https://foreign.example' })).status, 403));
 });
