@@ -9,6 +9,7 @@ import {
   Folder, FileText, ChevronRight, Home, ArrowUp,
   Grid3x3, List, Search, Trash2, FolderPlus, FilePlus,
 } from 'lucide-react';
+import { fileTypeIcon } from '@/files/fileTypeIcon';
 
 const SIDEBAR_ITEMS = [
   { id: 'home', name: 'Home', icon: 'Home', path: '/home/user' },
@@ -22,12 +23,7 @@ const SIDEBAR_ITEMS = [
 ];
 
 const getFileIcon = (name: string, type: FileSystemNode['type']) => {
-  if (type === 'folder') return Folder;
-  if (name.endsWith('.txt')) return FileText;
-  if (name.endsWith('.json')) return FileText;
-  if (name.endsWith('.js') || name.endsWith('.ts')) return FileText;
-  if (name.endsWith('.md')) return FileText;
-  return FileText;
+  return fileTypeIcon(name, type);
 };
 
 export default function FileManager() {

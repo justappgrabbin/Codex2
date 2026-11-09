@@ -1,0 +1,8 @@
+
+# Generated Spec Document
+Module: {{ module_name | default("unknown") }}
+
+Intents:
+{% for intent in intents %}
+- {{ intent }}
+{% endfor %}

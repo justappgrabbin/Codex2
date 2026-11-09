@@ -1,0 +1,17 @@
+{
+  "name": "synthia-monaco-umd",
+  "private": true,
+  "type": "module",
+  "license": "MIT",
+  "scripts": {
+    "download": "download-monaco -v 0.52.2 -d ./tmp",
+    "build": "rollup -c rollup.config.js"
+  },
+  "dependencies": {
+    "@swc/core": "^1.16.22",
+    "rollup": "^4.34.9",
+    "rollup-monaco-bundler": "^1.0.2",
+    "rollup-plugin-styles": "^4.0.0",
+    "rollup-plugin-swc3": "^0.12.1"
+  }
+}

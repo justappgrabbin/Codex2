@@ -7,6 +7,11 @@ import { JsonFilePersistence } from '../runtime/json-file-persistence.mjs';
 import { ConversationExecution } from '../services/conversation-execution.mjs';
 import { FileAdmission } from '../services/file-admission.mjs';
 import { readZipMembers } from './zip-members.mjs';
+import { createHostShell } from '../services/host-shell.mjs';
+import { createTridentMcp } from '../services/trident-mcp-glue.mjs';
+import { mindsStatus, routeChat } from '../services/resident-minds.mjs';
+import { GroveStore } from '../services/grove-store.mjs';
+import { describePlatforms, detectPlatform } from '../services/platform-runtime.mjs';
 
 const root = resolve(fileURLToPath(new URL('../shell/kimi-linux/dist/', import.meta.url)));
 const dataDir = resolve(process.env.SYNTHIA_DATA_DIR ?? fileURLToPath(new URL('../runtime/data/local-computer/', import.meta.url)));
@@ -25,13 +30,21 @@ function isLocalRequest(req) {
     && (fetchSite === undefined || fetchSite === 'same-origin' || fetchSite === 'none');
 }
 await mkdir(dataDir, { recursive: true });
+const filesRoot = join(dataDir, 'files');
+const systemRoot = join(dataDir, 'system');
+await mkdir(filesRoot, { recursive: true });
+await mkdir(systemRoot, { recursive: true });
 const computer = await new ComputerRuntime({
   persistence: new JsonFilePersistence(join(dataDir, 'state.json')),
   eventLogPath: join(dataDir, 'events.jsonl'),
+  hostRoot: filesRoot,
 }).boot();
 const conversation = new ConversationExecution(computer);
 const files = new FileAdmission(computer, conversation.execution);
 const generative = computer.generative;
+const shell = createHostShell({ userRoot: join(filesRoot, 'home/user'), systemRoot });
+const mcp = createTridentMcp({ vfs: computer.vfs, shell, computer });
+const grove = new GroveStore({ registryPath: fileURLToPath(new URL('../grove/registry.json', import.meta.url)), installRoot: filesRoot, files: computer.vfs });
 
 // Import names are allocated before the first asynchronous write. This prevents
 // an upload with the same filename from replacing an earlier user's original.
@@ -171,12 +184,50 @@ const server = createServer(async (req, res) => {
         if (artifact.meta.encoding === 'base64') throw new TypeError('Binary artifacts cannot be executed as text.');
         return json(res, 200, await conversation.executeArtifact({ name: artifact.path.split('/').at(-1), type: request.type, content: artifact.content }));
       }
+      if (req.method === 'GET' && url.pathname === '/api/container/status') return json(res, 200, await shell.status('user'));
+      if (req.method === 'POST' && url.pathname === '/api/container/exec') {
+        const request = await body(req);
+        const result = await shell.runUser(request.command, { cwd: request.cwd });
+        return json(res, 200, { success: result.ok, ...result });
+      }
+      if (req.method === 'GET' && url.pathname === '/api/system-container/status') return json(res, 200, await shell.status('system'));
+      if (req.method === 'POST' && url.pathname === '/api/system-container/exec') {
+        const request = await body(req);
+        const result = await shell.runSystem(request.command, { cwd: request.cwd });
+        return json(res, 200, { success: result.ok, ...result });
+      }
+      if (req.method === 'GET' && url.pathname === '/api/minds/status') return json(res, 200, mindsStatus());
+      if (req.method === 'POST' && url.pathname === '/api/minds/chat') return json(res, 200, await routeChat({ text: (await body(req)).text, mcp }));
+      if (req.method === 'GET' && url.pathname === '/api/mcp/tools') return json(res, 200, { tools: mcp.listTools() });
+      if (req.method === 'POST' && url.pathname === '/api/mcp/call') {
+        const request = await body(req);
+        return json(res, 200, await mcp.callTool(request.name, request.arguments ?? request.args ?? {}));
+      }
+      if (req.method === 'GET' && url.pathname === '/api/grove') return json(res, 200, await grove.list());
+      if (req.method === 'POST' && url.pathname === '/api/grove/install') {
+        const request = await body(req);
+        return json(res, 200, await grove.install(request.id ?? request.packageId));
+      }
+      if (req.method === 'GET' && url.pathname === '/api/platform') return json(res, 200, { current: detectPlatform(), adapters: describePlatforms() });
       return json(res, 404, { error: 'Unknown computer operation.' });
+
     }
     if (req.method !== 'GET' && req.method !== 'HEAD') return json(res, 405, { error: 'Method not allowed.' });
     const requested = decodeURIComponent(url.pathname === '/' ? '/index.html' : url.pathname);
-    const path = resolve(root, '.' + requested);
-    if (path !== root && !path.startsWith(root + sep)) return json(res, 403, { error: 'Invalid path.' });
+    const moduleRoot = resolve(fileURLToPath(new URL('../modules/r22-linux-guest/', import.meta.url)));
+    const monacoRoot = resolve(fileURLToPath(new URL('../shell/kimi-linux/public/monaco/', import.meta.url)));
+    let path;
+    let allowedRoot = root;
+    if (requested.startsWith('/modules/r22-linux-guest/')) {
+      path = resolve(moduleRoot, '.' + requested.slice('/modules/r22-linux-guest'.length));
+      allowedRoot = moduleRoot;
+    } else if (requested.startsWith('/monaco/')) {
+      path = resolve(monacoRoot, '.' + requested.slice('/monaco'.length));
+      allowedRoot = monacoRoot;
+    } else {
+      path = resolve(root, '.' + requested);
+    }
+    if (path !== allowedRoot && !path.startsWith(allowedRoot + sep)) return json(res, 403, { error: 'Invalid path.' });
     const target = (await stat(path).catch(() => null))?.isFile() ? path : join(root, 'index.html');
     const bytes = await readFile(target);
     res.writeHead(200, { 'Content-Type': mime[extname(target)] ?? 'application/octet-stream', 'X-Content-Type-Options': 'nosniff' });

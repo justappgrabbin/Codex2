@@ -1,0 +1,34 @@
+
+<!-- Generated Trinity Chart -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>{{ chart_name }} Trinity Chart</title>
+    <style>
+        body { font-family: Arial, sans-serif; background: #1a1a3d; color: #e0e0e0; padding: 20px; }
+        h1 { color: #00d4ff; text-shadow: 0 0 10px #00d4ff; }
+        canvas { max-width: 800px; margin: 20px auto; background: rgba(255, 255, 255, 0.1); padding: 10px; border-radius: 8px; display:block; }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+</head>
+<body>
+    <h1>{{ chart_name }} Trinity Chart 🌌</h1>
+    <canvas id="trinityChart"></canvas>
+    <script>
+        const ctx = document.getElementById('trinityChart').getContext('2d');
+        new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: [{% for data in chart_data %}'{{ data.label }}'{% if not loop.last %},{% endif %}{% endfor %}],
+                datasets: [{
+                    label: '{{ chart_name }}',
+                    data: [{% for data in chart_data %}{{ data.value }}{% if not loop.last %},{% endif %}{% endfor %}],
+                    borderWidth: 1
+                }]
+            },
+            options: {scales: {y: {beginAtZero: true}}}
+        });
+    </script>
+</body>
+</html>

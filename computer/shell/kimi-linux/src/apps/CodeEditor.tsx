@@ -4,6 +4,7 @@
 
 import { useState, useCallback, useMemo, useRef } from 'react';
 import { useFileSystem } from '@/hooks/useFileSystem';
+import { MonacoPane } from '@/editor/MonacoPane';
 import {
   Code2, X, Plus, Search, Save, FolderOpen, FileText,
   ChevronRight, ChevronDown, Folder,
@@ -151,6 +152,7 @@ export default function CodeEditor() {
   const [cursorPos, setCursorPos] = useState({ line: 1, col: 1 });
   const [executionOutput, setExecutionOutput] = useState('');
   const [running, setRunning] = useState(false);
+  const [splitView, setSplitView] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const lineNumbersRef = useRef<HTMLDivElement>(null);
 
@@ -169,11 +171,14 @@ export default function CodeEditor() {
       if (!response.ok) throw new Error(receipt.error || `Execution failed (${response.status})`);
       const outcome = receipt.result?.result;
       const value = outcome?.returnValue;
+      const stdout = Array.isArray(receipt.stdout) ? receipt.stdout
+        : receipt.output ? [receipt.output]
+        : (outcome?.stdout ?? []);
       setExecutionOutput([
         receipt.ok ? 'Execution complete' : 'Execution failed',
         `Path: ${receipt.path ?? 'unknown'}`,
         `Address: ${receipt.address?.dimension ?? 'unknown'} · Gate ${receipt.address?.gate ?? '?'}`,
-        ...(outcome?.stdout ?? []),
+        ...stdout,
         value === undefined ? '' : typeof value === 'string' ? value : JSON.stringify(value, null, 2),
         outcome?.error ? String(outcome.error) : '',
       ].filter(Boolean).join('\n'));
@@ -236,9 +241,9 @@ export default function CodeEditor() {
   const newFile = useCallback(() => {
     const newTab: EditorTab = {
       id: Date.now().toString() + Math.random().toString(36).slice(2),
-      name: 'untitled.txt',
-      content: '',
-      language: 'plaintext',
+      name: 'untitled.js',
+      content: 'console.log(2+2);\n',
+      language: 'javascript',
       isDirty: false,
     };
     setTabs((prev) => [...prev, newTab]);
@@ -462,45 +467,22 @@ export default function CodeEditor() {
           {activeTab ? (
             <>
               <div className="flex-1 flex overflow-hidden relative">
-                {/* Line numbers */}
-                <div
-                  ref={lineNumbersRef}
-                  className="shrink-0 overflow-hidden text-right py-2 select-none"
-                  style={{ width: 48, background: 'var(--bg-window)', color: 'var(--text-disabled)', fontSize: 12, fontFamily: "'JetBrains Mono', monospace", lineHeight: '20px' }}
-                >
-                  {lineNumbers.map((n) => (
-                    <div key={n} className="pr-3" style={{ height: 20 }}>{n}</div>
-                  ))}
-                </div>
-
-                {/* Code area with highlighting */}
-                <div className="flex-1 relative overflow-auto">
-                  {/* Syntax highlight layer */}
-                  <div
-                    className="absolute inset-0 py-2 px-1 pointer-events-none whitespace-pre"
-                    style={{ fontSize: 13, fontFamily: "'JetBrains Mono', monospace", lineHeight: '20px', color: 'var(--text-primary)' }}
-                    dangerouslySetInnerHTML={{ __html: highlightedHtml + '\n' }}
-                  />
-                  {/* Input textarea */}
-                  <textarea
-                    ref={textareaRef}
+                <div className="flex-1 min-w-0">
+                  <MonacoPane
                     value={activeTab.content}
-                    onChange={(e) => updateContent(activeTab.id, e.target.value)}
-                    onKeyDown={handleKeyDown}
-                    onClick={handleCursor}
-                    onKeyUp={handleCursor}
-                    onScroll={handleScroll}
-                    spellCheck={false}
-                    className="absolute inset-0 w-full h-full py-2 px-1 resize-none outline-none bg-transparent whitespace-pre"
-                    style={{
-                      fontSize: 13,
-                      fontFamily: "'JetBrains Mono', monospace",
-                      lineHeight: '20px',
-                      color: 'transparent',
-                      caretColor: 'var(--text-primary)',
-                    }}
+                    language={activeTab.language}
+                    onChange={(value) => updateContent(activeTab.id, value)}
                   />
                 </div>
+                {splitView && (
+                  <div className="flex-1 min-w-0 border-l" style={{ borderColor: 'var(--border-subtle)' }}>
+                    <MonacoPane
+                      value={activeTab.content}
+                      language={activeTab.language}
+                      onChange={(value) => updateContent(activeTab.id, value)}
+                    />
+                  </div>
+                )}
               </div>
 
               {/* Status Bar */}

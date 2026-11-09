@@ -38,7 +38,7 @@ function AppShell() {
       // Ctrl+Alt+T opens Terminal
       if (e.ctrlKey && e.altKey && e.key === 't') {
         e.preventDefault();
-        dispatch({ type: 'OPEN_WINDOW', appId: 'codeeditor' });
+        dispatch({ type: 'OPEN_WINDOW', appId: 'terminal' });
         return;
       }
 

@@ -1,5 +1,6 @@
 import { EventBus, MemoryPersistence, StateStore, Registry } from './core/kernel.mjs';
 import { VirtualFileSystem, ArtifactIntake } from './runtime/storage.mjs';
+import { HostBackedFileSystem } from './runtime/host-backed-vfs.mjs';
 import { restoreArtifactAndMountRegistries } from './runtime/registry-recovery.mjs';
 import { AutomataEngine, ProcessFabric, BackendBroker } from './runtime/execution.mjs';
 import { CapabilityGraph, MorphEngine, CultivationEngine, PolicyEngine } from './runtime/experience.mjs';
@@ -19,8 +20,9 @@ import { GenerativeAssemblyService } from './services/generative-assembly.mjs';
 import { ExperimentLoop } from './services/experiment-loop.mjs';
 
 export class ComputerRuntime {
-  constructor({ persistence = new MemoryPersistence(), namespace = 'synthai-computer', github = null, eventLogPath = null } = {}) {
+  constructor({ persistence = new MemoryPersistence(), namespace = 'synthai-computer', github = null, eventLogPath = null, hostRoot = null } = {}) {
     this.eventLogPath = eventLogPath;
+    this.hostRoot = hostRoot;
     this.bus = new EventBus();
     this.state = new StateStore({ bus: this.bus, persistence, namespace });
     const registry = kind => new Registry({ kind, bus: this.bus });
@@ -39,7 +41,8 @@ export class ComputerRuntime {
     this.systems = registry('system');
     this.services = registry('service');
 
-    this.vfs = new VirtualFileSystem({ bus: this.bus, state: this.state });
+    const vfs = new VirtualFileSystem({ bus: this.bus, state: this.state });
+    this.vfs = hostRoot ? new HostBackedFileSystem({ inner: vfs, hostRoot }) : vfs;
     this.shellManager = new ShellManager({ bus: this.bus, shells: this.shells, apps: this.apps, state: this.state });
     this.automata = new AutomataEngine({ bus: this.bus, automata: this.automataRegistry, tools: this.tools, state: this.state });
     this.processes = new ProcessFabric({ bus: this.bus, processes: this.processRegistry, state: this.state });
@@ -122,6 +125,8 @@ export class ComputerRuntime {
       if (!this.capabilityRegistry.has(id)) this.capabilities.register(id, { providers: ['back-up-', 'computer'] });
     }
 
+    if (typeof this.vfs.ensureUserTree === 'function') await this.vfs.ensureUserTree();
+    if (typeof this.vfs.hydrate === 'function') await this.vfs.hydrate();
     await this.state.set('computer.boot', { status: 'ready', at: Date.now(), version: '0.2.0-project-workspace' }, { source: 'boot' });
     this.bus.emit('computer:ready', this.snapshot());
     return this;

@@ -14,6 +14,7 @@ export default defineConfig({
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
+      "wouter": path.resolve(__dirname, "./src/vendor/wouter.tsx"),
     },
   },
 });

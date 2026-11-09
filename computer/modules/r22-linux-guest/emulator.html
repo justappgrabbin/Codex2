@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Synthia x86 Emulator</title>
+<style>
+:root{color-scheme:dark;font-family:Inter,system-ui,sans-serif;background:#07070b;color:#eee}*{box-sizing:border-box}body{margin:0;padding:18px 12px 30px}header{display:flex;align-items:center;gap:10px;margin-bottom:12px}h1{font-size:17px;margin:0;flex:1}button,input{font:inherit}button{background:#172554;color:#dbeafe;border:1px solid #3b82f6;border-radius:8px;padding:9px 11px;cursor:pointer}button.secondary{background:#18181b;border-color:#3f3f46}.panel{border:1px solid #27272a;background:#101014;border-radius:12px;padding:11px;margin-bottom:10px}.controls{display:flex;gap:7px;flex-wrap:wrap}.status{font-size:12px;color:#a1a1aa;line-height:1.5;margin-top:8px}.status.ok{color:#6ee7b7}.status.error{color:#f87171}#screen{min-height:270px;background:#000;border-radius:8px;overflow:hidden}#screen canvas{display:block;width:100%;height:auto;min-height:240px}#screenText{white-space:pre-wrap;font:12px monospace;color:#d4d4d8;padding:8px}#serial{white-space:pre-wrap;overflow-wrap:anywhere;font:11px/1.45 monospace;background:#000;color:#a7f3d0;padding:10px;border-radius:8px;height:180px;overflow:auto}.serial-input{display:flex;gap:7px;margin-top:8px}.serial-input input{min-width:0;flex:1;background:#09090b;border:1px solid #3f3f46;border-radius:8px;color:#eee;padding:9px}.note{font-size:11px;line-height:1.5;color:#a1a1aa}
+</style></head><body>
+<header><button class="secondary" id="back">‹</button><h1>x86 Linux Emulator</h1></header>
+<div class="panel"><div class="controls"><button id="boot">Boot Linux</button><button class="secondary" id="stop" disabled>Pause</button><button class="secondary" id="restart" disabled>Restart</button></div><div id="status" class="status">Stopped. Boot loads the bundled firmware, WebAssembly CPU, and 32-bit Linux ISO entirely from this app.</div></div>
+<div class="panel"><div id="screen"><div id="screenText">No virtual machine running.</div><canvas aria-label="Emulated PC display"></canvas></div></div>
+<div class="panel"><b>Serial console</b><div id="serial">Guest output will appear here.</div><div class="serial-input"><input id="command" placeholder="Type a guest console command"><button id="send" disabled>Send</button></div><div class="note">The serial console sends exactly what you enter. It does not execute commands on Android. This is a real but slow 32-bit x86 emulator, not an Android emulator or hardware-accelerated virtual machine. Networking and host file sharing are disabled in this build; the guest may report that its optional host9p mount is unavailable.</div></div>
+<script src="./vendor/v86/libv86.js"></script>
+<script>
+(()=>{
+ const byId=id=>document.getElementById(id);let emulator=null,running=false,serialStarted=false;
+ const status=(text,type='')=>{byId('status').textContent=text;byId('status').className='status '+type;};
+ const serial=text=>{const el=byId('serial');if(!serialStarted){el.textContent='';serialStarted=true;}el.textContent=(el.textContent+text).slice(-200000);el.scrollTop=el.scrollHeight;};
+ byId('back').onclick=()=>parent.synthiaAndroidBack?parent.synthiaAndroidBack():history.back();
+ byId('boot').onclick=()=>{
+   if(emulator){emulator.run();return;}
+   try{
+     status('Loading the x86 CPU, firmware, and Linux image…');
+     emulator=new V86({
+       wasm_path:'./vendor/v86/v86.wasm',memory_size:128*1024*1024,vga_memory_size:16*1024*1024,
+       screen_container:byId('screen'),bios:{url:'./vendor/v86/bios/seabios.bin'},vga_bios:{url:'./vendor/v86/bios/vgabios.bin'},
+       cdrom:{url:'./vendor/v86/images/linux3.iso',async:false},boot_order:'0x123',autostart:true
+     });
+     emulator.add_listener('emulator-started',()=>{running=true;byId('stop').disabled=false;byId('stop').textContent='Pause';byId('restart').disabled=false;byId('send').disabled=false;byId('boot').disabled=true;status('Virtual machine running. Wait for the guest boot prompt.','ok');});
+     emulator.add_listener('emulator-stopped',()=>{running=false;byId('stop').textContent='Resume';status('Virtual machine paused.');});
+     emulator.add_listener('serial0-output-byte',byte=>serial(String.fromCharCode(byte)));
+     byId('restart').onclick=()=>{serialStarted=false;byId('serial').textContent='Restarting…';emulator.restart();};
+     byId('send').onclick=()=>{const input=byId('command');if(!input.value)return;emulator.serial0_send(input.value+'\n');input.value='';};
+     byId('command').onkeydown=event=>{if(event.key==='Enter')byId('send').click();};
+   }catch(error){status(`Emulator failed to initialize: ${error.message}`,'error');}
+ };
+ byId('stop').onclick=async()=>{if(!emulator)return;if(running)await emulator.stop();else await emulator.run();};
+ addEventListener('pagehide',()=>{if(emulator&&running)emulator.stop();});
+})();
+</script></body></html>

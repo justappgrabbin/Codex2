@@ -1,0 +1,24 @@
+{
+  "source": "local-registry",
+  "note": "Grove Store scaffold. No Supabase credentials. Optional packages install from this local registry or a configured local path.",
+  "builtin": [
+    { "id": "filemanager", "name": "File Manager", "installed": true },
+    { "id": "ingest", "name": "Import", "installed": true },
+    { "id": "texteditor", "name": "Text Editor", "installed": true },
+    { "id": "codeeditor", "name": "Code Editor", "installed": true },
+    { "id": "chat", "name": "Synthia", "installed": true },
+    { "id": "terminal", "name": "Terminal", "installed": true },
+    { "id": "system-terminal", "name": "System Terminal", "installed": true },
+    { "id": "grovestore", "name": "Grove Store", "installed": true }
+  ],
+  "packages": [
+    {
+      "id": "linux-guest-r22",
+      "name": "r22 Linux Guest (v86)",
+      "version": "22.2",
+      "description": "Alexis's bundled 32-bit x86 Linux ISO in v86. Optional module already present at /modules/r22-linux-guest/.",
+      "location": "modules/r22-linux-guest",
+      "kind": "local-module"
+    }
+  ]
+}

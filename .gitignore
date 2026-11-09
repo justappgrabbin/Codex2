@@ -5,3 +5,6 @@ computer/shell/kimi-linux/dist/
 *.tsbuildinfo
 __pycache__/
 .DS_Store
+computer/shell/monaco-umd/node_modules/
+computer/shell/monaco-umd/tmp/
+computer/shell/monaco-umd/dist/

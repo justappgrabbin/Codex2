@@ -1,4 +1,5 @@
 import { SynthiaSystem } from '../engines/unified-execution-spine/src/synthia-system.mjs';
+import { javascriptArtifactName, collectStdout } from './execute-output.mjs';
 const serializable = (value) => JSON.parse(JSON.stringify(value, (_key, item) => typeof item === 'function' ? undefined : item));
 
 /** Connects the existing Computer state to the two original donor engines. */
@@ -66,9 +67,11 @@ export class ConversationExecution {
   async executeArtifact({ name, type, content }) {
     if (!name || typeof content !== 'string') throw new TypeError('Artifact name and text content are required.');
     if (content.length > 500000) throw new RangeError('Artifact exceeds 500,000 characters.');
+    name = javascriptArtifactName(name, type);
     const result = await this.execution.executeArtifact({ name, type, content });
+    const stdout = collectStdout(result);
     const receipt = {
-      id: crypto.randomUUID(), at: new Date().toISOString(), name, type,
+      id: crypto.randomUUID(), at: new Date().toISOString(), name, type, stdout, output: stdout.join('\n'),
       ok: Boolean(result.ok), path: result.result?.path ?? result.path ?? null,
       address: result.canonicalAddress ?? null,
       stages: serializable(result.pipeline?.stages ?? result.stages ?? null),

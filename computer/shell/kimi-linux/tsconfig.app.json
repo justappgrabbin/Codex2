@@ -12,6 +12,9 @@
     "paths": {
       "@/*": [
         "./src/*"
+      ],
+      "wouter": [
+        "./src/vendor/wouter.tsx"
       ]
     },
     /* Bundler mode */
