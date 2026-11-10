@@ -202,4 +202,30 @@ test('live computer HTTP: execute 4, two shells, mcp, platform', { timeout: 9000
 
   const platform = JSON.parse((await http(port, '/api/platform')).body);
   assert.equal(platform.current, 'linux');
+
+  const denied = JSON.parse((await http(port, '/api/container/exec', 'POST', { command: 'curl http://127.0.0.1:1/' })).body);
+  assert.equal(denied.denied, true);
+  assert.match(denied.stderr, /network command requires approval/);
+  const install = JSON.parse((await http(port, '/api/container/exec', 'POST', { command: 'npm install left-pad' })).body);
+  assert.equal(install.denied, true);
+  assert.match(install.stderr, /install command requires approval/);
+  const escaped = await http(port, '/api/container/exec', 'POST', { command: 'echo no', cwd: '/etc' });
+  assert.equal(escaped.status, 400, escaped.body);
+
+  const played = JSON.parse((await http(port, '/api/projects/play', 'POST', {
+    path: '/home/user/Documents/demo/main.js',
+    content: 'console.log("played-4");\n',
+  })).body);
+  assert.equal(played.ok, true, JSON.stringify(played));
+  assert.equal(played.mode, 'run');
+  assert.match(played.stdout, /played-4/);
+
+  const preview = JSON.parse((await http(port, '/api/projects/play', 'POST', {
+    path: '/home/user/Documents/site/index.html',
+    content: '<!doctype html><title>played</title><p>site-ok</p>',
+  })).body);
+  assert.equal(preview.mode, 'preview');
+  const page = await http(port, preview.previewUrl);
+  assert.equal(page.status, 200, page.body);
+  assert.match(page.body, /site-ok/);
 });

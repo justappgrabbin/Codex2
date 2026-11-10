@@ -32,8 +32,10 @@ function isLocalRequest(req) {
 await mkdir(dataDir, { recursive: true });
 const filesRoot = join(dataDir, 'files');
 const systemRoot = join(dataDir, 'system');
+const userRoot = join(filesRoot, 'home/user');
 await mkdir(filesRoot, { recursive: true });
 await mkdir(systemRoot, { recursive: true });
+await mkdir(userRoot, { recursive: true });
 const computer = await new ComputerRuntime({
   persistence: new JsonFilePersistence(join(dataDir, 'state.json')),
   eventLogPath: join(dataDir, 'events.jsonl'),
@@ -42,7 +44,7 @@ const computer = await new ComputerRuntime({
 const conversation = new ConversationExecution(computer);
 const files = new FileAdmission(computer, conversation.execution);
 const generative = computer.generative;
-const shell = createHostShell({ userRoot: join(filesRoot, 'home/user'), systemRoot });
+const shell = createHostShell({ userRoot, systemRoot, vfs: computer.vfs });
 const mcp = createTridentMcp({ vfs: computer.vfs, shell, computer });
 const grove = new GroveStore({ registryPath: fileURLToPath(new URL('../grove/registry.json', import.meta.url)), installRoot: filesRoot, files: computer.vfs });
 
@@ -187,14 +189,18 @@ const server = createServer(async (req, res) => {
       if (req.method === 'GET' && url.pathname === '/api/container/status') return json(res, 200, await shell.status('user'));
       if (req.method === 'POST' && url.pathname === '/api/container/exec') {
         const request = await body(req);
-        const result = await shell.runUser(request.command, { cwd: request.cwd });
+        const result = await shell.runUser(request.command, { cwd: request.cwd, approved: request.approved === true });
         return json(res, 200, { success: result.ok, ...result });
       }
       if (req.method === 'GET' && url.pathname === '/api/system-container/status') return json(res, 200, await shell.status('system'));
       if (req.method === 'POST' && url.pathname === '/api/system-container/exec') {
         const request = await body(req);
-        const result = await shell.runSystem(request.command, { cwd: request.cwd });
+        const result = await shell.runSystem(request.command, { cwd: request.cwd, approved: request.approved === true });
         return json(res, 200, { success: result.ok, ...result });
+      }
+      if (req.method === 'POST' && url.pathname === '/api/projects/play') {
+        const request = await body(req);
+        return json(res, 200, await shell.play({ path: request.path, content: request.content }));
       }
       if (req.method === 'GET' && url.pathname === '/api/minds/status') return json(res, 200, mindsStatus());
       if (req.method === 'POST' && url.pathname === '/api/minds/chat') return json(res, 200, await routeChat({ text: (await body(req)).text, mcp }));
@@ -214,6 +220,19 @@ const server = createServer(async (req, res) => {
     }
     if (req.method !== 'GET' && req.method !== 'HEAD') return json(res, 405, { error: 'Method not allowed.' });
     const requested = decodeURIComponent(url.pathname === '/' ? '/index.html' : url.pathname);
+    if (requested.startsWith('/preview/')) {
+      const rel = requested.slice('/preview/'.length);
+      if (!rel || rel.split('/').includes('..') || rel.startsWith('/')) return json(res, 403, { error: 'Invalid path.' });
+      const file = resolve(userRoot, rel);
+      const userResolved = resolve(userRoot);
+      if (file !== userResolved && !file.startsWith(userResolved + sep)) return json(res, 403, { error: 'Invalid path.' });
+      const info = await stat(file).catch(() => null);
+      if (!info?.isFile()) return json(res, 404, { error: 'Preview file not found.' });
+      const bytes = await readFile(file);
+      res.writeHead(200, { 'Content-Type': mime[extname(file)] ?? 'text/plain; charset=utf-8', 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff' });
+      res.end(req.method === 'HEAD' ? undefined : bytes);
+      return;
+    }
     const moduleRoot = resolve(fileURLToPath(new URL('../modules/r22-linux-guest/', import.meta.url)));
     const monacoRoot = resolve(fileURLToPath(new URL('../shell/kimi-linux/public/monaco/', import.meta.url)));
     let path;

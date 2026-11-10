@@ -7,7 +7,7 @@ import { useFileSystem } from '@/hooks/useFileSystem';
 import { MonacoPane } from '@/editor/MonacoPane';
 import {
   Code2, X, Plus, Search, Save, FolderOpen, FileText,
-  ChevronRight, ChevronDown, Folder, Sparkles,
+  ChevronRight, ChevronDown, Folder, Sparkles, Play,
 } from 'lucide-react';
 import { SelfHelptonPanel } from '@/editor/self-helpton/SelfHelptonPanel';
 import { loadSettings, setSelfHelptonPanelEnabled } from '@/lib/editor-settings.mjs';
@@ -153,6 +153,7 @@ export default function CodeEditor() {
   const [lineCount, setLineCount] = useState(1);
   const [cursorPos, setCursorPos] = useState({ line: 1, col: 1 });
   const [executionOutput, setExecutionOutput] = useState('');
+  const [previewUrl, setPreviewUrl] = useState('');
   const [running, setRunning] = useState(false);
   const [splitView, setSplitView] = useState(false);
   const [showSelfHelpton, setShowSelfHelpton] = useState(() => loadSettings().selfHelptonPanel);
@@ -160,6 +161,37 @@ export default function CodeEditor() {
   const lineNumbersRef = useRef<HTMLDivElement>(null);
 
   const activeTab = tabs.find((t) => t.id === activeTabId);
+
+  const playProject = async () => {
+    if (!activeTab || running) return;
+    setRunning(true);
+    setPreviewUrl('');
+    setExecutionOutput('Playing the selected project…');
+    const path = activeTab.fileNodeId
+      ? fs.getNodePath(activeTab.fileNodeId).replace(/^\/+/, '/')
+      : `/home/user/Documents/${activeTab.name}`;
+    try {
+      const response = await fetch('/api/projects/play', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ path, content: activeTab.content }),
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || `Play failed (${response.status})`);
+      if (result.mode === 'preview' && result.previewUrl) {
+        setPreviewUrl(result.previewUrl);
+        setExecutionOutput([`Playing ${result.project}`, `Entry: ${result.entry}`, result.previewUrl].join('\n'));
+      } else {
+        setExecutionOutput([
+          result.ok ? 'Play finished' : 'Play failed',
+          `Project: ${result.project ?? path}`,
+          `Entry: ${result.entry ?? ''}`,
+          result.stdout || '',
+          result.stderr || '',
+        ].filter(Boolean).join('\n'));
+      }
+    } catch (error) { setExecutionOutput(String(error)); }
+    finally { setRunning(false); }
+  };
 
   const runFile = async () => {
     if (!activeTab || running) return;
@@ -401,6 +433,9 @@ export default function CodeEditor() {
         <button onClick={runFile} disabled={!activeTab || running} className="flex items-center gap-1 px-2 py-1 rounded hover:bg-[var(--bg-hover)] disabled:opacity-40" title="Execute current file through Synthia">
           <Code2 size={14} /><span className="text-xs">{running ? 'Running' : 'Run'}</span>
         </button>
+        <button onClick={playProject} disabled={!activeTab || running} data-testid="play-project" className="flex items-center gap-1 px-2 py-1 rounded hover:bg-[var(--bg-hover)] disabled:opacity-40" title="Play the selected project">
+          <Play size={14} /><span className="text-xs">Play</span>
+        </button>
         <button onClick={analyzeStructure} disabled={!activeTab || !activeTab.content.trim() || running} className="flex items-center gap-1 px-2 py-1 rounded hover:bg-[var(--bg-hover)] disabled:opacity-40" title="Analyze structure through the existing shared Computer engine">
           <Search size={14} /><span className="text-xs">Analyze structure</span>
         </button>
@@ -424,7 +459,8 @@ export default function CodeEditor() {
       </div>
 
       {/* Find Bar */}
-      {executionOutput && <pre role="status" className="px-3 py-2 max-h-28 overflow-auto text-xs whitespace-pre-wrap" style={{ background: 'var(--bg-titlebar)', borderBottom: '1px solid var(--border-subtle)' }}>{executionOutput}</pre>}
+      {executionOutput && <pre role="status" data-testid="play-output" className="px-3 py-2 max-h-28 overflow-auto text-xs whitespace-pre-wrap" style={{ background: 'var(--bg-titlebar)', borderBottom: '1px solid var(--border-subtle)' }}>{executionOutput}</pre>}
+      {previewUrl && <iframe title="Project preview" data-testid="project-preview" src={previewUrl} className="w-full shrink-0 border-b" style={{ height: 180, borderColor: 'var(--border-subtle)' }} />}
       {showFindBar && (
         <div className="flex items-center gap-2 px-3 py-1 shrink-0" style={{ background: 'var(--bg-titlebar)', borderBottom: '1px solid var(--border-subtle)' }}>
           <Search size={14} className="text-[var(--text-secondary)]" />

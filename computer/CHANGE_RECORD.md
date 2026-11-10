@@ -1,5 +1,27 @@
 
-# Change record — Self-Helpton blended into the Monaco editor (assemble-core)
+# Change record — hidden Linux terminal (assemble-core)
+
+WHAT EXISTED BEFORE: Both terminals already called `/api/container/exec` and `/api/system-container/exec`, but the shell tried to import Alexis's TypeScript `linuxContainerService.ts` from Node. That import cannot run, so neither terminal could execute a command. Android started the same Node server and did not set up her PRoot runtime.
+
+PRESERVED: `donors/copied/synthai2-container/linuxContainerService.ts` and `donors/copied/android-runtime/LocalLinuxRuntime.java` are untouched. Addressing and birth-time were not changed. No merge and no deploy.
+
+CHANGED:
+- `computer/services/host-shell.mjs` now calls the JavaScript port instead of importing the TypeScript donor.
+- `computer/host/server.mjs` still serves the two terminal routes, and now also `POST /api/projects/play` and `/preview/…` for Play. The user home directory is created with the other data directories.
+- `computer/mobile-entry.mjs` reads the PRoot path, rootfs, and tmp directory from the Android process arguments.
+- The user terminal and the system terminal show the working directory and which engine answered. The code editor has a Play button, using her DevEnvironment Play control: a static `index.html` is previewed, and any other project entry is run.
+- `computer/android/app/src/main/java/org/synthai/computer/MainActivity.java` asks `LinuxBridge` to export the PRoot environment before Node starts.
+
+ADDED:
+- `computer/runtime/linux-container.mjs` — her container service ported to JavaScript (same env names, 30 second timeout, 256KB output cap, workspace jail). If `SYNTHIA_PROOT` and `SYNTHIA_LINUX_ROOTFS` both exist, commands are spawned with her PRoot argument list. Otherwise the host shell is used.
+- `computer/services/terminal-policy.mjs` — the user terminal refuses network commands and package installs unless the request is explicitly approved. The system terminal is the boot layer and is not on that list. Both terminals stay inside their own directory. This is a command check before spawn, not a kernel sandbox.
+- `computer/services/project-runner.mjs` — Play, using her `runWorkspaceFile` rules (`.sh`, `.py`, `.js` / `.mjs` / `.cjs`, text, otherwise executable).
+- `computer/android/.../LinuxBridge.java` — her `LocalLinuxRuntime` adapted into the app package. Two donor typos are fixed only in this copy so it can compile: `skipPadding` calls `skipFully` on its stream, and `PROOT_TMP_DIR` is a real statement. The donor file still has both typos.
+- `computer/android/prepare-linux.py` — stages `libproot.so` and the rootfs tars from a zip you already have. It does not download them. No PRoot binary is in this repo.
+- `computer/tests/linux-terminal.test.mjs`.
+
+NOT DONE ON THIS MACHINE: the Android app was not built or installed, and real PRoot was not executed. There is no `proot` binary and no rootfs tarball here. The PRoot argument list was checked, and a stand-in program was spawned with that list. The phone path still needs `prepare-linux.py` plus a device build.
+
 
 WHAT EXISTED BEFORE: Self-Helpton Foundry was a separate `selfhelpton` launcher app (iframe of the unchanged donor HTML) and a Grove Store builtin.
 

@@ -72,7 +72,12 @@ public final class MainActivity extends Activity {
             }
             File data = new File(getFilesDir(), "computer-data");
             if (!data.exists() && !data.mkdirs()) throw new IllegalStateException("Cannot create computer data directory");
-            int exit = startNode(new String[]{"node", entry.getAbsolutePath(), data.getAbsolutePath()});
+            LinuxBridge linux = new LinuxBridge(this);
+            linux.exportProcessEnvironment();
+            int exit = startNode(new String[]{
+                    "node", entry.getAbsolutePath(), data.getAbsolutePath(),
+                    linux.prootArgument(), linux.rootfsArgument(), linux.tmpArgument()
+            });
             handler.post(() -> status.setText("Computer service exited: " + exit));
         } catch (Exception error) {
             handler.post(() -> status.setText("Computer startup failed: " + error));
