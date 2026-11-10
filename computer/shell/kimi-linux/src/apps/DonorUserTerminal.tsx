@@ -17,6 +17,8 @@ interface ContainerStatus {
   shell: string;
   cwd: string;
   message: string;
+  engine?: string;
+  backend?: string;
 }
 const QUICK_COMMANDS = [
   { label: "Help", cmd: "help", icon: "❓" },
@@ -123,6 +125,7 @@ export function Terminal({ onClose }: TerminalProps) {
             "  touch FILE   Create a project file",
             "  mkdir NAME   Create a project folder",
             "  rm FILE      Delete a project file or folder",
+            "  play [PATH]  Run the selected project (index.html previews, otherwise the entry runs)",
             "  pwd          Show IDE workspace",
             "  echo TEXT    Echo text",
             "  date         Current time",
@@ -203,6 +206,26 @@ export function Terminal({ onClose }: TerminalProps) {
           write("Launched the real IDE project preview.");
           return;
         }
+        case "play": {
+          const target = args.join(" ").trim();
+          const response = await fetch("/api/projects/play", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ path: target || "." }),
+          });
+          const result: { ok?: boolean; mode?: string; previewUrl?: string; stdout?: string; stderr?: string; error?: string; entry?: string; project?: string } = await response.json();
+          if (!response.ok || result.ok === false) {
+            write(result.error || result.stderr || "Play failed", "error");
+            return;
+          }
+          if (result.mode === "preview" && result.previewUrl) {
+            window.open(result.previewUrl, "_blank", "noopener");
+            write(`Preview ${result.project || ""} ${result.entry || ""}\n${result.previewUrl}`);
+            return;
+          }
+          write([result.stdout, result.stderr].filter(Boolean).join("\n") || `Played ${result.entry || target || "project"}`);
+          return;
+        }
       }
       if (container.enabled) {
         await executeShell(value);
@@ -227,7 +250,7 @@ export function Terminal({ onClose }: TerminalProps) {
         <div className="flex items-center gap-2">
           <TerminalIcon className="h-4 w-4" />
           <span className="text-sm font-mono font-semibold">SynthAi2 Terminal</span>
-          <span className="text-xs text-green-300/70">{container.enabled ? "OS connected" : "IDE workspace"}</span>
+          <span className="text-xs text-green-300/70">{container.enabled ? (container.engine || "OS connected") : "IDE workspace"} {container.cwd}</span>
         </div>
         <div className="flex items-center gap-1">
           <Button variant="ghost" size="sm" onClick={() => setShowReference(!showReference)} className="h-7 text-xs text-green-300">

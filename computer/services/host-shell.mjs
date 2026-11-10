@@ -1,57 +1,79 @@
 /**
- * Thin glue around Alexis's unchanged Synthai2 linuxContainerService.
- * Donor: computer/donors/copied/synthai2-container/linuxContainerService.ts
- * Profiles pick a LINUX_CONTAINER_WORKDIR so the user terminal and the
- * system terminal stay permission-separated.
+ * Thin glue around the JavaScript port of Alexis's Synthai2 linuxContainerService.
+ * Donor original stays at computer/donors/copied/synthai2-container/linuxContainerService.ts.
+ * Profiles pick a workspace so the user terminal and the system terminal stay separated.
+ * The user terminal also passes through terminal-policy before a process is spawned.
  */
-const donorUrl = new URL('../donors/copied/synthai2-container/linuxContainerService.ts', import.meta.url);
+import { getContainerStatus, runContainerCommand } from '../runtime/linux-container.mjs';
+import { reviewTerminalCommand } from './terminal-policy.mjs';
+import { playProject } from './project-runner.mjs';
 
-async function loadDonor() {
-  return await import(donorUrl.href);
+function deniedResult(command, profile, root, reason) {
+  return {
+    ok: false,
+    denied: true,
+    command: String(command ?? ''),
+    profile,
+    cwd: root,
+    stdout: '',
+    stderr: reason,
+    exitCode: 126,
+    code: 126,
+    signal: null,
+    timedOut: false,
+    shell: null,
+    backend: null,
+  };
 }
 
-async function withRoot(root, fn) {
-  const prevRoot = process.env.LINUX_CONTAINER_WORKDIR;
-  const prevEnabled = process.env.LINUX_CONTAINER_ENABLED;
-  process.env.LINUX_CONTAINER_WORKDIR = root;
-  process.env.LINUX_CONTAINER_ENABLED = 'true';
-  try { return await fn(); }
-  finally {
-    if (prevRoot === undefined) delete process.env.LINUX_CONTAINER_WORKDIR;
-    else process.env.LINUX_CONTAINER_WORKDIR = prevRoot;
-    if (prevEnabled === undefined) delete process.env.LINUX_CONTAINER_ENABLED;
-    else process.env.LINUX_CONTAINER_ENABLED = prevEnabled;
-  }
-}
-
-export function createHostShell({ userRoot, systemRoot, timeoutMs } = {}) {
-  if (timeoutMs) process.env.LINUX_CONTAINER_TIMEOUT_MS = String(timeoutMs);
-  const run = async ({ command, cwd, profile = 'user' } = {}) => {
+export function createHostShell({ userRoot, systemRoot, timeoutMs, vfs } = {}) {
+  const rootFor = (profile) => {
     const root = profile === 'system' ? systemRoot : userRoot;
     if (!root) throw new Error(`No ${profile} shell root is configured.`);
-    const { runContainerCommand } = await loadDonor();
-    const result = await withRoot(root, () => runContainerCommand(command, cwd));
+    return root;
+  };
+  const run = async ({ command, cwd, profile = 'user', approved = false } = {}) => {
+    const root = rootFor(profile);
+    const review = reviewTerminalCommand(command, { profile, approved });
+    if (!review.allow) return deniedResult(command, profile, root, review.reason);
+    let result;
+    try {
+      result = await runContainerCommand(command, cwd, { enabled: true, workdir: root, timeoutMs });
+    } catch (error) {
+      if (/workspace/i.test(String(error?.message ?? ''))) throw new TypeError(error.message);
+      throw error;
+    }
     return {
       ok: result.code === 0 && !result.timedOut,
+      denied: false,
       command: result.command,
       profile,
       cwd: result.cwd,
       stdout: result.stdout,
       stderr: result.stderr,
       exitCode: result.code,
+      code: result.code,
       signal: result.signal,
       timedOut: result.timedOut,
       shell: result.shell,
+      backend: result.backend,
+      engine: result.engine,
     };
   };
   return {
     run,
-    runUser: (command, options = {}) => run({ command, cwd: options.cwd, profile: 'user' }),
-    runSystem: (command, options = {}) => run({ command, cwd: options.cwd, profile: 'system' }),
-    async status(profile = 'user') {
-      const { getContainerStatus } = await loadDonor();
-      const root = profile === 'system' ? systemRoot : userRoot;
-      return await withRoot(root, () => getContainerStatus());
+    runUser: (command, options = {}) => run({
+      command, cwd: options.cwd, profile: 'user', approved: options.approved === true,
+    }),
+    runSystem: (command, options = {}) => run({
+      command, cwd: options.cwd, profile: 'system', approved: options.approved === true,
+    }),
+    status(profile = 'user') {
+      const root = rootFor(profile);
+      return { ...getContainerStatus({ enabled: true, workdir: root }), profile };
+    },
+    play(request = {}) {
+      return playProject({ userRoot, vfs, timeoutMs, ...request });
     },
     userRoot,
     systemRoot,
