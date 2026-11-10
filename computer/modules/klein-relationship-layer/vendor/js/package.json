@@ -1,0 +1,4 @@
+{
+  "type": "commonjs",
+  "description": "IMPLEMENTATION DECISION: her v5.1 dist files are CommonJS. The computer package is ESM, so this folder-level flag lets Node load the copies as they were compiled, without editing her JS."
+}
