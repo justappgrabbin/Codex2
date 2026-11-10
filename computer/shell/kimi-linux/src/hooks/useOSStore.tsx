@@ -41,6 +41,7 @@ const defaultDesktopIcons: DesktopIcon[] = [
   { id: 'desk-chat', name: 'Synthia', icon: 'MessageSquare', appId: 'chat', position: { x: 96, y: 16 }, isSelected: false },
   { id: 'desk-code', name: 'Code', icon: 'Code2', appId: 'codeeditor', position: { x: 16, y: 106 }, isSelected: false },
   { id: 'desk-text', name: 'Text', icon: 'FileText', appId: 'texteditor', position: { x: 96, y: 106 }, isSelected: false },
+  { id: 'desk-settings', name: 'Settings', icon: 'Settings', appId: 'settings', position: { x: 176, y: 106 }, isSelected: false },
 ];
 
 const createInitialDockItems = (): DockItem[] => {

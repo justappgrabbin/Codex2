@@ -5,6 +5,8 @@ import gateTable from '../donors/recovered/synthai-r21.22-self-cultivation-graph
 import { CodeDNALearner } from '../donors/recovered/synthai-r21.22-self-cultivation-graph-integrated/substrate/mesh072/core/code_dna_learner.mjs';
 import { Automaton, AutomataMesh } from '../donors/Back-up-/vendor/pure-synthia-v0.4.0/src/synthia/ato-core/automaton.mjs';
 import { TraceFiringRegistry } from '../donors/Back-up-/vendor/pure-synthia-v0.4.0/src/synthia/ato-core/trace-firing.mjs';
+// WIRE: her Codex2 organizer. PersonalVault calls this same function when it preserves a file.
+import { organizeArtifact } from '../donors/Back-up-/vendor/pure-synthia-v0.4.0/src/synthia/morph-engine/substrate/vault/organize.mjs';
 
 const dimensions = ['Movement', 'Evolution', 'Being', 'Design', 'Space'];
 const cueFor = (address, addressKey, path) => ({
@@ -16,9 +18,10 @@ const cueFor = (address, addressKey, path) => ({
 
 /** Reuses the execution address resolver and the recovered code-DNA learner. */
 export class FileAdmission {
-  constructor(computer, execution) {
+  constructor(computer, execution, { vault = null } = {}) {
     this.computer = computer;
     this.execution = execution;
+    this.vault = vault;
     this.resolver = new ExecutionAddressResolver();
     this.mesh = new EmergentMesh(gateTable);
     this.dna = new CodeDNALearner(this.mesh);
@@ -103,9 +106,14 @@ export class FileAdmission {
     const resolved = this.resolver.resolve({ artifact, decomposition, execution: { ok: true, path: 'file-admission', kind: 'stored-file' } });
     const digest = createHash('sha256').update(bytes).digest('hex');
     const dna = encoding === 'utf8' ? this.dna.ingestFiles([{ filename: path, content }], { source, digest }) : { pieces: 0, nodes: [], gaps: [] };
-    const metadata = { source, encoding, size: bytes.length, address: resolved.address, addressKey: resolved.key, addressBasis: 'computational-file-admission', digest, dna: { pieces: dna.pieces, nodes: dna.nodes, gaps: dna.gaps } };
+    const fileType = encoding === 'utf8' ? 'text/plain' : 'application/octet-stream';
+    const organization = organizeArtifact({ name: artifact.name, type: fileType, path });
+    const metadata = { source, encoding, size: bytes.length, address: resolved.address, addressKey: resolved.key, addressBasis: 'computational-file-admission', digest, dna: { pieces: dna.pieces, nodes: dna.nodes, gaps: dna.gaps }, organization };
     const record = await this.computer.vfs.write(path, content, metadata);
     this.register(record);
+    if (this.vault) {
+      await this.vault.preserve(bytes, { name: artifact.name, type: fileType, path, source });
+    }
     return record;
   }
 
@@ -125,6 +133,7 @@ export class FileAdmission {
       }
       const path = '/' + parts.join('/');
       if (!path.startsWith('/home/')) continue;
+      node.organization = organizeArtifact({ name: node.name, type: 'text/plain', path });
       const content = String(node.content ?? '');
       const digest = createHash('sha256').update(content).digest('hex');
       if (this.computer.vfs.read(path)?.meta?.digest === digest) continue;
