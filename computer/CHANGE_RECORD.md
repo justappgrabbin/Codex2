@@ -1,4 +1,24 @@
 
+# Change record — Editor, Grove Store, launcher, Android icon (pink/editor-grove-launcher)
+
+WHAT EXISTED BEFORE: assemble-core tip 0ef86f4 already had a locally bundled Monaco 0.52.2 editor and an optional Self-Helpton side panel, off by default. Grove Store was a local-registry scaffold plus her original DonorGroveStore UI (templates/community items). The app launcher already existed. The Android app had no launcher icon.
+
+PRESERVED: every existing app and feature; her original Foundry HTML; DonorGroveStore community/template catalog; addressing and birth-time untouched. Nothing deleted or swapped for a placeholder.
+
+CHANGED:
+- Grove Store service can list/install from Alexis's Supabase storage when she sets credentials, using her existing env names from Synthai2 app-runner. Live URL and anon key were not in her files, so they are left empty in computer/grove/supabase.settings.mjs with comments "set by Alexis". Empty values mean unconfigured; local registry and already-installed apps still work offline.
+- DonorGroveStore now also shows the computer catalog (builtin apps, local modules, optional remote packages) via /api/grove, without removing her original store items.
+- AndroidManifest now points at a launcher icon.
+
+ADDED:
+- computer/grove/supabase.settings.mjs — empty url and anonKey, set by Alexis.
+- computer/shell/kimi-linux/src/apps/GroveComputerCatalog.tsx — catalog/install UI talking to the existing Grove API.
+- Android launcher icon generated from her existing synthia-icon.svg (computer/donors/recovered/synthai-r21.22-self-cultivation-graph-integrated/assets/synthia-icon.svg); copies and provenance under computer/android/branding/.
+- computer/tests/monaco-local.test.mjs, computer/tests/extend-module-install.test.mjs — Monaco is local, Self-Helpton stays optional/off by default, a module install does not rewrite the computer, base surfaces still work.
+
+MISSING / HELD: Supabase URL and anon key (set by Alexis). Standalone Preview, Settings, Journal, and Models apps are not in assemble-core (Files has in-app preview; editor settings exist). No Android APK built here (no local SDK).
+
+
 # Change record — Self-Helpton blended into the Monaco editor (assemble-core)
 
 WHAT EXISTED BEFORE: Self-Helpton Foundry was a separate `selfhelpton` launcher app (iframe of the unchanged donor HTML) and a Grove Store builtin.

@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Color taken from Alexis's synthia-icon.svg background fill #17151b -->
+    <color name="ic_launcher_background">#17151B</color>
+</resources>
