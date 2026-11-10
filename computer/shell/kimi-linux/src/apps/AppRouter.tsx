@@ -7,7 +7,6 @@ import Ingest from './Ingest';
 import { Terminal as DonorUserTerminal } from './DonorUserTerminal';
 import SystemTerminal from './SystemTerminal';
 import { GroveStore as DonorGroveStore } from './DonorGroveStore';
-import SelfHelptonFoundry from './SelfHelptonFoundry';
 interface AppRouterProps { appId: string; windowId: string; }
 const AppRouter: FC<AppRouterProps> = ({ appId }) => {
   switch (appId) {
@@ -19,7 +18,6 @@ const AppRouter: FC<AppRouterProps> = ({ appId }) => {
     case 'terminal': return <DonorUserTerminal />;
     case 'system-terminal': return <SystemTerminal />;
     case 'grovestore': return <DonorGroveStore />;
-    case 'selfhelpton': return <SelfHelptonFoundry />;
     default: return <div className="p-4">This application is not installed.</div>;
   }
 };

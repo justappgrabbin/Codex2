@@ -41,11 +41,6 @@
       "id": "grovestore",
       "name": "Grove Store",
       "installed": true
-    },
-    {
-      "id": "selfhelpton",
-      "name": "Self-Helpton Foundry",
-      "installed": true
     }
   ],
   "packages": [

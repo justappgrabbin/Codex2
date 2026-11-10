@@ -1,4 +1,21 @@
 
+# Change record — Self-Helpton blended into the Monaco editor (assemble-core)
+
+WHAT EXISTED BEFORE: Self-Helpton Foundry was a separate `selfhelpton` launcher app (iframe of the unchanged donor HTML) and a Grove Store builtin.
+
+PRESERVED: `donors/copied/self-helpton-foundry/index.html` is untouched and remains the source of truth. The public verbatim copy at `shell/kimi-linux/public/apps/self-helpton-foundry/index.html` is kept. Addressing and birth-time remain on hold. No main/merge/PR.
+
+CHANGED:
+- Removed the separate `selfhelpton` launcher (registry, AppRouter, dock default, Grove builtin, `SelfHelptonFoundry.tsx`).
+- Monaco Code Editor has an optional Self-Helpton side panel, off by default, with a toolbar toggle whose setting persists in `synthia_computer_settings` (same localStorage pattern as desktop icons).
+
+ADDED:
+- Side panel reuses her Dark Nudge mode chips and step text, Glyph (her `simpleHash` / `detectDim` / dimension labels, applied to the current Monaco file), and the resonance/field panel (markup, CSS, and JS copied from the donor).
+- `computer/tests/self-helpton-toggle.test.mjs` — off by default, persists.
+
+LEFT OUT: her mock Run, AI, and Sync buttons (Monaco already has Run via the terminal/execution path). Her separate file list and plain textarea editor were not brought over, because Monaco and the explorer already cover those.
+
+
 # Change record — Self-Helpton Foundry donor app (assemble-core)
 
 WHAT EXISTED BEFORE: assemble-core Computer with Grove Store and other builtins; Google Doc Drive id 1cdOggNJEOCfAduUWBkD5ItaAQC65yn3Kso_IF3WbBXg held Alexis's Self-Helpton Foundry HTML plus pasted causal-graph generator drafts.

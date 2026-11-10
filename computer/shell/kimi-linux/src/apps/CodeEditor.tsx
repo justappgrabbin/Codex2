@@ -7,8 +7,10 @@ import { useFileSystem } from '@/hooks/useFileSystem';
 import { MonacoPane } from '@/editor/MonacoPane';
 import {
   Code2, X, Plus, Search, Save, FolderOpen, FileText,
-  ChevronRight, ChevronDown, Folder,
+  ChevronRight, ChevronDown, Folder, Sparkles,
 } from 'lucide-react';
+import { SelfHelptonPanel } from '@/editor/self-helpton/SelfHelptonPanel';
+import { loadSettings, setSelfHelptonPanelEnabled } from '@/lib/editor-settings.mjs';
 
 interface EditorTab {
   id: string;
@@ -153,6 +155,7 @@ export default function CodeEditor() {
   const [executionOutput, setExecutionOutput] = useState('');
   const [running, setRunning] = useState(false);
   const [splitView, setSplitView] = useState(false);
+  const [showSelfHelpton, setShowSelfHelpton] = useState(() => loadSettings().selfHelptonPanel);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const lineNumbersRef = useRef<HTMLDivElement>(null);
 
@@ -206,6 +209,14 @@ export default function CodeEditor() {
     } catch (error) { setExecutionOutput(String(error)); }
     finally { setRunning(false); }
   };
+
+  const toggleSelfHelpton = useCallback(() => {
+    setShowSelfHelpton((on) => {
+      const next = !on;
+      setSelfHelptonPanelEnabled(next);
+      return next;
+    });
+  }, []);
 
   const userNodeId = useMemo(() => {
     const rootChildren = Object.values(fs.fs.nodes).filter((n) => n.parentId === null);
@@ -393,6 +404,16 @@ export default function CodeEditor() {
         <button onClick={analyzeStructure} disabled={!activeTab || !activeTab.content.trim() || running} className="flex items-center gap-1 px-2 py-1 rounded hover:bg-[var(--bg-hover)] disabled:opacity-40" title="Analyze structure through the existing shared Computer engine">
           <Search size={14} /><span className="text-xs">Analyze structure</span>
         </button>
+        <button
+          onClick={toggleSelfHelpton}
+          aria-pressed={showSelfHelpton}
+          data-testid="self-helpton-toggle"
+          className="flex items-center gap-1 px-2 py-1 rounded hover:bg-[var(--bg-hover)] transition-colors"
+          title="Toggle Self-Helpton panel (optional)"
+          style={showSelfHelpton ? { background: 'var(--bg-hover)' } : undefined}
+        >
+          <Sparkles size={14} /><span className="text-xs">Self-Helpton</span>
+        </button>
         <div className="ml-auto flex items-center gap-2">
           {activeTab && (
             <span className="text-xs px-2 py-0.5 rounded" style={{ background: 'var(--bg-hover)' }}>
@@ -509,6 +530,9 @@ export default function CodeEditor() {
             </div>
           )}
         </div>
+        {showSelfHelpton && (
+          <SelfHelptonPanel getContent={() => activeTab?.content ?? ''} />
+        )}
       </div>
     </div>
   );

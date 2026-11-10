@@ -134,7 +134,8 @@ test('Grove hook lists the local registry including her r22 module', async () =>
   const grove = new GroveStore({});
   const catalog = await grove.list();
   assert.ok(catalog.builtin.some((item) => item.id === 'terminal'));
-  assert.ok(catalog.builtin.some((item) => item.id === 'selfhelpton'));
+  assert.ok(catalog.builtin.some((item) => item.id === 'codeeditor'));
+  assert.ok(!catalog.builtin.some((item) => item.id === 'selfhelpton'), 'Self-Helpton stays out of the Grove Store');
   assert.ok(catalog.packages.some((item) => item.id === 'linux-guest-r22'));
 });
 
