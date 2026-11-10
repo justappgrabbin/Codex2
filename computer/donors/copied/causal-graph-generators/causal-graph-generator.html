@@ -1,0 +1,611 @@
+<!DOCTYPE html>  
+<html lang="en">  
+<head>  
+    <meta charset="UTF-8">  
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">  
+    <title>YOU-N-I-VERSE Causal Graph Generator</title>  
+      
+    <!-- Pyodide (we'll make offline version too) -->  
+    <script src="https://cdn.jsdelivr.net/pyodide/v0.24.1/full/pyodide.js"></script>  
+      
+    <!-- Vis.js -->  
+    <script src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>  
+      
+    <!-- JSZip for creating ZIP files -->  
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>  
+      
+    <style>  
+        * {  
+            margin: 0;  
+            padding: 0;  
+            box-sizing: border-box;  
+        }
+
+        body {  
+            font-family: 'Courier New', monospace;  
+            background: linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 100%);  
+            color: #00ff00;  
+            overflow: hidden;  
+            height: 100vh;  
+        }
+
+        .container {  
+            display: grid;  
+            grid-template-columns: 320px 1fr 320px;  
+            grid-template-rows: 60px 1fr 180px;  
+            height: 100vh;  
+            gap: 10px;  
+            padding: 10px;  
+        }
+
+        header {  
+            grid-column: 1 / -1;  
+            background: rgba(0, 0, 0, 0.8);  
+            border: 2px solid #00ff00;  
+            border-radius: 8px;  
+            display: flex;  
+            align-items: center;  
+            justify-content: space-between;  
+            padding: 0 20px;  
+        }
+
+        h1 {  
+            font-size: 1.5em;  
+            text-shadow: 0 0 10px #00ff00;  
+        }
+
+        .status {  
+            color: #00cc00;  
+            font-size: 0.9em;  
+        }
+
+        .input-panel, .inspector-panel {  
+            background: rgba(0, 0, 0, 0.5);  
+            border: 1px solid #00ff00;  
+            border-radius: 8px;  
+            padding: 15px;  
+            overflow-y: auto;  
+        }
+
+        .input-panel h2, .inspector-panel h2 {  
+            font-size: 1.1em;  
+            margin-bottom: 12px;  
+            border-bottom: 1px solid #004400;  
+            padding-bottom: 8px;  
+        }
+
+        .input-group {  
+            margin-bottom: 12px;  
+        }
+
+        .input-group label {  
+            display: block;  
+            color: #00cc00;  
+            margin-bottom: 4px;  
+            font-size: 0.85em;  
+        }
+
+        .input-group input[type="number"],  
+        .input-group input[type="text"],  
+        .input-group select {  
+            width: 100%;  
+            background: #1a1a1a;  
+            color: #00ff00;  
+            border: 1px solid #004400;  
+            padding: 6px;  
+            border-radius: 4px;  
+            font-family: 'Courier New', monospace;  
+            font-size: 0.9em;  
+        }
+
+        .input-group input[type="checkbox"] {  
+            margin-right: 8px;  
+        }
+
+        button {  
+            width: 100%;  
+            background: #00ff00;  
+            color: #0a0a0a;  
+            border: none;  
+            padding: 10px;  
+            font-size: 0.9em;  
+            font-weight: bold;  
+            cursor: pointer;  
+            border-radius: 5px;  
+            font-family: 'Courier New', monospace;  
+            margin-top: 8px;  
+            transition: all 0.3s;  
+        }
+
+        button:hover:not(:disabled) {  
+            background: #00cc00;  
+            transform: scale(1.02);  
+        }
+
+        button:disabled {  
+            background: #333;  
+            color: #666;  
+            cursor: not-allowed;  
+        }
+
+        button.secondary {  
+            background: #004400;  
+            color: #00ff00;  
+            border: 1px solid #00ff00;  
+        }
+
+        button.secondary:hover:not(:disabled) {  
+            background: #006600;  
+        }
+
+        .graph-panel {  
+            background: rgba(0, 0, 0, 0.5);  
+            border: 1px solid #00ff00;  
+            border-radius: 8px;  
+            position: relative;  
+        }
+
+        #causal-graph {  
+            width: 100%;  
+            height: 100%;  
+            background: #0a0a0a;  
+        }
+
+        .console-panel {  
+            grid-column: 1 / -1;  
+            background: rgba(0, 0, 0, 0.8);  
+            border: 1px solid #00ff00;  
+            border-radius: 8px;  
+            padding: 10px;  
+            overflow-y: auto;  
+            font-size: 0.8em;  
+        }
+
+        .console-line {  
+            margin-bottom: 4px;  
+        }
+
+        .console-line.info { color: #00ff00; }  
+        .console-line.warning { color: #ffff00; }  
+        .console-line.error { color: #ff0000; }  
+        .console-line.success { color: #00ffff; }
+
+        .export-section {  
+            margin-top: 15px;  
+            padding-top: 15px;  
+            border-top: 1px solid #004400;  
+        }
+
+        .export-section h3 {  
+            font-size: 0.95em;  
+            margin-bottom: 10px;  
+            color: #00ff00;  
+        }
+
+        .format-grid {  
+            display: grid;  
+            grid-template-columns: 1fr 1fr;  
+            gap: 8px;  
+            margin-bottom: 10px;  
+        }
+
+        .format-btn {  
+            padding: 8px;  
+            font-size: 0.85em;  
+            margin: 0;  
+        }
+
+        .spinner {  
+            display: inline-block;  
+            width: 14px;  
+            height: 14px;  
+            border: 2px solid #004400;  
+            border-radius: 50%;  
+            border-top-color: #00ff00;  
+            animation: spin 1s linear infinite;  
+        }
+
+        @keyframes spin {  
+            to { transform: rotate(360deg); }  
+        }
+
+        .layer-item {  
+            background: #1a1a1a;  
+            border: 1px solid #004400;  
+            border-radius: 4px;  
+            padding: 8px;  
+            margin-bottom: 8px;  
+            font-size: 0.85em;  
+        }
+
+        .layer-name {  
+            font-weight: bold;  
+            color: #00ff00;  
+            margin-bottom: 3px;  
+        }
+
+        .layer-status {  
+            font-size: 0.8em;  
+            color: #00cc00;  
+        }  
+    </style>  
+</head>  
+<body>  
+    <div class="container">  
+        <header>  
+            <h1>🧠 Causal Graph Generator</h1>  
+            <div class="status" id="status">  
+                <span class="spinner"></span> Loading Brain...  
+            </div>  
+        </header>
+
+        <div class="input-panel">  
+            <h2>Chart Input</h2>  
+              
+            <div class="input-group">  
+                <label>Project Name</label>  
+                <input type="text" id="project-name" value="my-causal-graph">  
+            </div>  
+              
+            <div class="input-group">  
+                <label>Gate (1-64)</label>  
+                <input type="number" id="gate" min="1" max="64" value="25">  
+            </div>
+
+            <div class="input-group">  
+                <label>Line (1-6)</label>  
+                <input type="number" id="line" min="1" max="6" value="4">  
+            </div>
+
+            <div class="input-group">  
+                <label>Color</label>  
+                <select id="color">  
+                    <option value="1">1 - Fear</option>  
+                    <option value="2">2 - Hope</option>  
+                    <option value="3">3 - Desire</option>  
+                    <option value="4">4 - Need</option>  
+                    <option value="5">5 - Guilt</option>  
+                    <option value="6" selected>6 - Innocence</option>  
+                </select>  
+            </div>
+
+            <div class="input-group">  
+                <label>Tone</label>  
+                <select id="tone">  
+                    <option value="1">1 - Security</option>  
+                    <option value="2" selected>2 - Uncertainty</option>  
+                    <option value="3">3 - Action</option>  
+                    <option value="4">4 - Meditation</option>  
+                    <option value="5">5 - Judgement</option>  
+                    <option value="6">6 - Acceptance</option>  
+                </select>  
+            </div>
+
+            <div class="input-group">  
+                <label>Base</label>  
+                <select id="base">  
+                    <option value="1">1 - Movement</option>  
+                    <option value="2">2 - Evolution</option>  
+                    <option value="3" selected>3 - Being</option>  
+                    <option value="4">4 - Design</option>  
+                    <option value="5">5 - Space</option>  
+                </select>  
+            </div>
+
+            <div class="input-group">  
+                <label>  
+                    <input type="checkbox" id="sa_correct" checked>   
+                    Strategy & Authority  
+                </label>  
+            </div>
+
+            <div class="input-group">  
+                <label>  
+                    <input type="checkbox" id="phs_correct" checked>   
+                    PHS Correct  
+                </label>  
+            </div>
+
+            <div class="input-group">  
+                <label>  
+                    <input type="checkbox" id="env_correct" checked>   
+                    Environment Correct  
+                </label>  
+            </div>
+
+            <button id="calculate-btn" disabled>  
+                🧠 Generate Causal Graph  
+            </button>
+
+            <!-- EXPORT SECTION -->  
+            <div class="export-section">  
+                <h3>📦 Export Graph</h3>  
+                  
+                <div class="format-grid">  
+                    <button class="format-btn secondary" id="export-json" disabled>  
+                        💾 JSON  
+                    </button>  
+                    <button class="format-btn secondary" id="export-graphml" disabled>  
+                        📊 GraphML  
+                    </button>  
+                    <button class="format-btn secondary" id="export-dot" disabled>  
+                        🔷 DOT  
+                    </button>  
+                    <button class="format-btn secondary" id="export-csv" disabled>  
+                        📋 CSV  
+                    </button>  
+                </div>
+
+                <button class="secondary" id="export-html" disabled>  
+                    📄 Standalone HTML  
+                </button>
+
+                <button id="export-zip" disabled>  
+                    📦 Download Complete ZIP  
+                </button>  
+            </div>  
+        </div>
+
+        <div class="graph-panel">  
+            <div id="causal-graph"></div>  
+        </div>
+
+        <div class="inspector-panel">  
+            <h2>Causal Layers</h2>  
+            <div id="layer-list">  
+                <p style="color: #888; font-size: 0.85em;">Generate graph to see layers...</p>  
+            </div>  
+        </div>
+
+        <div class="console-panel" id="console">  
+            <div class="console-line info">🌌 Initializing causal graph generator...</div>  
+        </div>  
+    </div>
+
+    <script>  
+        let pyodide = null;  
+        let network = null;  
+        let currentGraphData = null;  
+        let currentChartInput = null;
+
+        // ═══════════════════════════════════════════════════════════  
+        // PYODIDE INITIALIZATION (same as before)  
+        // ═══════════════════════════════════════════════════════════  
+          
+        async function initializePyodide() {  
+            try {  
+                logConsole('Loading Python brain...', 'info');  
+                pyodide = await loadPyodide();  
+                  
+                // Load the complete causal logic (same Python code from previous version)  
+                const pythonCode = `  
+import json
+
+class CompleteCausalGraph:  
+    def __init__(self):  
+        self.nodes = []  
+        self.edges = []  
+        self.layer_results = {}  
+      
+    def calculate_chain(self, chart_input):  
+        self.nodes = []  
+        self.edges = []  
+        self.layer_results = {}  
+          
+        # LAYER 0: COSMOLOGY  
+        self.layer_0_cosmology()  
+        self.layer_1_evolution()  
+        self.layer_2_biology(chart_input)  
+        self.layer_3_substructure(chart_input)  
+        vehicle_state = self.layer_4_vehicle(chart_input)  
+        self.layer_5_personality(chart_input, vehicle_state)  
+        mutation_state = self.layer_6_mutation(chart_input, vehicle_state)  
+        self.layer_7_experience(mutation_state)  
+        self.layer_8_expression()  
+        self.layer_9_gate_line(chart_input)  
+        self.layer_10_biochemical(chart_input)  
+          
+        return {  
+            'nodes': self.nodes,  
+            'edges': self.edges,  
+            'layer_results': self.layer_results,  
+            'metadata': {  
+                'chart_input': chart_input,  
+                'timestamp': 'generated',  
+                'version': '1.0'  
+            }  
+        }  
+      
+    def add_node(self, id, label, level, layer, data, note=None):  
+        self.nodes.append({  
+            'id': id,  
+            'label': label,  
+            'level': level,  
+            'layer': layer,  
+            'data': data,  
+            'note': note  
+        })  
+      
+    def add_edge(self, from_id, to_id, label, strength='strong'):  
+        self.edges.append({  
+            'from': from_id,  
+            'to': to_id,  
+            'label': label,  
+            'strength': strength  
+        })  
+      
+    def layer_0_cosmology(self):  
+        self.add_node('the_two', 'The Two\\\\\\\\n(Bhan + Tugh)', 0, 'cosmology', {'principle': 'Yang + Yin'}, 'Foundation')  
+        self.add_node('crystals', 'Crystals\\\\\\\\n(Design + Personality)', 0, 'cosmology', {'shattered': True}, 'Form')  
+        self.add_node('monopole', 'Magnetic Monopole', 0, 'cosmology', {'function': 'Identity'}, 'Attractor')  
+        self.add_edge('the_two', 'crystals', 'creates')  
+        self.add_edge('crystals', 'monopole', 'held by')  
+        self.layer_results['cosmology'] = {'complete': True}  
+      
+    def layer_1_evolution(self):  
+        self.add_node('evolution', 'Nine-Centered', 1, 'evolution', {'type': 'Nine-Centered'}, 'Current')  
+        self.add_edge('monopole', 'evolution', 'determines')  
+        self.layer_results['evolution'] = {'type': 'Nine-Centered'}  
+      
+    def layer_2_biology(self, chart_input):  
+        center = 'Heart'  
+        self.add_node('center', f'Center: {center}', 2, 'biology', {'center': center}, 'Biology')  
+        self.add_edge('evolution', 'center', 'manifests in')  
+        self.layer_results['biology'] = {'center': center}  
+      
+    def layer_3_substructure(self, chart_input):  
+        base_id = chart_input.get('base', 3)  
+        tone_id = chart_input.get('tone', 2)  
+        color_id = chart_input.get('color', 6)  
+          
+        self.add_node('base', f'Base {base_id}', 3, 'substructure', {'base': base_id}, 'Dimension')  
+        self.add_node('tone', f'Tone {tone_id}', 3, 'substructure', {'tone': tone_id}, 'Sense')  
+        self.add_node('color', f'Color {color_id}', 3, 'substructure', {'color': color_id}, 'Motivation')  
+          
+        self.add_edge('center', 'base', 'filters to')  
+        self.add_edge('base', 'tone', 'filters to')  
+        self.add_edge('tone', 'color', 'filters to')  
+          
+        self.layer_results['substructure'] = {'base': base_id, 'tone': tone_id, 'color': color_id}  
+      
+    def layer_4_vehicle(self, chart_input):  
+        sa = chart_input.get('strategy_correct', False)  
+        phs = chart_input.get('phs_correct', False)  
+        env = chart_input.get('environment_correct', False)  
+          
+        vehicle_correct = sa and phs and env  
+        state = 'FULLY CORRECT' if vehicle_correct else 'Needs Work'  
+          
+        self.add_node('vehicle', f'Vehicle\\\\\\\\n{state}', 4, 'vehicle', {'correct': vehicle_correct}, state)  
+        self.add_edge('color', 'vehicle', 'requires S\&A')  
+          
+        self.layer_results['vehicle'] = {'state': state, 'correct': vehicle_correct}  
+        return vehicle_correct  
+      
+    def layer_5_personality(self, chart_input, vehicle_correct):  
+        state = 'ACTIVE' if vehicle_correct else 'BLOCKED'  
+        self.add_node('personality', f'Personality\\\\\\\\n{state}', 5, 'personality', {'active': vehicle_correct}, state)  
+        self.add_edge('vehicle', 'personality', 'enables' if vehicle_correct else 'blocks')  
+        self.layer_results['personality'] = {'active': vehicle_correct}  
+      
+    def layer_6_mutation(self, chart_input, vehicle_correct):  
+        diagonal = 'ACTIVE' if vehicle_correct else 'INACTIVE'  
+        self.add_node('mutation', f'Diagonal\\\\\\\\n{diagonal}', 6, 'mutation', {'diagonal': diagonal}, diagonal)  
+        self.add_edge('personality', 'mutation', 'activates' if vehicle_correct else 'blocks')  
+        self.layer_results['mutation'] = {'diagonal': diagonal}  
+        return vehicle_correct  
+      
+    def layer_7_experience(self, mutation_active):  
+        mode = 'Differentiated' if mutation_active else 'Homogenized'  
+        self.add_node('experience', f'Experience\\\\\\\\n{mode}', 7, 'experience', {'mode': mode}, mode)  
+        self.add_edge('mutation', 'experience', 'processes')  
+      
+    def layer_8_expression(self):  
+        self.add_node('expression', 'Expression\\\\\\\\nBehind → Front', 8, 'expression', {'spatial': True}, 'Spatial')  
+        self.add_edge('experience', 'expression', 'manifests as')  
+      
+    def layer_9_gate_line(self, chart_input):  
+        gate = chart_input.get('gate', 25)  
+        line = chart_input.get('line', 4)  
+          
+        self.add_node('gate', f'Gate {gate}', 9, 'gate_line', {'gate': gate}, 'Archetype')  
+        self.add_node('line', f'Line {line}', 9, 'gate_line', {'line': line}, 'Role')  
+          
+        self.add_edge('expression', 'gate', 'expresses through')  
+        self.add_edge('gate', 'line', 'contains')  
+      
+    def layer_10_biochemical(self, chart_input):  
+        self.add_node('biochemical', 'CAC → Histidine', 10, 'biochemical', {'codon': 'CAC'}, 'Biochem')  
+        self.add_edge('line', 'biochemical', 'translates to')
+
+brain = CompleteCausalGraph()
+
+def calculate(chart_json):  
+    chart_data = json.loads(chart_json)  
+    result = brain.calculate_chain(chart_data)  
+    return json.dumps(result)  
+`;
+
+                await pyodide.runPythonAsync(pythonCode);  
+                  
+                logConsole('✓ Brain ready', 'success');  
+                document.getElementById('status').textContent = '✓ Ready';  
+                document.getElementById('status').className = 'status';  
+                document.getElementById('calculate-btn').disabled = false;  
+                  
+            } catch (error) {  
+                logConsole(`ERROR: ${error}`, 'error');  
+            }  
+        }
+
+        // ═══════════════════════════════════════════════════════════  
+        // GRAPH GENERATION  
+        // ═══════════════════════════════════════════════════════════  
+          
+        function initializeGraph() {  
+            const container = document.getElementById('causal-graph');  
+              
+            const data = {  
+                nodes: new vis.DataSet([]),  
+                edges: new vis.DataSet([])  
+            };  
+              
+            const options = {  
+                layout: {  
+                    hierarchical: {  
+                        direction: 'UD',  
+                        sortMethod: 'directed',  
+                        levelSeparation: 140,  
+                        nodeSpacing: 180  
+                    }  
+                },  
+                nodes: {  
+                    shape: 'box',  
+                    margin: 10,  
+                    color: { background: '#0a0a0a', border: '#00ff00' },  
+                    font: { color: '#00ff00', face: 'Courier New', size: 11 }  
+                },  
+                edges: {  
+                    arrows: 'to',  
+                    color: '#00ff00',  
+                    width: 2,  
+                    smooth: { type: 'cubicBezier', forceDirection: 'vertical' }  
+                },  
+                physics: { enabled: false }  
+            };  
+              
+            network = new vis.Network(container, data, options);  
+        }
+
+        function updateGraph(graphData) {  
+            if (!network) return;  
+              
+            const nodes = new vis.DataSet(graphData.nodes.map(node => ({  
+                ...node,  
+                shape: 'box',  
+                margin: 10,  
+                color: getLayerColor(node.layer),  
+                font: { color: '#00ff00', size: 11 }  
+            })));  
+              
+            const edges = new vis.DataSet(graphData.edges.map(edge => ({  
+                ...edge,  
+                arrows: 'to',  
+                color: edge.label.includes('blocks') ? '#ff0000' : '#00ff00',  
+                width: 2  
+            })));  
+              
+            network.setData({ nodes, edges });  
+              
+            setTimeout(() => network.fit({ animation: { duration: 800 } }), 100);  
+        }
+
+        function getLayerColor(layer) {  
+            const colors = {  
+                'cosmology': { background: '#0a0a0a', border: '#ff00ff' },  
+                'evolution': { background: '#0a0a0a', border: '#8800ff' },  
+                'biology': { background: '#0a0a0a', border: '#ff0088' },  
+                'substructure': { background: '#0a0a0a', border: '#00ff88' },  
+                'vehicle': { background: '#0a0a0a', border: '#ffff00' },  
+                'personality': { background: '#0a0a0a', border: '#0088ff' },  
+         

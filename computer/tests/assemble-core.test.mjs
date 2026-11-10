@@ -134,6 +134,7 @@ test('Grove hook lists the local registry including her r22 module', async () =>
   const grove = new GroveStore({});
   const catalog = await grove.list();
   assert.ok(catalog.builtin.some((item) => item.id === 'terminal'));
+  assert.ok(catalog.builtin.some((item) => item.id === 'selfhelpton'));
   assert.ok(catalog.packages.some((item) => item.id === 'linux-guest-r22'));
 });
 
@@ -148,6 +149,8 @@ test('Monaco UMD bundle and her donor editor/terminal/grove files are present', 
     'donors/copied/terminals/Terminal.tsx',
     'donors/copied/synthia-server-mcp/trident-mcp-server.ts',
     'donors/copied/mrnn-mcp-client/mrnn-mcp-client.ts',
+    'donors/copied/self-helpton-foundry/index.html',
+    'shell/kimi-linux/public/apps/self-helpton-foundry/index.html',
     'modules/r22-linux-guest/PROVENANCE.md',
   ];
   for (const rel of files) await access(join(root, rel));

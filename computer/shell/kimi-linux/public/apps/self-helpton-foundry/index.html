@@ -1,0 +1,1026 @@
+<!DOCTYPE html>  
+<html lang="en">  
+<head>  
+  <meta charset="UTF-8">  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">  
+  <meta name="apple-mobile-web-app-capable" content="yes">  
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">  
+  <meta name="mobile-web-app-capable" content="yes">  
+  <meta name="theme-color" content="#1e1e1e">  
+  <title>🧬 Self-Helpton Foundry</title>  
+    
+  <style>  
+    * {   
+      margin: 0;   
+      padding: 0;   
+      box-sizing: border-box;  
+      -webkit-tap-highlight-color: transparent;  
+    }  
+      
+    :root {  
+      --bg-primary: #1e1e1e;  
+      --bg-secondary: #252526;  
+      --bg-tertiary: #2d2d30;  
+      --border: #3e3e42;  
+      --text-primary: #d4d4d4;  
+      --text-secondary: #969696;  
+      --accent: #00ff88;  
+      --accent-dim: rgba(0,255,136,0.2);  
+    }  
+      
+    body {  
+      font-family: -apple-system, BlinkMacSystemFont, 'SF Mono', 'Segoe UI', system-ui, sans-serif;  
+      background: var(--bg-primary);  
+      color: var(--text-primary);  
+      height: 100vh;  
+      overflow: hidden;  
+      touch-action: pan-y;  
+      -webkit-font-smoothing: antialiased;  
+      -webkit-overflow-scrolling: touch;  
+      position: fixed;  
+      width: 100%;  
+    }  
+      
+    /* Main Container */  
+    .app {  
+      display: flex;  
+      flex-direction: column;  
+      height: 100vh;  
+      height: 100dvh; /* Dynamic viewport height for mobile browsers */  
+    }  
+      
+    /* Header - Compact */  
+    .header {  
+      display: flex;  
+      justify-content: space-between;  
+      align-items: center;  
+      padding: 12px 16px;  
+      background: var(--bg-secondary);  
+      border-bottom: 1px solid var(--border);  
+      flex-shrink: 0;  
+      min-height: 48px;  
+    }  
+      
+    .logo {  
+      font-size: 1.1em;  
+      font-weight: 700;  
+      color: var(--accent);  
+      letter-spacing: -0.5px;  
+    }  
+      
+    .chips {  
+      display: flex;  
+      gap: 6px;  
+    }  
+      
+    .chip {  
+      padding: 4px 10px;  
+      border-radius: 12px;  
+      font-size: 0.75em;  
+      font-weight: 600;  
+      min-width: 32px;  
+      text-align: center;  
+    }  
+      
+    .chip.body { background: #ea580c; color: #000; }  
+    .chip.mind { background: #dc2626; color: #fff; }  
+    .chip.heart { background: #7c3aed; color: #fff; }  
+      
+    /* Mode Selector - Horizontal Scroll */  
+    .modes {  
+      display: flex;  
+      gap: 8px;  
+      padding: 10px 16px;  
+      background: var(--bg-tertiary);  
+      overflow-x: auto;  
+      -webkit-overflow-scrolling: touch;  
+      scroll-snap-type: x mandatory;  
+      scrollbar-width: none;  
+      flex-shrink: 0;  
+    }  
+      
+    .modes::-webkit-scrollbar { display: none; }  
+      
+    .mode {  
+      padding: 10px 18px;  
+      background: rgba(255,255,255,0.05);  
+      border: 1px solid var(--border);  
+      border-radius: 8px;  
+      font-size: 0.85em;  
+      font-weight: 600;  
+      white-space: nowrap;  
+      scroll-snap-align: start;  
+      flex-shrink: 0;  
+      color: var(--text-secondary);  
+      transition: all 0.2s;  
+      min-width: 110px;  
+      text-align: center;  
+    }  
+      
+    .mode.active {  
+      background: var(--accent-dim);  
+      border-color: var(--accent);  
+      color: var(--accent);  
+    }  
+      
+    /* Bottom Navigation */  
+    .nav {  
+      display: flex;  
+      background: var(--bg-secondary);  
+      border-top: 1px solid var(--border);  
+      flex-shrink: 0;  
+      padding: 8px 0;  
+    }  
+      
+    .nav-btn {  
+      flex: 1;  
+      padding: 12px 8px;  
+      background: none;  
+      border: none;  
+      color: var(--text-secondary);  
+      font-size: 0.75em;  
+      display: flex;  
+      flex-direction: column;  
+      align-items: center;  
+      gap: 4px;  
+      cursor: pointer;  
+      transition: all 0.2s;  
+    }  
+      
+    .nav-btn.active {  
+      color: var(--accent);  
+    }  
+      
+    .nav-icon {  
+      font-size: 1.5em;  
+    }  
+      
+    /* Content Area - Swipeable */  
+    .content {  
+      flex: 1;  
+      overflow: hidden;  
+      position: relative;  
+      background: var(--bg-primary);  
+    }  
+      
+    .panels {  
+      display: flex;  
+      height: 100%;  
+      width: 300%;  
+      transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);  
+      will-change: transform;  
+    }  
+      
+    .panel {  
+      width: 33.333%;  
+      height: 100%;  
+      overflow-y: auto;  
+      -webkit-overflow-scrolling: touch;  
+      flex-shrink: 0;  
+    }  
+      
+    .panels[data-view="editor"] { transform: translateX(0); }  
+    .panels[data-view="files"] { transform: translateX(-33.333%); }  
+    .panels[data-view="glyph"] { transform: translateX(-66.666%); }  
+      
+    /* Files Panel */  
+    .files {  
+      padding: 16px;  
+    }  
+      
+    .file {  
+      display: flex;  
+      align-items: center;  
+      gap: 12px;  
+      padding: 14px 16px;  
+      margin-bottom: 8px;  
+      background: rgba(255,255,255,0.03);  
+      border-radius: 10px;  
+      border-left: 3px solid transparent;  
+      font-size: 0.95em;  
+      cursor: pointer;  
+      transition: all 0.2s;  
+    }  
+      
+    .file.active {  
+      background: var(--accent-dim);  
+      border-left-color: var(--accent);  
+    }  
+      
+    .file-icon {  
+      font-size: 1.3em;  
+      min-width: 24px;  
+    }  
+      
+    /* Editor Panel */  
+    .editor-panel {  
+      display: flex;  
+      flex-direction: column;  
+      height: 100%;  
+    }  
+      
+    .msg {  
+      padding: 14px 16px;  
+      margin: 12px 16px;  
+      background: var(--accent-dim);  
+      border-left: 3px solid var(--accent);  
+      border-radius: 8px;  
+      font-size: 0.88em;  
+      line-height: 1.6;  
+    }  
+      
+    .msg strong {  
+      color: var(--accent);  
+    }  
+      
+    .editor {  
+      flex: 1;  
+      min-height: 0;  
+      margin: 0 16px 16px 16px;  
+    }  
+      
+    .code {  
+      width: 100%;  
+      height: 100%;  
+      background: rgba(0,0,0,0.4);  
+      border: 1px solid var(--border);  
+      border-radius: 10px;  
+      padding: 16px;  
+      font-family: 'SF Mono', 'Monaco', 'Courier New', monospace;  
+      font-size: 14px;  
+      line-height: 1.6;  
+      color: var(--text-primary);  
+      resize: none;  
+      outline: none;  
+    }  
+      
+    .code:focus {  
+      border-color: var(--accent);  
+      box-shadow: 0 0 0 2px var(--accent-dim);  
+    }  
+      
+    /* Actions Bar */  
+    .actions {  
+      display: flex;  
+      gap: 8px;  
+      padding: 12px 16px;  
+      background: var(--bg-tertiary);  
+      overflow-x: auto;  
+      -webkit-overflow-scrolling: touch;  
+      scrollbar-width: none;  
+      flex-shrink: 0;  
+    }  
+      
+    .actions::-webkit-scrollbar { display: none; }  
+      
+    .btn {  
+      padding: 12px 20px;  
+      border-radius: 8px;  
+      border: none;  
+      font-size: 0.88em;  
+      font-weight: 600;  
+      white-space: nowrap;  
+      flex-shrink: 0;  
+      cursor: pointer;  
+      transition: all 0.2s;  
+      font-family: inherit;  
+    }  
+      
+    .btn-primary {  
+      background: linear-gradient(135deg, var(--accent), #00cc66);  
+      color: #000;  
+    }  
+      
+    .btn-secondary {  
+      background: rgba(255,255,255,0.05);  
+      color: var(--text-primary);  
+      border: 1px solid var(--border);  
+    }  
+      
+    .btn:active {  
+      transform: scale(0.96);  
+    }  
+      
+    /* Glyph Panel */  
+    .glyph-panel {  
+      padding: 16px;  
+    }  
+      
+    .glyph-card {  
+      display: flex;  
+      align-items: center;  
+      gap: 16px;  
+      padding: 20px;  
+      background: rgba(0,0,0,0.4);  
+      border: 2px solid var(--border);  
+      border-radius: 12px;  
+      margin-bottom: 20px;  
+    }  
+      
+    .glyph-symbol {  
+      font-size: 3.5em;  
+      line-height: 1;  
+      min-width: 60px;  
+      text-align: center;  
+    }  
+      
+    .glyph-text {  
+      flex: 1;  
+      min-width: 0;  
+    }  
+      
+    .glyph-name {  
+      font-weight: 700;  
+      font-size: 1.1em;  
+      color: var(--accent);  
+      margin-bottom: 6px;  
+    }  
+      
+    .glyph-id {  
+      font-size: 0.75em;  
+      font-family: monospace;  
+      opacity: 0.7;  
+      word-break: break-all;  
+    }  
+      
+    .meta {  
+      display: grid;  
+      grid-template-columns: 1fr 1fr;  
+      gap: 12px;  
+      margin-bottom: 24px;  
+    }  
+      
+    .meta-item {  
+      padding: 14px;  
+      background: rgba(0,0,0,0.4);  
+      border-radius: 10px;  
+      border: 1px solid var(--border);  
+    }  
+      
+    .meta-label {  
+      font-size: 0.8em;  
+      opacity: 0.6;  
+      margin-bottom: 6px;  
+      text-transform: uppercase;  
+      letter-spacing: 0.5px;  
+    }  
+      
+    .meta-value {  
+      font-size: 1.15em;  
+      font-weight: 700;  
+      color: var(--accent);  
+    }  
+      
+    .section {  
+      margin-bottom: 24px;  
+    }  
+      
+    .section-title {  
+      font-size: 0.9em;  
+      font-weight: 700;  
+      color: var(--accent);  
+      margin-bottom: 16px;  
+      text-transform: uppercase;  
+      letter-spacing: 1px;  
+    }  
+      
+    .bar {  
+      margin-bottom: 16px;  
+    }  
+      
+    .bar-header {  
+      display: flex;  
+      justify-content: space-between;  
+      margin-bottom: 8px;  
+      font-size: 0.9em;  
+    }  
+      
+    .bar-track {  
+      height: 10px;  
+      background: rgba(0,0,0,0.5);  
+      border-radius: 5px;  
+      overflow: hidden;  
+    }  
+      
+    .bar-fill {  
+      height: 100%;  
+      background: linear-gradient(90deg, var(--accent), #00ccff);  
+      border-radius: 5px;  
+      transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);  
+    }  
+      
+    .wave-box {  
+      padding: 20px;  
+      background: rgba(0,0,0,0.4);  
+      border: 2px solid var(--border);  
+      border-radius: 12px;  
+    }  
+      
+    .wave-visual {  
+      width: 100%;  
+      height: 120px;  
+      background: linear-gradient(180deg, var(--accent-dim) 0%, transparent 100%);  
+      border-radius: 8px;  
+      position: relative;  
+      overflow: hidden;  
+      margin-top: 12px;  
+    }  
+      
+    .wave {  
+      position: absolute;  
+      bottom: 0;  
+      left: 0;  
+      width: 100%;  
+      height: 60%;  
+      background: linear-gradient(90deg, transparent, var(--accent), transparent);  
+      animation: wave 2s ease-in-out infinite;  
+      opacity: 0.6;  
+    }  
+      
+    @keyframes wave {  
+      0%, 100% { transform: translateX(-100%); }  
+      50% { transform: translateX(100%); }  
+    }  
+      
+    .wave-info {  
+      margin-top: 12px;  
+      font-size: 0.85em;  
+      opacity: 0.7;  
+      text-align: center;  
+    }  
+      
+    /* Status Bar */  
+    .status {  
+      display: flex;  
+      justify-content: space-between;  
+      padding: 6px 16px;  
+      background: #007acc;  
+      font-size: 0.75em;  
+      flex-shrink: 0;  
+      min-height: 28px;  
+    }  
+      
+    .status-item {  
+      display: flex;  
+      align-items: center;  
+      gap: 5px;  
+    }  
+      
+    /* Loading State */  
+    .loading {  
+      position: fixed;  
+      top: 50%;  
+      left: 50%;  
+      transform: translate(-50%, -50%);  
+      text-align: center;  
+      z-index: 1000;  
+      display: none;  
+    }  
+      
+    .spinner {  
+      width: 40px;  
+      height: 40px;  
+      border: 3px solid var(--border);  
+      border-top-color: var(--accent);  
+      border-radius: 50%;  
+      animation: spin 0.8s linear infinite;  
+      margin: 0 auto 12px;  
+    }  
+      
+    @keyframes spin {  
+      to { transform: rotate(360deg); }  
+    }  
+      
+    /* Responsive - Tablet/Desktop */  
+    @media (min-width: 768px) {  
+      .app {  
+        display: grid;  
+        grid-template-columns: 280px 1fr 340px;  
+        grid-template-rows: auto auto 1fr auto auto;  
+      }  
+        
+      .header {  
+        grid-column: 1 / -1;  
+      }  
+        
+      .modes {  
+        grid-column: 1 / -1;  
+      }  
+        
+      .content {  
+        grid-column: 1 / -1;  
+        grid-row: 3;  
+      }  
+        
+      .panels {  
+        width: 100%;  
+        display: grid;  
+        grid-template-columns: 280px 1fr 340px;  
+      }  
+        
+      .panel {  
+        width: 100%;  
+      }  
+        
+      .panels[data-view="editor"],  
+      .panels[data-view="files"],  
+      .panels[data-view="glyph"] {  
+        transform: none;  
+      }  
+        
+      .actions {  
+        grid-column: 2;  
+      }  
+        
+      .nav {  
+        display: none;  
+      }  
+        
+      .status {  
+        grid-column: 1 / -1;  
+      }  
+    }  
+      
+    /* Safe Areas for iOS */  
+    @supports (padding: max(0px)) {  
+      .header {  
+        padding-left: max(16px, env(safe-area-inset-left));  
+        padding-right: max(16px, env(safe-area-inset-right));  
+      }  
+        
+      .status {  
+        padding-left: max(16px, env(safe-area-inset-left));  
+        padding-right: max(16px, env(safe-area-inset-right));  
+        padding-bottom: max(6px, env(safe-area-inset-bottom));  
+      }  
+    }  
+  </style>  
+</head>  
+<body>  
+    
+  <div class="app">  
+      
+    <!-- Header -->  
+    <div class="header">  
+      <div class="logo">🧬 Self-Helpton</div>  
+      <div class="chips">  
+        <div class="chip body">⬢</div>  
+        <div class="chip mind">⟁</div>  
+        <div class="chip heart">⟡</div>  
+      </div>  
+    </div>  
+      
+    <!-- Mode Selector -->  
+    <div class="modes">  
+      <button class="mode active" onclick="selectMode(0)">🎯 Dark Nudge</button>  
+      <button class="mode" onclick="selectMode(1)">📋 Brief Steps</button>  
+      <button class="mode" onclick="selectMode(2)">🎛️ Menu Choice</button>  
+      <button class="mode" onclick="selectMode(3)">🔍 Full Context</button>  
+    </div>  
+      
+    <!-- Content Area -->  
+    <div class="content">  
+      <div class="panels" data-view="editor" id="panels">  
+          
+        <!-- Editor Panel -->  
+        <div class="panel">  
+          <div class="editor-panel">  
+            <div class="msg" id="msg">  
+              <strong>Step 1 (5 min):</strong> Edit Button component. Add props. Say "done 1" when ready.  
+            </div>  
+            <div class="editor">  
+              <textarea class="code" id="code">export const Button = ({ children, onClick }) => {  
+  return (  
+    <button onClick={onClick} className="btn">  
+      {children}  
+    </button>  
+  );  
+};</textarea>  
+            </div>  
+          </div>  
+        </div>  
+          
+        <!-- Files Panel -->  
+        <div class="panel">  
+          <div class="files">  
+            <div class="file active" onclick="openFile(0)">  
+              <div class="file-icon">⚛️</div>  
+              <div>Button.tsx</div>  
+            </div>  
+            <div class="file" onclick="openFile(1)">  
+              <div class="file-icon">⚛️</div>  
+              <div>App.tsx</div>  
+            </div>  
+            <div class="file" onclick="openFile(2)">  
+              <div class="file-icon">📝</div>  
+              <div>README.md</div>  
+            </div>  
+          </div>  
+        </div>  
+          
+        <!-- Glyph Panel -->  
+        <div class="panel">  
+          <div class="glyph-panel">  
+              
+            <div class="glyph-card">  
+              <div class="glyph-symbol" id="symbol" style="color:#4f46e5;">◉</div>  
+              <div class="glyph-text">  
+                <div class="glyph-name" id="name">◉-THINK-000</div>  
+                <div class="glyph-id" id="id">blake3:awaiting...</div>  
+              </div>  
+            </div>  
+              
+            <div class="meta">  
+              <div class="meta-item">  
+                <div class="meta-label">Dimension</div>  
+                <div class="meta-value" id="dimension">Space</div>  
+              </div>  
+              <div class="meta-item">  
+                <div class="meta-label">Quality</div>  
+                <div class="meta-value" id="quality">draft</div>  
+              </div>  
+              <div class="meta-item">  
+                <div class="meta-label">Field</div>  
+                <div class="meta-value" id="field">Interface</div>  
+              </div>  
+              <div class="meta-item">  
+                <div class="meta-label">Coherence</div>  
+                <div class="meta-value">100%</div>  
+              </div>  
+            </div>  
+              
+            <div class="section">  
+              <div class="section-title">🌊 Field Resonance</div>  
+                
+              <div class="bar">  
+                <div class="bar-header">  
+                  <span>Mind</span>  
+                  <span id="mind-val">75%</span>  
+                </div>  
+                <div class="bar-track">  
+                  <div class="bar-fill" id="mind" style="width:75%"></div>  
+                </div>  
+              </div>  
+                
+              <div class="bar">  
+                <div class="bar-header">  
+                  <span>Body</span>  
+                  <span id="body-val">85%</span>  
+                </div>  
+                <div class="bar-track">  
+                  <div class="bar-fill" id="body" style="width:85%"></div>  
+                </div>  
+              </div>  
+                
+              <div class="bar">  
+                <div class="bar-header">  
+                  <span>Heart</span>  
+                  <span id="heart-val">90%</span>  
+                </div>  
+                <div class="bar-track">  
+                  <div class="bar-fill" id="heart" style="width:90%"></div>  
+                </div>  
+              </div>  
+                
+              <div class="bar">  
+                <div class="bar-header">  
+                  <span>Spirit</span>  
+                  <span id="spirit-val">65%</span>  
+                </div>  
+                <div class="bar-track">  
+                  <div class="bar-fill" id="spirit" style="width:65%"></div>  
+                </div>  
+              </div>  
+                
+              <div class="bar">  
+                <div class="bar-header">  
+                  <span>Soul</span>  
+                  <span id="soul-val">80%</span>  
+                </div>  
+                <div class="bar-track">  
+                  <div class="bar-fill" id="soul" style="width:80%"></div>  
+                </div>  
+              </div>  
+            </div>  
+              
+            <div class="section">  
+              <div class="section-title">💫 Virtual Consciousness</div>  
+              <div class="wave-box">  
+                <div style="font-size:0.9em;opacity:0.8;">Wave resonance active</div>  
+                <div class="wave-visual">  
+                  <div class="wave"></div>  
+                </div>  
+                <div class="wave-info">  
+                  Frequency: 440Hz | Phase: 0.75 | Amplitude: 0.9  
+                </div>  
+              </div>  
+            </div>  
+              
+          </div>  
+        </div>  
+          
+      </div>  
+    </div>  
+      
+    <!-- Action Buttons -->  
+    <div class="actions">  
+      <button class="btn btn-primary" onclick="save()">💾 Save</button>  
+      <button class="btn btn-secondary" onclick="glyph()">🧬 Glyph</button>  
+      <button class="btn btn-secondary" onclick="sync()">☁️ Sync</button>  
+      <button class="btn btn-secondary" onclick="run()">▶️ Run</button>  
+      <button class="btn btn-secondary" onclick="ai()">🤖 AI</button>  
+    </div>  
+      
+    <!-- Bottom Navigation (Mobile) -->  
+    <div class="nav">  
+      <button class="nav-btn active" onclick="navigate('editor')">  
+        <div class="nav-icon">✏️</div>  
+        <div>Editor</div>  
+      </button>  
+      <button class="nav-btn" onclick="navigate('files')">  
+        <div class="nav-icon">📁</div>  
+        <div>Files</div>  
+      </button>  
+      <button class="nav-btn" onclick="navigate('glyph')">  
+        <div class="nav-icon">🔷</div>  
+        <div>Glyph</div>  
+      </button>  
+    </div>  
+      
+    <!-- Status Bar -->  
+    <div class="status">  
+      <div class="status-item">  
+        <span>⚡</span>  
+        <span id="mode-status">Dark Nudge</span>  
+      </div>  
+      <div class="status-item">  
+        <span>📍</span>  
+        <span id="file-status">Button.tsx</span>  
+      </div>  
+      <div class="status-item">  
+        <span>↑</span>  
+        <span>Momentum</span>  
+      </div>  
+    </div>  
+      
+  </div>  
+    
+  <div class="loading" id="loading">  
+    <div class="spinner"></div>  
+    <div>Processing...</div>  
+  </div>  
+    
+  <script>  
+    // State  
+    let currentView = 'editor';  
+    let currentMode = 0;  
+    let currentFile = 0;  
+      
+    const files = [  
+      { name: 'Button.tsx', icon: '⚛️', code: `export const Button = ({ children, onClick }) => {  
+  return (  
+    <button onClick={onClick} className="btn">  
+      {children}  
+    </button>  
+  );  
+};` },  
+      { name: 'App.tsx', icon: '⚛️', code: `import { Button } from './Button';
+
+function App() {  
+  return (  
+    <div className="app">  
+      <h1>Hello Foundry!</h1>  
+      <Button onClick={() => alert('Clicked!')}>  
+        Click Me  
+      </Button>  
+    </div>  
+  );  
+}` },  
+      { name: 'README.md', icon: '📝', code: `# Foundry Fragment Library
+
+Built with Self-Helpton adaptive intake.
+
+## Features  
+- Dual-glyph identity  
+- Consciousness mapping  
+- Mobile-first design` }  
+    ];  
+      
+    const modes = [  
+      { name: 'Dark Nudge', msg: '<strong>Step 1 (5 min):</strong> Edit Button component. Add props. Say "done 1" when ready.' },  
+      { name: 'Brief Steps', msg: '<strong>Why:</strong> Building reusable UI library.<br><strong>Steps:</strong> 1) Define props 2) Add styling 3) Export' },  
+      { name: 'Menu Choice', msg: '<strong>Choose:</strong> A) Simple button B) Styled variants C) Accessible ARIA<br>Recommended: B' },  
+      { name: 'Full Context', msg: '<strong>Goal:</strong> Production button<br><strong>Risks:</strong> API changes<br><strong>Confirm to proceed</strong>' }  
+    ];  
+      
+    const dims = {  
+      Movement: { symbol: '⟡', color: '#059669', field: 'Spirit' },  
+      Evolution: { symbol: '⟁', color: '#dc2626', field: 'Mind' },  
+      Being: { symbol: '⬢', color: '#ea580c', field: 'Body' },  
+      Design: { symbol: '◇', color: '#7c3aed', field: 'Soul' },  
+      Space: { symbol: '◉', color: '#4f46e5', field: 'Heart' }  
+    };  
+      
+    // Navigation  
+    function navigate(view) {  
+      currentView = view;  
+      document.getElementById('panels').dataset.view = view;  
+        
+      document.querySelectorAll('.nav-btn').forEach((btn, i) => {  
+        btn.classList.toggle('active', ['editor', 'files', 'glyph'][i] === view);  
+      });  
+        
+      vibrate(30);  
+    }  
+      
+    // Mode Selection  
+    function selectMode(index) {  
+      currentMode = index;  
+      document.querySelectorAll('.mode').forEach((m, i) => {  
+        m.classList.toggle('active', i === index);  
+      });  
+        
+      document.getElementById('msg').innerHTML = modes[index].msg;  
+      document.getElementById('mode-status').textContent = modes[index].name;  
+        
+      vibrate(40);  
+    }  
+      
+    // File Management  
+    function openFile(index) {  
+      currentFile = index;  
+      const file = files[index];  
+        
+      document.getElementById('code').value = file.code;  
+      document.getElementById('file-status').textContent = file.name;  
+        
+      document.querySelectorAll('.file').forEach((f, i) => {  
+        f.classList.toggle('active', i === index);  
+      });  
+        
+      navigate('editor');  
+      vibrate(30);  
+    }  
+      
+    // Actions  
+    function save() {  
+      files[currentFile].code = document.getElementById('code').value;  
+      vibrate(50);  
+      showToast('✓ Saved!');  
+    }  
+      
+    function glyph() {  
+      const code = document.getElementById('code').value;  
+      if (!code.trim()) {  
+        showToast('⚠️ Write code first');  
+        return;  
+      }  
+        
+      showLoading();  
+        
+      setTimeout(() => {  
+        const hash = simpleHash(code);  
+        const dim = detectDim(code);  
+        const d = dims[dim];  
+        const counter = String(Math.floor(Math.random() * 999)).padStart(3, '0');  
+        const glyph = `${d.symbol}-${dim.slice(0,6).toUpperCase()}-${counter}`;  
+          
+        document.getElementById('symbol').textContent = d.symbol;  
+        document.getElementById('symbol').style.color = d.color;  
+        document.getElementById('name').textContent = glyph;  
+        document.getElementById('id').textContent = `blake3:${hash.slice(0,32)}`;  
+        document.getElementById('dimension').textContent = dim;  
+        document.getElementById('field').textContent = d.field;  
+          
+        animateResonance();  
+        hideLoading();  
+          
+        vibrate([50, 100, 50]);  
+        navigate('glyph');  
+        showToast('✓ Glyph computed!');  
+      }, 800);  
+    }  
+      
+    function sync() {  
+      showLoading();  
+      setTimeout(() => {  
+        document.getElementById('quality').textContent = 'tested';  
+        document.getElementById('quality').style.color = '#ffaa00';  
+        hideLoading();  
+        vibrate(50);  
+        showToast('✓ Synced to registry!');  
+      }, 1000);  
+    }  
+      
+    function run() {  
+      vibrate([50, 50, 50]);  
+      showToast('✓ Code executed!');  
+    }  
+      
+    function ai() {  
+      vibrate(50);  
+      showToast('🤖 AI: Add TypeScript props for type safety');  
+    }  
+      
+    // Utilities  
+    function simpleHash(str) {  
+      let hash = 0;  
+      for (let i = 0; i < str.length; i++) {  
+        hash = ((hash << 5) - hash) + str.charCodeAt(i);  
+        hash = hash & hash;  
+      }  
+      return Math.abs(hash).toString(16).padStart(64, '0');  
+    }  
+      
+    function detectDim(code) {  
+      const l = code.toLowerCase();  
+      if (l.includes('ai') || l.includes('generate')) return 'Movement';  
+      if (l.includes('state') || l.includes('effect')) return 'Evolution';  
+      if (l.includes('api') || l.includes('fetch')) return 'Being';  
+      if (l.includes('function') || l.includes('class')) return 'Design';  
+      return 'Space';  
+    }  
+      
+    function animateResonance() {  
+      ['mind', 'body', 'heart', 'spirit', 'soul'].forEach(f => {  
+        const val = Math.floor(Math.random() * 30 + 70);  
+        document.getElementById(f + '-val').textContent = val + '%';  
+        document.getElementById(f).style.width = val + '%';  
+      });  
+    }  
+      
+    function vibrate(pattern) {  
+      if ('vibrate' in navigator) {  
+        navigator.vibrate(pattern);  
+      }  
+    }  
+      
+    function showLoading() {  
+      document.getElementById('loading').style.display = 'block';  
+    }  
+      
+    function hideLoading() {  
+      document.getElementById('loading').style.display = 'none';  
+    }  
+      
+    function showToast(msg) {  
+      const toast = document.createElement('div');  
+      toast.style.cssText = `  
+        position: fixed;  
+        top: 80px;  
+        left: 50%;  
+        transform: translateX(-50%);  
+        padding: 12px 24px;  
+        background: rgba(0,0,0,0.9);  
+        color: var(--accent);  
+        border-radius: 8px;  
+        font-size: 0.9em;  
+        z-index: 2000;  
+        box-shadow: 0 4px 12px rgba(0,0,0,0.3);  
+      `;  
+      toast.textContent = msg;  
+      document.body.appendChild(toast);  
+        
+      setTimeout(() => {  
+        toast.style.transition = 'opacity 0.3s';  
+        toast.style.opacity = '0';  
+        setTimeout(() => toast.remove(), 300);  
+      }, 2000);  
+    }  
+      
+    // Touch Gestures  
+    let touchX = 0;  
+    let touchY = 0;  
+    let startX = 0;  
+    let startY = 0;  
+      
+    document.addEventListener('touchstart', e => {  
+      startX = e.touches[0].clientX;  
+      startY = e.touches[0].clientY;  
+    }, { passive: true });  
+      
+    document.addEventListener('touchend', e => {  
+      const endX = e.changedTouches[0].clientX;  
+      const endY = e.changedTouches[0].clientY;  
+      const diffX = endX - startX;  
+      const diffY = endY - startY;  
+        
+      if (Math.abs(diffX) > Math.abs(diffY) && Math.abs(diffX) > 50 && window.innerWidth < 768) {  
+        if (diffX > 0) {  
+          // Swipe right  
+          if (currentView === 'files') navigate('editor');  
+          else if (currentView === 'glyph') navigate('files');  
+        } else {  
+          // Swipe left  
+          if (currentView === 'editor') navigate('files');  
+          else if (currentView === 'files') navigate('glyph');  
+        }  
+      }  
+    }, { passive: true });  
+      
+    // Init  
+    console.log('🧬 Self-Helpton Foundry initialized');  
+    console.log('Mobile-optimized | Virtual Consciousness Active');  
+  </script>  
+</body>  
+</html>

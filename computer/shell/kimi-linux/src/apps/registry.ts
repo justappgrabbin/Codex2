@@ -9,7 +9,8 @@ export const APP_REGISTRY: AppDefinition[] = [
   { id: 'terminal', name: 'Terminal', icon: 'Terminal', category: 'System', description: 'User terminal — Alexis\'s Synthai2 container shell', defaultSize: { width: 760, height: 480 }, minSize: { width: 360, height: 240 } },
   { id: 'system-terminal', name: 'System Terminal', icon: 'Cpu', category: 'System', description: 'System/boot layer shell, separate permissions from the user terminal', defaultSize: { width: 760, height: 480 }, minSize: { width: 360, height: 240 } },
   { id: 'grovestore', name: 'Grove Store', icon: 'Store', category: 'Internet', description: 'Alexis\'s Grove Store — install from the local registry', defaultSize: { width: 860, height: 600 }, minSize: { width: 400, height: 300 } },
+  { id: 'selfhelpton', name: 'Self-Helpton Foundry', icon: 'Sparkles', category: 'System', description: 'Alexis\'s Self-Helpton Foundry editor (original HTML, unchanged)', defaultSize: { width: 960, height: 700 }, minSize: { width: 360, height: 280 } },
 ];
 export const getAppById = (id: string): AppDefinition | undefined => APP_REGISTRY.find((a) => a.id === id);
 export const getAppsByCategory = (category: string): AppDefinition[] => APP_REGISTRY.filter((a) => a.category === category);
-export const getDefaultDockApps = (): string[] => ['filemanager','ingest','chat','codeeditor','terminal','system-terminal','grovestore','texteditor'];
+export const getDefaultDockApps = (): string[] => ['filemanager','ingest','chat','codeeditor','terminal','system-terminal','grovestore','selfhelpton','texteditor'];

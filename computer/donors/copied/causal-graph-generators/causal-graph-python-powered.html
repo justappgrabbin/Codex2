@@ -1,0 +1,1112 @@
+<!DOCTYPE html>  
+<html lang="en">  
+<head>  
+    <meta charset="UTF-8">  
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">  
+    <title>YOU-N-I-VERSE Python-Powered Graph Generator</title>  
+      
+    <!-- Pyodide -->  
+    <script src="https://cdn.jsdelivr.net/pyodide/v0.24.1/full/pyodide.js"></script>  
+      
+    <!-- Vis.js -->  
+    <script src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>  
+      
+    <style>  
+        * {  
+            margin: 0;  
+            padding: 0;  
+            box-sizing: border-box;  
+        }
+
+        body {  
+            font-family: 'Courier New', monospace;  
+            background: linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 100%);  
+            color: #00ff00;  
+            overflow: hidden;  
+            height: 100vh;  
+        }
+
+        .container {  
+            display: grid;  
+            grid-template-columns: 320px 1fr 320px;  
+            grid-template-rows: 60px 1fr 180px;  
+            height: 100vh;  
+            gap: 10px;  
+            padding: 10px;  
+        }
+
+        header {  
+            grid-column: 1 / -1;  
+            background: rgba(0, 0, 0, 0.8);  
+            border: 2px solid #00ff00;  
+            border-radius: 8px;  
+            display: flex;  
+            align-items: center;  
+            justify-content: space-between;  
+            padding: 0 20px;  
+        }
+
+        h1 {  
+            font-size: 1.5em;  
+            text-shadow: 0 0 10px #00ff00;  
+        }
+
+        .status {  
+            color: #00cc00;  
+            font-size: 0.9em;  
+        }
+
+        .input-panel, .inspector-panel {  
+            background: rgba(0, 0, 0, 0.5);  
+            border: 1px solid #00ff00;  
+            border-radius: 8px;  
+            padding: 15px;  
+            overflow-y: auto;  
+        }
+
+        .input-panel h2, .inspector-panel h2 {  
+            font-size: 1.1em;  
+            margin-bottom: 12px;  
+            border-bottom: 1px solid #004400;  
+            padding-bottom: 8px;  
+        }
+
+        .input-group {  
+            margin-bottom: 12px;  
+        }
+
+        .input-group label {  
+            display: block;  
+            color: #00cc00;  
+            margin-bottom: 4px;  
+            font-size: 0.85em;  
+        }
+
+        .input-group input[type="number"],  
+        .input-group input[type="text"],  
+        .input-group select {  
+            width: 100%;  
+            background: #1a1a1a;  
+            color: #00ff00;  
+            border: 1px solid #004400;  
+            padding: 6px;  
+            border-radius: 4px;  
+            font-family: 'Courier New', monospace;  
+            font-size: 0.9em;  
+        }
+
+        .input-group input[type="checkbox"] {  
+            margin-right: 8px;  
+        }
+
+        button {  
+            width: 100%;  
+            background: #00ff00;  
+            color: #0a0a0a;  
+            border: none;  
+            padding: 10px;  
+            font-size: 0.9em;  
+            font-weight: bold;  
+            cursor: pointer;  
+            border-radius: 5px;  
+            font-family: 'Courier New', monospace;  
+            margin-top: 8px;  
+            transition: all 0.3s;  
+        }
+
+        button:hover:not(:disabled) {  
+            background: #00cc00;  
+            transform: scale(1.02);  
+        }
+
+        button:disabled {  
+            background: #333;  
+            color: #666;  
+            cursor: not-allowed;  
+        }
+
+        button.secondary {  
+            background: #004400;  
+            color: #00ff00;  
+            border: 1px solid #00ff00;  
+        }
+
+        button.secondary:hover:not(:disabled) {  
+            background: #006600;  
+        }
+
+        .graph-panel {  
+            background: rgba(0, 0, 0, 0.5);  
+            border: 1px solid #00ff00;  
+            border-radius: 8px;  
+            position: relative;  
+        }
+
+        #causal-graph {  
+            width: 100%;  
+            height: 100%;  
+            background: #0a0a0a;  
+        }
+
+        .console-panel {  
+            grid-column: 1 / -1;  
+            background: rgba(0, 0, 0, 0.8);  
+            border: 1px solid #00ff00;  
+            border-radius: 8px;  
+            padding: 10px;  
+            overflow-y: auto;  
+            font-size: 0.8em;  
+        }
+
+        .console-line {  
+            margin-bottom: 4px;  
+        }
+
+        .console-line.info { color: #00ff00; }  
+        .console-line.warning { color: #ffff00; }  
+        .console-line.error { color: #ff0000; }  
+        .console-line.success { color: #00ffff; }
+
+        .export-section {  
+            margin-top: 15px;  
+            padding-top: 15px;  
+            border-top: 1px solid #004400;  
+        }
+
+        .export-section h3 {  
+            font-size: 0.95em;  
+            margin-bottom: 10px;  
+            color: #00ff00;  
+        }
+
+        .format-grid {  
+            display: grid;  
+            grid-template-columns: 1fr 1fr;  
+            gap: 8px;  
+            margin-bottom: 10px;  
+        }
+
+        .format-btn {  
+            padding: 8px;  
+            font-size: 0.85em;  
+            margin: 0;  
+        }
+
+        .spinner {  
+            display: inline-block;  
+            width: 14px;  
+            height: 14px;  
+            border: 2px solid #004400;  
+            border-radius: 50%;  
+            border-top-color: #00ff00;  
+            animation: spin 1s linear infinite;  
+        }
+
+        @keyframes spin {  
+            to { transform: rotate(360deg); }  
+        }
+
+        .layer-item {  
+            background: #1a1a1a;  
+            border: 1px solid #004400;  
+            border-radius: 4px;  
+            padding: 8px;  
+            margin-bottom: 8px;  
+            font-size: 0.85em;  
+        }
+
+        .layer-name {  
+            font-weight: bold;  
+            color: #00ff00;  
+            margin-bottom: 3px;  
+        }
+
+        .layer-status {  
+            font-size: 0.8em;  
+            color: #00cc00;  
+        }  
+    </style>  
+</head>  
+<body>  
+    <div class="container">  
+        <header>  
+            <h1>🐍 Python-Powered Causal Graph</h1>  
+            <div class="status" id="status">  
+                <span class="spinner"></span> Loading Python...  
+            </div>  
+        </header>
+
+        <div class="input-panel">  
+            <h2>Chart Input</h2>  
+              
+            <div class="input-group">  
+                <label>Project Name</label>  
+                <input type="text" id="project-name" value="my-causal-graph">  
+            </div>  
+              
+            <div class="input-group">  
+                <label>Gate (1-64)</label>  
+                <input type="number" id="gate" min="1" max="64" value="25">  
+            </div>
+
+            <div class="input-group">  
+                <label>Line (1-6)</label>  
+                <input type="number" id="line" min="1" max="6" value="4">  
+            </div>
+
+            <div class="input-group">  
+                <label>Color</label>  
+                <select id="color">  
+                    <option value="1">1 - Fear</option>  
+                    <option value="2">2 - Hope</option>  
+                    <option value="3">3 - Desire</option>  
+                    <option value="4">4 - Need</option>  
+                    <option value="5">5 - Guilt</option>  
+                    <option value="6" selected>6 - Innocence</option>  
+                </select>  
+            </div>
+
+            <div class="input-group">  
+                <label>Tone</label>  
+                <select id="tone">  
+                    <option value="1">1 - Security</option>  
+                    <option value="2" selected>2 - Uncertainty</option>  
+                    <option value="3">3 - Action</option>  
+                    <option value="4">4 - Meditation</option>  
+                    <option value="5">5 - Judgement</option>  
+                    <option value="6">6 - Acceptance</option>  
+                </select>  
+            </div>
+
+            <div class="input-group">  
+                <label>Base</label>  
+                <select id="base">  
+                    <option value="1">1 - Movement</option>  
+                    <option value="2">2 - Evolution</option>  
+                    <option value="3" selected>3 - Being</option>  
+                    <option value="4">4 - Design</option>  
+                    <option value="5">5 - Space</option>  
+                </select>  
+            </div>
+
+            <div class="input-group">  
+                <label>  
+                    <input type="checkbox" id="sa_correct" checked>   
+                    Strategy & Authority  
+                </label>  
+            </div>
+
+            <div class="input-group">  
+                <label>  
+                    <input type="checkbox" id="phs_correct" checked>   
+                    PHS Correct  
+                </label>  
+            </div>
+
+            <div class="input-group">  
+                <label>  
+                    <input type="checkbox" id="env_correct" checked>   
+                    Environment Correct  
+                </label>  
+            </div>
+
+            <button id="calculate-btn" disabled>  
+                🧠 Generate Causal Graph  
+            </button>
+
+            <!-- EXPORT SECTION -->  
+            <div class="export-section">  
+                <h3>🐍 Python Export (All formats)</h3>  
+                  
+                <div class="format-grid">  
+                    <button class="format-btn secondary" id="export-json" disabled>  
+                        💾 JSON  
+                    </button>  
+                    <button class="format-btn secondary" id="export-graphml" disabled>  
+                        📊 GraphML  
+                    </button>  
+                    <button class="format-btn secondary" id="export-dot" disabled>  
+                        🔷 DOT  
+                    </button>  
+                    <button class="format-btn secondary" id="export-csv" disabled>  
+                        📋 CSV  
+                    </button>  
+                </div>
+
+                <button class="secondary" id="export-html" disabled>  
+                    📄 Standalone HTML  
+                </button>
+
+                <button id="export-python-script" disabled>  
+                    🐍 Python Script (.py)  
+                </button>
+
+                <button id="export-all" disabled>  
+                    📦 Download All Files (ZIP)  
+                </button>  
+            </div>  
+        </div>
+
+        <div class="graph-panel">  
+            <div id="causal-graph"></div>  
+        </div>
+
+        <div class="inspector-panel">  
+            <h2>Causal Layers</h2>  
+            <div id="layer-list">  
+                <p style="color: #888; font-size: 0.85em;">Generate graph to see layers...</p>  
+            </div>  
+        </div>
+
+        <div class="console-panel" id="console">  
+            <div class="console-line info">🐍 Initializing Python brain...</div>  
+        </div>  
+    </div>
+
+    <script>  
+        let pyodide = null;  
+        let network = null;  
+        let currentGraphData = null;  
+        let currentChartInput = null;
+
+        // ═══════════════════════════════════════════════════════════  
+        // PYODIDE WITH COMPLETE FILE GENERATION IN PYTHON  
+        // ═══════════════════════════════════════════════════════════  
+          
+        async function initializePyodide() {  
+            try {  
+                logConsole('Loading Pyodide...', 'info');  
+                pyodide = await loadPyodide();  
+                  
+                logConsole('✓ Pyodide loaded', 'success');  
+                logConsole('Installing Python packages...', 'info');  
+                  
+                // Install micropip to get other packages  
+                await pyodide.loadPackage('micropip');  
+                  
+                logConsole('✓ Packages ready', 'success');  
+                logConsole('Loading Python brain with file generators...', 'info');  
+                  
+                // THE COMPLETE PYTHON SYSTEM WITH FILE GENERATION  
+                const pythonCode = `  
+import json  
+import base64  
+from datetime import datetime
+
+class CausalGraphFileGenerator:  
+    """  
+    Complete causal graph system with file generation.  
+    Python does ALL the heavy lifting!  
+    """  
+      
+    def __init__(self):  
+        self.nodes = []  
+        self.edges = []  
+        self.layer_results = {}  
+        self.metadata = {}  
+      
+    def calculate_chain(self, chart_input):  
+        """Build complete causal chain."""  
+        self.nodes = []  
+        self.edges = []  
+        self.layer_results = {}  
+        self.metadata = {  
+            'chart_input': chart_input,  
+            'timestamp': datetime.now().isoformat(),  
+            'version': '1.0'  
+        }  
+          
+        # Build all layers  
+        self.layer_0_cosmology()  
+        self.layer_1_evolution()  
+        self.layer_2_biology(chart_input)  
+        self.layer_3_substructure(chart_input)  
+        vehicle_state = self.layer_4_vehicle(chart_input)  
+        self.layer_5_personality(chart_input, vehicle_state)  
+        mutation_state = self.layer_6_mutation(chart_input, vehicle_state)  
+        self.layer_7_experience(mutation_state)  
+        self.layer_8_expression()  
+        self.layer_9_gate_line(chart_input)  
+        self.layer_10_biochemical(chart_input)  
+          
+        return {  
+            'nodes': self.nodes,  
+            'edges': self.edges,  
+            'layer_results': self.layer_results,  
+            'metadata': self.metadata  
+        }  
+      
+    def add_node(self, id, label, level, layer, data, note=None):  
+        self.nodes.append({  
+            'id': id,  
+            'label': label,  
+            'level': level,  
+            'layer': layer,  
+            'data': data,  
+            'note': note  
+        })  
+      
+    def add_edge(self, from_id, to_id, label, strength='strong'):  
+        self.edges.append({  
+            'from': from_id,  
+            'to': to_id,  
+            'label': label,  
+            'strength': strength  
+        })  
+      
+    # Layer implementations  
+    def layer_0_cosmology(self):  
+        self.add_node('the_two', 'The Two\\\\n(Bhan + Tugh)', 0, 'cosmology', {'principle': 'Yang + Yin'}, 'Foundation')  
+        self.add_node('crystals', 'Crystals\\\\n(Design + Personality)', 0, 'cosmology', {'shattered': True}, 'Form')  
+        self.add_node('monopole', 'Magnetic Monopole', 0, 'cosmology', {'function': 'Identity'}, 'Attractor')  
+        self.add_edge('the_two', 'crystals', 'creates')  
+        self.add_edge('crystals', 'monopole', 'held by')  
+        self.layer_results['cosmology'] = {'complete': True}  
+      
+    def layer_1_evolution(self):  
+        self.add_node('evolution', 'Nine-Centered', 1, 'evolution', {'type': 'Nine-Centered'}, 'Current')  
+        self.add_edge('monopole', 'evolution', 'determines')  
+        self.layer_results['evolution'] = {'type': 'Nine-Centered'}  
+      
+    def layer_2_biology(self, chart_input):  
+        center = 'Heart'  
+        self.add_node('center', f'Center: {center}', 2, 'biology', {'center': center}, 'Biology')  
+        self.add_edge('evolution', 'center', 'manifests in')  
+        self.layer_results['biology'] = {'center': center}  
+      
+    def layer_3_substructure(self, chart_input):  
+        base_id = chart_input.get('base', 3)  
+        tone_id = chart_input.get('tone', 2)  
+        color_id = chart_input.get('color', 6)  
+          
+        self.add_node('base', f'Base {base_id}', 3, 'substructure', {'base': base_id}, 'Dimension')  
+        self.add_node('tone', f'Tone {tone_id}', 3, 'substructure', {'tone': tone_id}, 'Sense')  
+        self.add_node('color', f'Color {color_id}', 3, 'substructure', {'color': color_id}, 'Motivation')  
+          
+        self.add_edge('center', 'base', 'filters to')  
+        self.add_edge('base', 'tone', 'filters to')  
+        self.add_edge('tone', 'color', 'filters to')  
+          
+        self.layer_results['substructure'] = {'base': base_id, 'tone': tone_id, 'color': color_id}  
+      
+    def layer_4_vehicle(self, chart_input):  
+        sa = chart_input.get('strategy_correct', False)  
+        phs = chart_input.get('phs_correct', False)  
+        env = chart_input.get('environment_correct', False)  
+          
+        vehicle_correct = sa and phs and env  
+        state = 'FULLY CORRECT' if vehicle_correct else 'Needs Work'  
+          
+        self.add_node('vehicle', f'Vehicle\\\\n{state}', 4, 'vehicle', {'correct': vehicle_correct}, state)  
+        self.add_edge('color', 'vehicle', 'requires S\&A')  
+          
+        self.layer_results['vehicle'] = {'state': state, 'correct': vehicle_correct}  
+        return vehicle_correct  
+      
+    def layer_5_personality(self, chart_input, vehicle_correct):  
+        state = 'ACTIVE' if vehicle_correct else 'BLOCKED'  
+        self.add_node('personality', f'Personality\\\\n{state}', 5, 'personality', {'active': vehicle_correct}, state)  
+        self.add_edge('vehicle', 'personality', 'enables' if vehicle_correct else 'blocks')  
+        self.layer_results['personality'] = {'active': vehicle_correct}  
+      
+    def layer_6_mutation(self, chart_input, vehicle_correct):  
+        diagonal = 'ACTIVE' if vehicle_correct else 'INACTIVE'  
+        self.add_node('mutation', f'Diagonal\\\\n{diagonal}', 6, 'mutation', {'diagonal': diagonal}, diagonal)  
+        self.add_edge('personality', 'mutation', 'activates' if vehicle_correct else 'blocks')  
+        self.layer_results['mutation'] = {'diagonal': diagonal}  
+        return vehicle_correct  
+      
+    def layer_7_experience(self, mutation_active):  
+        mode = 'Differentiated' if mutation_active else 'Homogenized'  
+        self.add_node('experience', f'Experience\\\\n{mode}', 7, 'experience', {'mode': mode}, mode)  
+        self.add_edge('mutation', 'experience', 'processes')  
+      
+    def layer_8_expression(self):  
+        self.add_node('expression', 'Expression\\\\nBehind → Front', 8, 'expression', {'spatial': True}, 'Spatial')  
+        self.add_edge('experience', 'expression', 'manifests as')  
+      
+    def layer_9_gate_line(self, chart_input):  
+        gate = chart_input.get('gate', 25)  
+        line = chart_input.get('line', 4)  
+          
+        self.add_node('gate', f'Gate {gate}', 9, 'gate_line', {'gate': gate}, 'Archetype')  
+        self.add_node('line', f'Line {line}', 9, 'gate_line', {'line': line}, 'Role')  
+          
+        self.add_edge('expression', 'gate', 'expresses through')  
+        self.add_edge('gate', 'line', 'contains')  
+      
+    def layer_10_biochemical(self, chart_input):  
+        self.add_node('biochemical', 'CAC → Histidine', 10, 'biochemical', {'codon': 'CAC'}, 'Biochem')  
+        self.add_edge('line', 'biochemical', 'translates to')  
+      
+    # ═══════════════════════════════════════════════════════  
+    # FILE GENERATION METHODS (PYTHON DOES IT ALL!)  
+    # ═══════════════════════════════════════════════════════  
+      
+    def generate_json(self):  
+        """Generate JSON file content."""  
+        return json.dumps({  
+            'nodes': self.nodes,  
+            'edges': self.edges,  
+            'layer_results': self.layer_results,  
+            'metadata': self.metadata  
+        }, indent=2)  
+      
+    def generate_graphml(self):  
+        """Generate GraphML file content."""  
+        xml = '<?xml version="1.0" encoding="UTF-8"?>\\\\n'  
+        xml += '<graphml xmlns="http://graphml.graphdrawing.org/xmlns">\\\\n'  
+        xml += '  <key id="label" for="node" attr.name="label" attr.type="string"/>\\\\n'  
+        xml += '  <key id="layer" for="node" attr.name="layer" attr.type="string"/>\\\\n'  
+        xml += '  <key id="level" for="node" attr.name="level" attr.type="int"/>\\\\n'  
+        xml += '  <key id="relationship" for="edge" attr.name="relationship" attr.type="string"/>\\\\n'  
+        xml += '  <graph id="CausalGraph" edgedefault="directed">\\\\n'  
+          
+        # Add nodes  
+        for node in self.nodes:  
+            label = node['label'].replace('\\\\n', ' ')  
+            xml += f'    <node id="{node["id"]}">\\\\n'  
+            xml += f'      <data key="label">{label}</data>\\\\n'  
+            xml += f'      <data key="layer">{node["layer"]}</data>\\\\n'  
+            xml += f'      <data key="level">{node["level"]}</data>\\\\n'  
+            xml += '    </node>\\\\n'  
+          
+        # Add edges  
+        for idx, edge in enumerate(self.edges):  
+            xml += f'    <edge id="e{idx}" source="{edge["from"]}" target="{edge["to"]}">\\\\n'  
+            xml += f'      <data key="relationship">{edge["label"]}</data>\\\\n'  
+            xml += '    </edge>\\\\n'  
+          
+        xml += '  </graph>\\\\n'  
+        xml += '</graphml>'  
+          
+        return xml  
+      
+    def generate_dot(self):  
+        """Generate DOT (Graphviz) file content."""  
+        dot = 'digraph CausalGraph {\\\\n'  
+        dot += '  rankdir=TB;\\\\n'  
+        dot += '  node [shape=box, style=filled, fillcolor="#0a0a0a", color="#00ff00", fontcolor="#00ff00"];\\\\n'  
+        dot += '  edge [color="#00ff00"];\\\\n\\\\n'  
+          
+        # Add nodes  
+        for node in self.nodes:  
+            label = node['label'].replace('\\\\n', '\\\\\\\\n')  
+            dot += f'  "{node["id"]}" [label="{label}"];\\\\n'  
+          
+        dot += '\\\\n'  
+          
+        # Add edges  
+        for edge in self.edges:  
+            dot += f'  "{edge["from"]}" -> "{edge["to"]}" [label="{edge["label"]}"];\\\\n'  
+          
+        dot += '}'  
+          
+        return dot  
+      
+    def generate_csv_nodes(self):  
+        """Generate nodes CSV content."""  
+        csv = 'id,label,level,layer,note\\\\n'  
+        for node in self.nodes:  
+            label = node['label'].replace('\\\\n', ' ').replace(',', ';')  
+            note = node.get('note', '').replace(',', ';')  
+            csv += f'{node["id"]},"{label}",{node["level"]},{node["layer"]},"{note}"\\\\n'  
+        return csv  
+      
+    def generate_csv_edges(self):  
+        """Generate edges CSV content."""  
+        csv = 'from,to,relationship,strength\\\\n'  
+        for edge in self.edges:  
+            csv += f'{edge["from"]},{edge["to"]},{edge["label"]},{edge["strength"]}\\\\n'  
+        return csv  
+      
+    def generate_standalone_html(self, project_name):  
+        """Generate standalone HTML with embedded graph."""  
+        html = f'''<!DOCTYPE html>  
+<html>  
+<head>  
+    <meta charset="UTF-8">  
+    <title>{project_name} - Causal Graph</title>  
+    <script src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>  
+    <style>  
+        body {{ margin: 0; font-family: 'Courier New', monospace; background: #0a0a0a; color: #00ff00; }}  
+        #graph {{ width: 100vw; height: 100vh; }}  
+        #info {{ position: absolute; top: 10px; left: 10px; background: rgba(0,0,0,0.8);   
+                 border: 1px solid #00ff00; padding: 15px; border-radius: 5px; max-width: 300px; }}  
+        h2 {{ margin-top: 0; color: #00ff00; font-size: 1.2em; }}  
+        .meta {{ font-size: 0.85em; color: #00cc00; margin: 5px 0; }}  
+    </style>  
+</head>  
+<body>  
+    <div id="info">  
+        <h2>{project_name}</h2>  
+        <div class="meta">Generated: {self.metadata['timestamp']}</div>  
+        <div class="meta">Nodes: {len(self.nodes)}</div>  
+        <div class="meta">Edges: {len(self.edges)}</div>  
+    </div>  
+    <div id="graph"></div>  
+    <script>  
+        const graphData = {json.dumps({'nodes': self.nodes, 'edges': self.edges})};  
+          
+        const nodes = new vis.DataSet(graphData.nodes.map(node => ({{  
+            ...node,  
+            shape: 'box',  
+            color: {{ background: '#0a0a0a', border: '#00ff00' }},  
+            font: {{ color: '#00ff00', face: 'Courier New', size: 11 }}  
+        }})));  
+          
+        const edges = new vis.DataSet(graphData.edges.map(edge => ({{  
+            ...edge,  
+            arrows: 'to',  
+            color: edge.label.includes('blocks') ? '#ff0000' : '#00ff00',  
+            width: 2  
+        }})));  
+          
+        const container = document.getElementById('graph');  
+        const data = {{ nodes, edges }};  
+        const options = {{  
+            layout: {{ hierarchical: {{ direction: 'UD', sortMethod: 'directed', levelSeparation: 140 }} }},  
+            physics: {{ enabled: false }},  
+            interaction: {{ hover: true, zoomView: true }}  
+        }};  
+          
+        new vis.Network(container, data, options);  
+    </script>  
+</body>  
+</html>'''  
+        return html  
+      
+    def generate_python_script(self, project_name):  
+        """Generate executable Python script."""  
+        script = f'''#!/usr/bin/env python3  
+"""  
+Causal Graph Generator Script  
+Project: {project_name}  
+Generated: {self.metadata['timestamp']}
+
+This script can regenerate the causal graph or be modified for custom analysis.  
+"""
+
+import json
+
+# Graph data  
+GRAPH_DATA = {json.dumps({'nodes': self.nodes, 'edges': self.edges, 'metadata': self.metadata}, indent=4)}
+
+def print_graph_summary():  
+    """Print summary of the causal graph."""  
+    print(f"Causal Graph: {project_name}")  
+    print(f"=" * 60)  
+    print(f"Nodes: {{len(GRAPH_DATA['nodes'])}}")  
+    print(f"Edges: {{len(GRAPH_DATA['edges'])}}")  
+    print(f"Layers: {{len(set(n['layer'] for n in GRAPH_DATA['nodes']))}}")  
+    print(f"=" * 60)  
+      
+    # Print layers  
+    layers = {{}}  
+    for node in GRAPH_DATA['nodes']:  
+        layer = node['layer']  
+        if layer not in layers:  
+            layers[layer] = []  
+        layers[layer].append(node['id'])  
+      
+    for layer, nodes in sorted(layers.items()):  
+        print(f"{{layer.upper()}}: {{', '.join(nodes)}}")
+
+def export_to_json(filename):  
+    """Export graph to JSON file."""  
+    with open(filename, 'w') as f:  
+        json.dump(GRAPH_DATA, f, indent=2)  
+    print(f"Exported to {{filename}}")
+
+if __name__ == "__main__":  
+    print_graph_summary()  
+    export_to_json("{project_name}-graph.json")  
+'''  
+        return script  
+      
+    def generate_readme(self, project_name):  
+        """Generate README file."""  
+        chart = self.metadata['chart_input']  
+        readme = f'''YOU-N-I-VERSE Causal Graph Package  
+=====================================
+
+Project: {project_name}  
+Generated: {self.metadata['timestamp']}  
+Version: {self.metadata['version']}
+
+📦 Package Contents  
+-------------------  
+- {project_name}-graph.json        - Full graph data  
+- {project_name}-graph.graphml     - GraphML format (Gephi, yEd, Cytoscape)  
+- {project_name}-graph.dot         - DOT format (Graphviz)  
+- {project_name}-nodes.csv         - Nodes table  
+- {project_name}-edges.csv         - Edges table  
+- {project_name}-standalone.html   - Interactive visualization  
+- {project_name}-generator.py      - Python script  
+- README.txt                        - This file
+
+🧬 Chart Configuration  
+----------------------  
+Gate:                  {chart.get('gate', 'N/A')}  
+Line:                  {chart.get('line', 'N/A')}  
+Color:                 {chart.get('color', 'N/A')}  
+Tone:                  {chart.get('tone', 'N/A')}  
+Base:                  {chart.get('base', 'N/A')}  
+Strategy & Authority:  {'Yes' if chart.get('strategy_correct') else 'No'}  
+PHS Correct:           {'Yes' if chart.get('phs_correct') else 'No'}  
+Environment Correct:   {'Yes' if chart.get('environment_correct') else 'No'}
+
+📊 Graph Statistics  
+-------------------  
+Total Nodes:  {len(self.nodes)}  
+Total Edges:  {len(self.edges)}  
+Total Layers: {len(self.layer_results)}
+
+🔗 Layer Summary  
+----------------  
+{self._generate_layer_summary()}
+
+📖 Usage Instructions  
+---------------------  
+1. View Interactive Graph:  
+   Open {project_name}-standalone.html in any web browser
+
+2. Import into Graph Tools:  
+   - Gephi/yEd/Cytoscape: Use {project_name}-graph.graphml  
+   - Graphviz: Use {project_name}-graph.dot  
+   - Excel/Pandas/R: Use CSV files
+
+3. Run Python Script:  
+   python {project_name}-generator.py
+
+4. Analyze JSON:  
+   Load {project_name}-graph.json in any JSON tool
+
+🐍 Generated by YOU-N-I-VERSE Python-Powered Causal Graph Generator  
+'''  
+        return readme  
+      
+    def _generate_layer_summary(self):  
+        """Generate layer summary for README."""  
+        summary = ""  
+        for layer_name, layer_data in self.layer_results.items():  
+            status = layer_data.get('state', layer_data.get('note', 'Complete'))  
+            summary += f"- {layer_name.upper()}: {status}\\\\n"  
+        return summary
+
+# Create global generator instance  
+generator = CausalGraphFileGenerator()
+
+def calculate(chart_json):  
+    """Entry point for JavaScript - calculate graph."""  
+    chart_data = json.loads(chart_json)  
+    result = generator.calculate_chain(chart_data)  
+    return json.dumps(result)
+
+def export_format(format_name, project_name="my-graph"):  
+    """Entry point for JavaScript - generate file content."""  
+    if format_name == 'json':  
+        return generator.generate_json()  
+    elif format_name == 'graphml':  
+        return generator.generate_graphml()  
+    elif format_name == 'dot':  
+        return generator.generate_dot()  
+    elif format_name == 'csv_nodes':  
+        return generator.generate_csv_nodes()  
+    elif format_name == 'csv_edges':  
+        return generator.generate_csv_edges()  
+    elif format_name == 'html':  
+        return generator.generate_standalone_html(project_name)  
+    elif format_name == 'python':  
+        return generator.generate_python_script(project_name)  
+    elif format_name == 'readme':  
+        return generator.generate_readme(project_name)  
+    else:  
+        return f"Unknown format: {format_name}"  
+`;
+
+                await pyodide.runPythonAsync(pythonCode);  
+                  
+                logConsole('✓ Python brain loaded with file generators', 'success');  
+                document.getElementById('status').textContent = '✓ Python Ready';  
+                document.getElementById('status').className = 'status';  
+                document.getElementById('calculate-btn').disabled = false;  
+                  
+            } catch (error) {  
+                logConsole(`ERROR: ${error}`, 'error');  
+            }  
+        }
+
+        // ═══════════════════════════════════════════════════════════  
+        // GRAPH VISUALIZATION (same as before)  
+        // ═══════════════════════════════════════════════════════════  
+          
+        function initializeGraph() {  
+            const container = document.getElementById('causal-graph');  
+            const data = { nodes: new vis.DataSet([]), edges: new vis.DataSet([]) };  
+            const options = {  
+                layout: {  
+                    hierarchical: {  
+                        direction: 'UD',  
+                        sortMethod: 'directed',  
+                        levelSeparation: 140,  
+                        nodeSpacing: 180  
+                    }  
+                },  
+                nodes: {  
+                    shape: 'box',  
+                    margin: 10,  
+                    color: { background: '#0a0a0a', border: '#00ff00' },  
+                    font: { color: '#00ff00', face: 'Courier New', size: 11 }  
+                },  
+                edges: {  
+                    arrows: 'to',  
+                    color: '#00ff00',  
+                    width: 2,  
+                    smooth: { type: 'cubicBezier', forceDirection: 'vertical' }  
+                },  
+                physics: { enabled: false }  
+            };  
+            network = new vis.Network(container, data, options);  
+        }
+
+        function updateGraph(graphData) {  
+            if (!network) return;  
+              
+            const nodes = new vis.DataSet(graphData.nodes.map(node => ({  
+                ...node,  
+                shape: 'box',  
+                margin: 10,  
+                color: getLayerColor(node.layer),  
+                font: { color: '#00ff00', size: 11 }  
+            })));  
+              
+            const edges = new vis.DataSet(graphData.edges.map(edge => ({  
+                ...edge,  
+                arrows: 'to',  
+                color: edge.label.includes('blocks') ? '#ff0000' : '#00ff00',  
+                width: 2  
+            })));  
+              
+            network.setData({ nodes, edges });  
+            setTimeout(() => network.fit({ animation: { duration: 800 } }), 100);  
+        }
+
+        function getLayerColor(layer) {  
+            const colors = {  
+                'cosmology': { background: '#0a0a0a', border: '#ff00ff' },  
+                'evolution': { background: '#0a0a0a', border: '#8800ff' },  
+                'biology': { background: '#0a0a0a', border: '#ff0088' },  
+                'substructure': { background: '#0a0a0a', border: '#00ff88' },  
+                'vehicle': { background: '#0a0a0a', border: '#ffff00' },  
+                'personality': { background: '#0a0a0a', border: '#0088ff' },  
+                'mutation': { background: '#0a0a0a', border: '#ff8800' },  
+                'experience': { background: '#0a0a0a', border: '#88ffff' },  
+                'expression': { background: '#0a0a0a', border: '#88ff88' },  
+                'gate_line': { background: '#0a0a0a', border: '#ffff00' },  
+                'biochemical': { background: '#0a0a0a', border: '#ffffff' }  
+            };  
+            return colors[layer] || { background: '#0a0a0a', border: '#00ff00' };  
+        }
+
+        // ═══════════════════════════════════════════════════════════  
+        // CALCULATION  
+        // ═══════════════════════════════════════════════════════════  
+          
+        async function calculateCausalChain() {  
+            try {  
+                logConsole('🐍 Python calculating causal chain...', 'info');  
+                  
+                currentChartInput = {  
+                    gate: parseInt(document.getElementById('gate').value),  
+                    line: parseInt(document.getElementById('line').value),  
+                    color: parseInt(document.getElementById('color').value),  
+                    tone: parseInt(document.getElementById('tone').value),  
+                    base: parseInt(document.getElementById('base').value),  
+                    strategy_correct: document.getElementById('sa_correct').checked,  
+                    phs_correct: document.getElementById('phs_correct').checked,  
+                    environment_correct: document.getElementById('env_correct').checked  
+                };  
+                  
+                const chartJson = JSON.stringify(currentChartInput);  
+                const resultJson = pyodide.runPython(`calculate('${chartJson}')`);  
+                const result = JSON.parse(resultJson);  
+                  
+                currentGraphData = result;  
+                  
+                logConsole(`✓ Graph generated: ${result.nodes.length} nodes, ${result.edges.length} edges`, 'success');  
+                  
+                updateGraph(result);  
+                updateLayerInspector(result.layer_results);  
+                enableExportButtons();  
+                  
+            } catch (error) {  
+                logConsole(`ERROR: ${error}`, 'error');  
+            }  
+        }
+
+        function updateLayerInspector(layerResults) {  
+            const layerList = document.getElementById('layer-list');  
+            layerList.innerHTML = '';  
+              
+            Object.entries(layerResults).forEach(([layerName, layerData]) => {  
+                const layerDiv = document.createElement('div');  
+                layerDiv.className = 'layer-item';  
+                  
+                let statusText = layerData.note || layerData.state || 'Complete';  
+                  
+                layerDiv.innerHTML = `  
+                    <div class="layer-name">${layerName.toUpperCase()}</div>  
+                    <div class="layer-status">${statusText}</div>  
+                `;  
+                  
+                layerList.appendChild(layerDiv);  
+            });  
+        }
+
+        function enableExportButtons() {  
+            document.getElementById('export-json').disabled = false;  
+            document.getElementById('export-graphml').disabled = false;  
+            document.getElementById('export-dot').disabled = false;  
+            document.getElementById('export-csv').disabled = false;  
+            document.getElementById('export-html').disabled = false;  
+            document.getElementById('export-python-script').disabled = false;  
+            document.getElementById('export-all').disabled = false;  
+        }
+
+        // ═══════════════════════════════════════════════════════════  
+        // EXPORT FUNCTIONS (PYTHON GENERATES EVERYTHING!)  
+        // ═══════════════════════════════════════════════════════════  
+          
+        function exportJSON() {  
+            logConsole('🐍 Python generating JSON...', 'info');  
+            const projectName = document.getElementById('project-name').value;  
+            const content = pyodide.runPython(`export_format('json', '${projectName}')`);  
+            downloadFile(`${projectName}-graph.json`, content, 'application/json');  
+            logConsole('✓ JSON exported', 'success');  
+        }
+
+        function exportGraphML() {  
+            logConsole('🐍 Python generating GraphML...', 'info');  
+            const projectName = document.getElementById('project-name').value;  
+            const content = pyodide.runPython(`export_format('graphml', '${projectName}')`);  
+            downloadFile(`${projectName}-graph.graphml`, content, 'application/xml');  
+            logConsole('✓ GraphML exported', 'success');  
+        }
+
+        function exportDOT() {  
+            logConsole('🐍 Python generating DOT...', 'info');  
+            const projectName = document.getElementById('project-name').value;  
+            const content = pyodide.runPython(`export_format('dot', '${projectName}')`);  
+            downloadFile(`${projectName}-graph.dot`, content, 'text/plain');  
+            logConsole('✓ DOT exported', 'success');  
+        }
+
+        function exportCSV() {  
+            logConsole('🐍 Python generating CSV...', 'info');  
+            const projectName = document.getElementById('project-name').value;  
+            const nodesCSV = pyodide.runPython(`export_format('csv_nodes', '${projectName}')`);  
+            const edgesCSV = pyodide.runPython(`export_format('csv_edges', '${projectName}')`);  
+            downloadFile(`${projectName}-nodes.csv`, nodesCSV, 'text/csv');  
+            downloadFile(`${projectName}-edges.csv`, edgesCSV, 'text/csv');  
+            logConsole('✓ CSV files exported', 'success');  
+        }
+
+        function exportHTML() {  
+            logConsole('🐍 Python generating standalone HTML...', 'info');  
+            const projectName = document.getElementById('project-name').value;  
+            const content = pyodide.runPython(`export_format('html', '${projectName}')`);  
+            downloadFile(`${projectName}-standalone.html`, content, 'text/html');  
+            logConsole('✓ Standalone HTML exported', 'success');  
+        }
+
+        function exportPythonScript() {  
+            logConsole('🐍 Python generating Python script...', 'info');  
+            const projectName = document.getElementById('project-name').value;  
+            const content = pyodide.runPython(`export_format('python', '${projectName}')`);  
+            downloadFile(`${projectName}-generator.py`, content, 'text/x-python');  
+            logConsole('✓ Python script exported', 'success');  
+        }
+
+        async function exportAll() {  
+            logConsole('🐍 Python generating complete package...', 'info');  
+              
+            const projectName = document.getElementById('project-name').value;  
+              
+            // Get all file contents from Python  
+            logConsole('Generating files with Python...', 'info');  
+            const files = {  
+                'json': pyodide.runPython(`export_format('json', '${projectName}')`),  
+                'graphml': pyodide.runPython(`export_format('graphml', '${projectName}')`),  
+                'dot': pyodide.runPython(`export_format('dot', '${projectName}')`),  
+                'csv_nodes': pyodide.runPython(`export_format('csv_nodes', '${projectName}')`),  
+                'csv_edges': pyodide.runPython(`export_format('csv_edges', '${projectName}')`),  
+                'html': pyodide.runPython(`export_format('html', '${projectName}')`),  
+                'python': pyodide.runPython(`export_format('python', '${projectName}')`),  
+                'readme': pyodide.runPython(`export_format('readme', '${projectName}')`)  
+            };  
+              
+            logConsole('✓ All files generated by Python', 'success');  
+            logConsole('Creating ZIP with JavaScript...', 'info');  
+              
+            // Create ZIP (JavaScript handles this since Pyodide doesn't have zipfile easily accessible)  
+            // But Python did all the content generation!  
+            const zip = new JSZip();  
+              
+            zip.file(`${projectName}-graph.json`, files.json);  
+            zip.file(`${projectName}-graph.graphml`, files.graphml);  
+            zip.file(`${projectName}-graph.dot`, files.dot);  
+            zip.file(`${projectName}-nodes.csv`, files.csv_nodes);  
+            zip.file(`${projectName}-edges.csv`, files.csv_edges);  
+            zip.file(`${projectName}-standalone.html`, files.html);  
+            zip.file(`${projectName}-generator.py`, files.python);  
+            zip.file('README.txt', files.readme);  
+              
+            const content = await zip.generateAsync({ type: 'blob' });  
+            downloadFile(`${projectName}-complete.zip`, content, 'application/zip');  
+              
+            logConsole('✓ Complete package downloaded!', 'success');  
+        }
+
+        function downloadFile(filename, content, mimeType) {  
+            const blob = new Blob([content], { type: mimeType });  
+            const url = URL.createObjectURL(blob);  
+            const link = document.createElement('a');  
+            link.href = url;  
+            link.download = filename;  
+            link.click();  
+            URL.revokeObjectURL(url);  
+        }
+
+        function logConsole(message, type = 'info') {  
+            const console = document.getElementById('console');  
+            const line = document.createElement('div');  
+            line.className = `console-line ${type}`;  
+            line.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;  
+            console.appendChild(line);  
+            console.scrollTop = console.scrollHeight;  
+        }
+
+        // ═══════════════════════════════════════════════════════════  
+        // INIT  
+        // ═══════════════════════════════════════════════════════════  
+          
+        window.addEventListener('DOMContentLoaded', async () => {  
+            logConsole('🐍 Python-Powered Causal Graph Generator starting...', 'info');  
+              
+            initializeGraph();  
+            await initializePyodide();  
+              
+            // Button handlers  
+            document.getElementById('calculate-btn').onclick = calculateCausalChain;  
+            document.getElementById('export-json').onclick = exportJSON;  
+            document.getElementById('export-graphml').onclick = exportGraphML;  
+            document.getElementById('export-dot').onclick = exportDOT;  
+            document.getElementById('export-csv').onclick = exportCSV;  
+            document.getElementById('export-html').onclick = exportHTML;  
+            document.getElementById('export-python-script').onclick = exportPythonScript;  
+            document.getElementById('export-all').onclick = exportAll;  
+        });  
+    </script>  
+</body>  
+</html>  

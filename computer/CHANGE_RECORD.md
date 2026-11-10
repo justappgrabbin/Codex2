@@ -1,3 +1,17 @@
+
+# Change record — Self-Helpton Foundry donor app (assemble-core)
+
+WHAT EXISTED BEFORE: assemble-core Computer with Grove Store and other builtins; Google Doc Drive id 1cdOggNJEOCfAduUWBkD5ItaAQC65yn3Kso_IF3WbBXg held Alexis's Self-Helpton Foundry HTML plus pasted causal-graph generator drafts.
+
+PRESERVED: all existing apps and donors. Addressing and birth-time remain on hold. Causal graph HTMLs are donors only (not launched).
+
+ADDED:
+- `donors/copied/self-helpton-foundry/index.html` — original Foundry HTML (GDocs `\`` / `\$` unescape only).
+- `donors/copied/causal-graph-generators/*` — safekeeping copies; generator.html truncated in the Doc.
+- Minimal glue: `shell/kimi-linux/src/apps/SelfHelptonFoundry.tsx` iframe; registry + AppRouter + grove builtin `selfhelpton`; public/dist copy at `/apps/self-helpton-foundry/index.html`.
+
+NOT DONE: no main/merge/PR; no causal-graph wiring; no new Foundry logic.
+
 # Change record — 2026-09-21
 Before: C# Core/HumanDesign/GeneKeys/YiJing projects plus a static public demo; no shared Computer runtime connected artifact intake, mutation execution, mounting, persistence, automata/processes and cultivation.
 
