@@ -1,6 +1,6 @@
 import { createServer } from 'node:http';
-import { readFile, stat, mkdir } from 'node:fs/promises';
-import { join, resolve, extname, sep } from 'node:path';
+import { readFile, stat, mkdir, readdir } from 'node:fs/promises';
+import { join, resolve, extname, sep, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { ComputerRuntime } from '../ComputerRuntime.mjs';
 import { JsonFilePersistence } from '../runtime/json-file-persistence.mjs';
@@ -8,10 +8,15 @@ import { ConversationExecution } from '../services/conversation-execution.mjs';
 import { FileAdmission } from '../services/file-admission.mjs';
 import { readZipMembers } from './zip-members.mjs';
 import { createHostShell } from '../services/host-shell.mjs';
+import { findEntry, previewUrl, playProject } from '../services/project-runner.mjs';
 import { createTridentMcp } from '../services/trident-mcp-glue.mjs';
 import { mindsStatus, routeChat } from '../services/resident-minds.mjs';
 import { GroveStore } from '../services/grove-store.mjs';
 import { describePlatforms, detectPlatform } from '../services/platform-runtime.mjs';
+
+// The Computer ships with its real terminal backend on. Set
+// LINUX_CONTAINER_ENABLED=false to keep both terminals read-only.
+process.env.LINUX_CONTAINER_ENABLED ??= 'true';
 
 const root = resolve(fileURLToPath(new URL('../shell/kimi-linux/dist/', import.meta.url)));
 const dataDir = resolve(process.env.SYNTHIA_DATA_DIR ?? fileURLToPath(new URL('../runtime/data/local-computer/', import.meta.url)));
@@ -122,6 +127,68 @@ async function ingestUpload({ name, base64 }) {
   }
 }
 
+// Play: list folders under the user's home that can be run. This mirrors what
+// the IDE explorer shows, but reads the real host-backed workspace so the
+// hidden Linux backend and the preview server see the same files.
+async function listProjects(userRoot, maxDepth = 4) {
+  const found = [];
+  async function walk(dir, depth) {
+    if (depth > maxDepth) return;
+    let entries = [];
+    try { entries = await readdir(dir, { withFileTypes: true }); } catch { return; }
+    for (const entry of entries) {
+      if (entry.name.startsWith('.')) continue;
+      const full = join(dir, entry.name);
+      if (!entry.isDirectory()) continue;
+      const runnable = await findEntry(full);
+      if (runnable) {
+        found.push({
+          name: entry.name,
+          path: '/' + relative(userRoot, full).split(sep).join('/'),
+          entry: runnable.file,
+          mode: runnable.preview ? 'preview' : 'run',
+          url: runnable.preview ? previewUrl(userRoot, full) : null,
+        });
+        continue;
+      }
+      await walk(full, depth + 1);
+    }
+  }
+  await walk(userRoot, 0);
+  return found;
+}
+
+// Preview: serve a static project folder from the user workspace only.
+async function servePreview(res, userRoot, requested) {
+  let cleaned;
+  try {
+    cleaned = decodeURIComponent(requested).replace(/^\/+/, '');
+  } catch {
+    return json(res, 400, { error: 'Invalid preview path.' });
+  }
+  const base = resolve(userRoot);
+  const target = resolve(base, cleaned || '.');
+  if (target !== base && !target.startsWith(base + sep)) return json(res, 403, { error: 'Invalid preview path.' });
+  let info = await stat(target).catch(() => null);
+  let file = target;
+  if (info?.isDirectory()) file = join(target, 'index.html');
+  const fileInfo = await stat(file).catch(() => null);
+  if (!fileInfo?.isFile()) return json(res, 404, { error: 'Preview file not found.' });
+  const bytes = await readFile(file);
+  const types = {
+    ...mime,
+    '.mjs': 'text/javascript; charset=utf-8',
+    '.json': 'application/json; charset=utf-8',
+    '.txt': 'text/plain; charset=utf-8',
+    '.md': 'text/markdown; charset=utf-8',
+    '.wasm': 'application/wasm',
+    '.woff': 'font/woff', '.woff2': 'font/woff2',
+    '.mp3': 'audio/mpeg', '.mp4': 'video/mp4',
+  };
+  res.writeHead(200, { 'Content-Type': types[extname(file).toLowerCase()] ?? 'application/octet-stream', 'X-Content-Type-Options': 'nosniff' });
+  res.end(bytes);
+}
+
 const mime = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.svg': 'image/svg+xml', '.png': 'image/png', '.jpg': 'image/jpeg', '.webp': 'image/webp', '.ico': 'image/x-icon' };
 const json = (res, status, value) => {
   res.writeHead(status, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff' });
@@ -187,14 +254,38 @@ const server = createServer(async (req, res) => {
       if (req.method === 'GET' && url.pathname === '/api/container/status') return json(res, 200, await shell.status('user'));
       if (req.method === 'POST' && url.pathname === '/api/container/exec') {
         const request = await body(req);
-        const result = await shell.runUser(request.command, { cwd: request.cwd });
+        const result = await shell.runUser(request.command, { cwd: request.cwd, approve: request.approve === true });
         return json(res, 200, { success: result.ok, ...result });
       }
       if (req.method === 'GET' && url.pathname === '/api/system-container/status') return json(res, 200, await shell.status('system'));
       if (req.method === 'POST' && url.pathname === '/api/system-container/exec') {
         const request = await body(req);
-        const result = await shell.runSystem(request.command, { cwd: request.cwd });
+        const result = await shell.runSystem(request.command, { cwd: request.cwd, approve: request.approve === true });
         return json(res, 200, { success: result.ok, ...result });
+      }
+      // One permission-checked terminal endpoint for both profiles.
+      if (req.method === 'GET' && url.pathname === '/api/terminal/status') {
+        const profile = url.searchParams.get('profile') === 'system' ? 'system' : 'user';
+        return json(res, 200, await shell.status(profile));
+      }
+      if (req.method === 'POST' && url.pathname === '/api/terminal/exec') {
+        const request = await body(req);
+        const profile = request.profile === 'system' ? 'system' : 'user';
+        const result = await shell.run({ command: request.command, cwd: request.cwd, profile, approve: request.approve === true });
+        return json(res, 200, { success: result.ok, ...result });
+      }
+      // Play: list runnable project folders and run the selected one.
+      if (req.method === 'GET' && url.pathname === '/api/projects') {
+        return json(res, 200, { projects: await listProjects(join(filesRoot, 'home/user')) });
+      }
+      if (req.method === 'POST' && url.pathname === '/api/projects/play') {
+        const request = await body(req);
+        return json(res, 200, await playProject({
+          root: join(filesRoot, 'home/user'),
+          projectPath: request.path,
+          shell,
+          approve: request.approve === true,
+        }));
       }
       if (req.method === 'GET' && url.pathname === '/api/minds/status') return json(res, 200, mindsStatus());
       if (req.method === 'POST' && url.pathname === '/api/minds/chat') return json(res, 200, await routeChat({ text: (await body(req)).text, mcp }));
@@ -213,6 +304,10 @@ const server = createServer(async (req, res) => {
 
     }
     if (req.method !== 'GET' && req.method !== 'HEAD') return json(res, 405, { error: 'Method not allowed.' });
+    // Play previews: static project folders from the user workspace only.
+    if (url.pathname.startsWith('/preview/')) {
+      return servePreview(res, join(filesRoot, 'home/user'), url.pathname.slice('/preview'.length));
+    }
     const requested = decodeURIComponent(url.pathname === '/' ? '/index.html' : url.pathname);
     const moduleRoot = resolve(fileURLToPath(new URL('../modules/r22-linux-guest/', import.meta.url)));
     const monacoRoot = resolve(fileURLToPath(new URL('../shell/kimi-linux/public/monaco/', import.meta.url)));

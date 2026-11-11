@@ -7,7 +7,7 @@ import { useFileSystem } from '@/hooks/useFileSystem';
 import { MonacoPane } from '@/editor/MonacoPane';
 import {
   Code2, X, Plus, Search, Save, FolderOpen, FileText,
-  ChevronRight, ChevronDown, Folder, Sparkles,
+  ChevronRight, ChevronDown, Folder, Sparkles, Play,
 } from 'lucide-react';
 import { SelfHelptonPanel } from '@/editor/self-helpton/SelfHelptonPanel';
 import { loadSettings, setSelfHelptonPanelEnabled } from '@/lib/editor-settings.mjs';
@@ -185,6 +185,43 @@ export default function CodeEditor() {
         value === undefined ? '' : typeof value === 'string' ? value : JSON.stringify(value, null, 2),
         outcome?.error ? String(outcome.error) : '',
       ].filter(Boolean).join('\n'));
+    } catch (error) { setExecutionOutput(String(error)); }
+    finally { setRunning(false); }
+  };
+
+  // Play: save the active file, then run its project folder through the hidden
+  // Linux backend. Static folders (index.html) open in the preview window.
+  const playProject = async () => {
+    if (!activeTab || running) return;
+    setRunning(true);
+    setExecutionOutput('Preparing the selected project…');
+    try {
+      const filePath = activeTab.fileNodeId
+        ? fs.getNodePath(activeTab.fileNodeId).replace(/^\/+/, '/')
+        : `/home/user/Documents/${activeTab.name}`;
+      const save = await fetch('/api/files', {
+        method: 'PUT', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ path: filePath, content: activeTab.content }),
+      });
+      if (!save.ok) throw new Error((await save.json()).error || 'Computer file save failed');
+      const projectPath = filePath.includes('/') ? filePath.slice(0, filePath.lastIndexOf('/')) || '/' : '/';
+      window.localStorage.setItem('synthia_active_project', projectPath);
+      const response = await fetch('/api/projects/play', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ path: projectPath }),
+      });
+      const result = await response.json();
+      if (!response.ok || !result.ok) throw new Error(result.error || result.stderr || 'Play failed');
+      if (result.mode === 'preview' && result.url) {
+        window.dispatchEvent(new CustomEvent('synthia:play-project', { detail: { url: result.url, name: projectPath } }));
+        setExecutionOutput(`Playing ${projectPath} (${result.entry}) in the preview window.`);
+      } else {
+        setExecutionOutput([
+          `Played ${result.entry} through the hidden Linux backend`,
+          result.stdout,
+          result.stderr,
+        ].filter(Boolean).join('\n'));
+      }
     } catch (error) { setExecutionOutput(String(error)); }
     finally { setRunning(false); }
   };
@@ -400,6 +437,9 @@ export default function CodeEditor() {
         </button>
         <button onClick={runFile} disabled={!activeTab || running} className="flex items-center gap-1 px-2 py-1 rounded hover:bg-[var(--bg-hover)] disabled:opacity-40" title="Execute current file through Synthia">
           <Code2 size={14} /><span className="text-xs">{running ? 'Running' : 'Run'}</span>
+        </button>
+        <button onClick={playProject} disabled={!activeTab || running} className="flex items-center gap-1 px-2 py-1 rounded hover:bg-[var(--bg-hover)] disabled:opacity-40" title="Play the selected project through the hidden Linux backend">
+          <Play size={14} /><span className="text-xs">Play</span>
         </button>
         <button onClick={analyzeStructure} disabled={!activeTab || !activeTab.content.trim() || running} className="flex items-center gap-1 px-2 py-1 rounded hover:bg-[var(--bg-hover)] disabled:opacity-40" title="Analyze structure through the existing shared Computer engine">
           <Search size={14} /><span className="text-xs">Analyze structure</span>

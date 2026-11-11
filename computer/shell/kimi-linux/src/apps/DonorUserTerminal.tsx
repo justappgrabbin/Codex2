@@ -17,6 +17,9 @@ interface ContainerStatus {
   shell: string;
   cwd: string;
   message: string;
+  engine?: string;
+  engineLabel?: string;
+  root?: string;
 }
 const QUICK_COMMANDS = [
   { label: "Help", cmd: "help", icon: "❓" },
@@ -55,12 +58,13 @@ export function Terminal({ onClose }: TerminalProps) {
   const [historyIndex, setHistoryIndex] = useState(-1);
   const [showReference, setShowReference] = useState(false);
   const [container, setContainer] = useState<ContainerStatus>(OFFLINE);
+  const [pendingApproval, setPendingApproval] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     // Never assume a same-origin SPA fallback is the command API.
-    fetch("/api/container/status", { cache: "no-store" })
+    fetch("/api/terminal/status", { cache: "no-store" })
       .then(async response => {
         if (!response.ok || !response.headers.get("content-type")?.includes("application/json")) {
           return OFFLINE;
@@ -80,18 +84,34 @@ export function Terminal({ onClose }: TerminalProps) {
     setLines(old => [...old, { type, content }]);
   }
 
-  async function executeShell(command: string) {
+  async function executeShell(command: string, approve = false) {
     try {
-      const response = await fetch("/api/container/exec", {
+      const response = await fetch("/api/terminal/exec", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ command }),
+        body: JSON.stringify({ command, profile: "user", cwd: container.cwd, approve }),
       });
       if (!response.headers.get("content-type")?.includes("application/json")) {
         throw new Error("Execution service is not available");
       }
-      const result: { success?: boolean; code?: number | null; stdout?: string; stderr?: string; error?: string } = await response.json();
-      if (!response.ok || !result.success || result.code !== 0) {
+      const result: {
+        success?: boolean; code?: number | null; exitCode?: number | null;
+        stdout?: string; stderr?: string; error?: string;
+        denied?: boolean; requiresApproval?: boolean; cwd?: string;
+        engine?: string;
+      } = await response.json();
+      if (result.cwd) setContainer((old) => ({ ...old, cwd: result.cwd! }));
+      if (result.denied) {
+        write("Blocked by the terminal policy: " + (result.error || "not allowed"), "error");
+        return;
+      }
+      if (result.requiresApproval) {
+        setPendingApproval(command);
+        write((result.error || "This command needs approval.") + " Use the Approve button below to allow this one command.", "error");
+        return;
+      }
+      setPendingApproval(null);
+      if (!response.ok || !result.success || result.exitCode !== 0) {
         write(result.error || result.stderr || "Command failed", "error");
         return;
       }
@@ -99,6 +119,30 @@ export function Terminal({ onClose }: TerminalProps) {
     } catch (error) {
       setContainer(OFFLINE);
       write(error instanceof Error ? error.message : "Execution service disconnected", "error");
+    }
+  }
+
+  async function playProject() {
+    const active = window.localStorage.getItem("synthia_active_project") || "";
+    try {
+      const response = await fetch("/api/projects/play", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ path: active }),
+      });
+      const result: { ok?: boolean; mode?: string; url?: string; error?: string; stdout?: string; stderr?: string; entry?: string } = await response.json();
+      if (!response.ok || !result.ok) {
+        write(result.error || result.stderr || "Nothing runnable was found in that project.", "error");
+        return;
+      }
+      if (result.mode === "preview" && result.url) {
+        window.dispatchEvent(new CustomEvent("synthia:play-project", { detail: { url: result.url, name: active || "project" } }));
+        write("Preview opened for " + (active || "the saved project") + " (" + result.entry + ").");
+      } else {
+        write("Played " + result.entry + " through the hidden Linux backend:\n" + [result.stdout, result.stderr].filter(Boolean).join("\n"));
+      }
+    } catch (error) {
+      write(error instanceof Error ? error.message : "Play service disconnected", "error");
     }
   }
 
@@ -117,7 +161,7 @@ export function Terminal({ onClose }: TerminalProps) {
         case "help":
           write([
             "IDE commands (run inside this APK):",
-            "  start app    Launch the actual project preview",
+            "  start app    Play the selected project (preview or hidden Linux)",
             "  ls           List IDE workspace files",
             "  cat FILE     Read a project file",
             "  touch FILE   Create a project file",
@@ -139,7 +183,7 @@ export function Terminal({ onClose }: TerminalProps) {
           write(history.length ? history.map((x, i) => (i + 1) + "  " + x).join("\n") : "No prior commands");
           return;
         case "pwd":
-          write("IDE project /");
+          write(container.enabled ? container.cwd : "IDE project /");
           return;
         case "echo":
           write(args.join(" "));
@@ -193,14 +237,10 @@ export function Terminal({ onClose }: TerminalProps) {
           return;
         }
         case "start":
-        case "run": {
-          if (args.length && args[0] !== "app" && args[0] !== "preview") break;
-          if (!FileSystem.findFile("index.html")?.content) {
-            write("No index.html project file is available to start.", "error");
-            return;
-          }
-          window.dispatchEvent(new Event("synthia-ide-start-app"));
-          write("Launched the real IDE project preview.");
+        case "run":
+        case "play": {
+          if (args.length && !["app", "preview", "project"].includes(args[0])) break;
+          await playProject();
           return;
         }
       }
@@ -227,7 +267,7 @@ export function Terminal({ onClose }: TerminalProps) {
         <div className="flex items-center gap-2">
           <TerminalIcon className="h-4 w-4" />
           <span className="text-sm font-mono font-semibold">SynthAi2 Terminal</span>
-          <span className="text-xs text-green-300/70">{container.enabled ? "OS connected" : "IDE workspace"}</span>
+          <span className="text-xs text-green-300/70">{container.enabled ? (container.engineLabel || "OS connected") : "IDE workspace"}</span>
         </div>
         <div className="flex items-center gap-1">
           <Button variant="ghost" size="sm" onClick={() => setShowReference(!showReference)} className="h-7 text-xs text-green-300">
@@ -251,6 +291,13 @@ export function Terminal({ onClose }: TerminalProps) {
           ))}
         </div>
       </div>
+      {pendingApproval && (
+        <div className="px-3 py-2 border-t border-yellow-500/30 bg-yellow-500/10 flex items-center gap-2 text-xs text-yellow-200">
+          <span className="flex-1 truncate font-mono">Approve once: {pendingApproval}</span>
+          <Button variant="ghost" size="sm" className="h-7 text-xs text-yellow-200" onClick={() => { setPendingApproval(null); void executeShell(pendingApproval, true); }}>Approve</Button>
+          <Button variant="ghost" size="sm" className="h-7 text-xs text-yellow-200" onClick={() => setPendingApproval(null)}>Deny</Button>
+        </div>
+      )}
       <form onSubmit={submit} className="p-3 border-t border-green-500/20">
         <div className="flex items-center gap-2">
           <span className="font-mono">$</span>

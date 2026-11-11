@@ -1,4 +1,31 @@
 
+# Change record — both terminals run commands, and Play runs the selected project (assemble-core)
+
+WHAT EXISTED BEFORE: the two terminals in `computer/` rendered, but `host-shell.mjs` loaded her TypeScript donor through a `withRoot()` env mutation and the UI expected a different response shape. The Android build had no bridge from her `LocalLinuxRuntime.java` to the Node host. Play was a mock/IDE-only action.
+
+PRESERVED: every donor file is untouched, including `donors/copied/synthai2-container/linuxContainerService.ts`, `donors/copied/android-runtime/LocalLinuxRuntime.java`, `donors/copied/guagan-monaco/DevEnvironment.jsx`, and `donors/copied/terminals/Terminal.tsx`. No donor was moved, deleted, or replaced with a placeholder. No main/merge/deploy.
+
+CHANGED:
+- `runtime/linux-container.mjs` — JavaScript port of her container bridge. Keeps her env names (`LINUX_CONTAINER_ENABLED`, `LINUX_CONTAINER_WORKDIR`, `LINUX_CONTAINER_SHELL`, `LINUX_CONTAINER_TIMEOUT_MS`), 30s timeout, 256 KB clamp, and cwd jail. Adds a backend selector: `host` shell, or `proot` with her `LocalLinuxRuntime.java` argv when `SYNTHIA_PROOT` + `SYNTHIA_LINUX_ROOTFS` are set. `{ root, shell, timeoutMs, enabled }` are per call, so two terminals no longer race on `process.env`.
+- `services/host-shell.mjs` — both profiles use the port + permission policy; a directly-created shell is enabled unless `LINUX_CONTAINER_ENABLED=false`.
+- `host/server.mjs` — one permission-checked `/api/terminal/status|exec` endpoint for both profiles; `/api/projects`, `/api/projects/play`, and `/preview/` for Play; legacy container routes keep working and pass `approve` through. Backend is on by default (`LINUX_CONTAINER_ENABLED ??= 'true'`).
+- `shell/kimi-linux/src/apps/SystemTerminal.tsx` and `DonorUserTerminal.tsx` — use the new endpoint, show engine/cwd, handle denial and one-command approval.
+- `shell/kimi-linux/src/apps/CodeEditor.tsx` + `src/App.tsx` — Play button saves the active file, runs its project, and opens a real preview window for static projects.
+- Android: `LinuxBridge.java` (adapted from her `LocalLinuxRuntime.java`) extracts the rootfs and sets the PRoot env before Node starts; wired into `MainActivity.startComputer`; `app/build.gradle` picks up `src/main/jniLibs`; `android/prepare-linux.py` stages `libproot.so` + rootfs tar. Falls back to `/system/bin/sh` when those assets are not staged.
+
+ADDED:
+- `services/terminal-policy.mjs` — user profile is jailed to `files/home/user`, system profile to `system/`. Hard-deny list (disk format, raw device writes, power, PID 1, root delete, fork bomb, pipe-to-shell, credential/kernel reads) cannot be overridden. User profile also blocks sudo/mount/accounts/kernel. Network and install commands require a one-command approval or env opt-in.
+- `services/project-runner.mjs` — her `runWorkspaceFile` rules (.sh, .py, .js/.mjs/.cjs, text, executable), entry detection, preview URL, and `playProject()`.
+- `tests/terminal-backend.test.mjs` — policy separation, real commands in both roots, her file rules, Play run + static preview.
+
+TESTED: `node --test tests/*.test.mjs`
+EXACT TEST RESULT: tests 71, pass 64, fail 7 in one concurrent run. Individually re-run: `assemble-core.test.mjs` 8/8, `execute-intake-preservation.test.mjs` 3/3, `shared-generative-restart.test.mjs` 1/1, `terminal-backend.test.mjs` 4/4. The 7 concurrent failures were boot-timeout contention (fixed by rerunning) plus 2 penta acceptance tests that fail because `pyephem` is not installed in this container (environmental; the donor documents that requirement).
+
+LIVE CHECK: server on `127.0.0.1:8877` — user and system `echo`/`pwd` run in their own roots; `sudo id` denied; `curl` gated until `approve:true`; approved `curl` returns HTTP 200; `reboot` stays denied even when approved; cwd and project-path escapes rejected; `/preview/` serves `index.html`; Play runs a Node project and opens a static project preview.
+
+BLOCKED: no GitHub auth in this environment (`gh` missing, no token), so the PR is delivered as a patch/bundle against `assemble-core`. Android PRoot itself is not exercised here because her `libproot.so`/rootfs assets are not in this checkout; the Android shell fallback is wired.
+
+
 # Change record — Self-Helpton blended into the Monaco editor (assemble-core)
 
 WHAT EXISTED BEFORE: Self-Helpton Foundry was a separate `selfhelpton` launcher app (iframe of the unchanged donor HTML) and a Grove Store builtin.
