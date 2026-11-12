@@ -40,6 +40,15 @@ export class ConversationExecution {
         ? `I have ${imported.length} imported file${imported.length === 1 ? '' : 's'} addressed in this computer:\n${imported.slice(-30).map((file) => `• ${file.path.replace('/home/user/Imports/', '')} — ${file.meta.address.dimension}, Gate ${file.meta.address.gate}`).join('\n')}`
         : 'There are no imported files yet. Open Import and choose a file or ZIP.';
     }
+    let evidence = [];
+    if (this.learning) {
+      await this.learning.indexFiles();
+      evidence = this.learning.search(text, 4);
+      if (evidence.length && /\b(source|code|explain|how|what|where|find|remember)\b/i.test(text)) {
+        responseText = `Here are the relevant source passages. These are retrieved evidence, rather than a verified interpretation:\n\n${evidence.map(hit => `[${hit.path}:${hit.startLine}-${hit.endLine}]\n${hit.text}`).join('\n\n')}`;
+      }
+      await this.learning.learn({ text });
+    }
     const item = {
       id: crypto.randomUUID(), at: new Date().toISOString(), input: text,
       text: responseText, address: donor.runtime?.address ?? null,
@@ -48,7 +57,7 @@ export class ConversationExecution {
       dimension: donor.conversation.semantic.dimension,
       linguisticGrounded: true,
       provider: donor.assistant?.provider ?? 'local-morph',
-      learningRecord: learned.recordId,
+      learningRecord: learned.recordId, evidence,
     };
     const history = this.computer.state.get('computer.chat.history', []);
     await this.computer.state.set('computer.chat.history', [...history, item].slice(-120), { source: 'conversation' });

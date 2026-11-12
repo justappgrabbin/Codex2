@@ -6,6 +6,8 @@ import { ComputerRuntime } from '../ComputerRuntime.mjs';
 import { JsonFilePersistence } from '../runtime/json-file-persistence.mjs';
 import { ConversationExecution } from '../services/conversation-execution.mjs';
 import { FileAdmission } from '../services/file-admission.mjs';
+import { createLocalCoder } from '../services/local-coder.mjs';
+import { LearningWorkspace } from '../services/learning-workspace.mjs';
 import { readZipMembers } from './zip-members.mjs';
 
 const root = resolve(fileURLToPath(new URL('../shell/kimi-linux/dist/', import.meta.url)));
@@ -32,6 +34,8 @@ const computer = await new ComputerRuntime({
 const conversation = new ConversationExecution(computer);
 const files = new FileAdmission(computer, conversation.execution);
 const generative = computer.generative;
+const learning = new LearningWorkspace(computer, { coder: process.env.SYNTHIA_CODER_URL ? createLocalCoder({ url: process.env.SYNTHIA_CODER_URL, model: process.env.SYNTHIA_CODER_MODEL }) : null });
+conversation.learning = learning;
 
 // Import names are allocated before the first asynchronous write. This prevents
 // an upload with the same filename from replacing an earlier user's original.
@@ -135,6 +139,16 @@ const server = createServer(async (req, res) => {
       if (req.method === 'GET' && url.pathname === '/api/generative/status') return json(res, 200, await generative.status());
       if (req.method === 'GET' && url.pathname === '/api/generative/history') return json(res, 200, generative.history());
       if (req.method === 'POST' && url.pathname === '/api/generative/structure') return json(res, 200, await generative.inspect(await body(req)));
+      if (req.method === 'GET' && url.pathname === '/api/learning') {
+        const state = learning.snapshot();
+        return json(res, 200, { codingAvailable: Boolean(learning.coder), sources: state.sources.map(({ content, ...record }) => record), components: state.components.map(({ files, ...record }) => record), attempts: state.attempts, interactions: state.interactions });
+      }
+      if (req.method === 'POST' && url.pathname === '/api/learning/index') return json(res, 200, await learning.indexFiles());
+      if (req.method === 'POST' && url.pathname === '/api/learning/search') return json(res, 200, learning.search((await body(req)).query));
+      if (req.method === 'POST' && url.pathname === '/api/learning/teach') return json(res, 200, await learning.learn(await body(req)));
+      if (req.method === 'POST' && url.pathname === '/api/learning/github') return json(res, 200, await learning.importGitHub(await body(req)));
+      if (req.method === 'POST' && url.pathname === '/api/learning/build') return json(res, 200, await learning.build(await body(req)));
+      if (req.method === 'POST' && url.pathname === '/api/learning/run') return json(res, 200, await learning.run(await body(req)));
       if (req.method === 'GET' && url.pathname === '/api/history') return json(res, 200, conversation.history());
       if (req.method === 'POST' && url.pathname === '/api/chat') return json(res, 200, await conversation.talk((await body(req)).text));
       if (req.method === 'GET' && url.pathname === '/api/filesystem') return json(res, 200, computer.state.get('computer.desktop.filesystem', null));
