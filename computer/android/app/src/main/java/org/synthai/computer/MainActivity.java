@@ -72,6 +72,11 @@ public final class MainActivity extends Activity {
             }
             File data = new File(getFilesDir(), "computer-data");
             if (!data.exists() && !data.mkdirs()) throw new IllegalStateException("Cannot create computer data directory");
+            File workspace = new File(data, "files/home/user");
+            if (!workspace.exists() && !workspace.mkdirs()) throw new IllegalStateException("Cannot create computer workspace");
+            // Publish the hidden Linux backend (PRoot when its assets are staged,
+            // Android shell otherwise) before Node starts.
+            new LinuxBridge(this, workspace).prepareAndConfigure();
             int exit = startNode(new String[]{"node", entry.getAbsolutePath(), data.getAbsolutePath()});
             handler.post(() -> status.setText("Computer service exited: " + exit));
         } catch (Exception error) {

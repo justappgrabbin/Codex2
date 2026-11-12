@@ -16,6 +16,7 @@ import NotificationCenter from '@/components/NotificationCenter';
 function AppShell() {
   const { state, dispatch } = useOS();
   const [hostState, setHostState] = useState<'checking' | 'ready' | 'failed'>('checking');
+  const [preview, setPreview] = useState<{ url: string; name: string } | null>(null);
   const altTabRef = useRef<{ holding: boolean }>({ holding: false });
 
   useEffect(() => {
@@ -23,6 +24,16 @@ function AppShell() {
       if (!response.ok) throw new Error('Computer runtime unavailable');
       return response.json();
     }).then(() => setHostState('ready')).catch(() => setHostState('failed'));
+  }, []);
+
+  // Play in the Code Editor or the terminal opens a real preview here.
+  useEffect(() => {
+    const openPreview = (event: Event) => {
+      const detail = (event as CustomEvent<{ url?: string; name?: string }>).detail;
+      if (detail?.url) setPreview({ url: detail.url, name: detail.name || 'project' });
+    };
+    window.addEventListener('synthia:play-project', openPreview);
+    return () => window.removeEventListener('synthia:play-project', openPreview);
   }, []);
 
   // Keyboard shortcuts
@@ -128,6 +139,17 @@ function AppShell() {
           <ContextMenu />
           <NotificationSystem />
           <NotificationCenter />
+
+          {/* Play preview: a real static project served by the host server */}
+          {preview && (
+            <div className="fixed inset-0 z-[6000] flex flex-col" style={{ background: 'rgba(0,0,0,0.75)' }}>
+              <div className="flex items-center justify-between px-3 py-2 text-sm" style={{ background: 'var(--bg-titlebar)', color: 'var(--text-primary)' }}>
+                <span className="truncate">Play preview · {preview.name}</span>
+                <button onClick={() => setPreview(null)} className="px-2 py-1 rounded hover:bg-[var(--bg-hover)]">Close</button>
+              </div>
+              <iframe title="Project preview" src={preview.url} className="flex-1 w-full bg-white" sandbox="allow-scripts allow-forms allow-modals allow-popups" />
+            </div>
+          )}
 
           {/* Alt+Tab switcher */}
           {state.isAltTabbing && (
