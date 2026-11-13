@@ -8,6 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useLocation } from "wouter";
 import { TEMPLATE_REGISTRY } from "@/lib/templateRegistry";
 import { FileSystem } from "@/lib/fileSystem";
+import { GroveComputerCatalog } from "./GroveComputerCatalog";
 
 interface StoreItem {
   id: string;
@@ -212,6 +213,8 @@ export function GroveStore() {
             Discover apps, agents, templates, and tools created by the YOU–N–I–VERSE community
           </p>
         </div>
+
+        <GroveComputerCatalog />
 
         <div className="mb-6 space-y-4">
           <div className="relative">
