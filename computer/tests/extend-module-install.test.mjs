@@ -60,7 +60,9 @@ test('Extend: installing a module does not modify or break the computer', async 
   for (const id of ['preview', 'settings', 'journal', 'models']) {
     if (!new RegExp(`id: '${id}'`).test(registry)) missingStandalone.push(id);
   }
-  assert.deepEqual(missingStandalone, ['preview', 'settings', 'journal', 'models']);
+  // Settings became a standalone app when the files/settings/journal branch was merged.
+  assert.match(registry, /id: 'settings'/);
+  assert.deepEqual(missingStandalone, ['preview', 'journal', 'models']);
   const fileManager = await readFile(join(root, BASE_SURFACES.Files), 'utf8');
   assert.match(fileManager, /preview|Preview/i, 'Files still has in-app preview');
   const editorSettings = await readFile(join(root, 'shell/kimi-linux/src/lib/editor-settings.mjs'), 'utf8');

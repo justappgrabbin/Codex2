@@ -66,7 +66,8 @@ test('end-to-end call from the language-model lane does not use addresses', asyn
   assert.equal(out.path, 'diseminer-own-lex');
   assert.equal(out.resolver.skipped, true);
   assert.equal(out.model.used, false);
-  assert.equal(out.model.probe.needs_python_dev_headers, true);
+  // Headers are needed exactly when pyswisseph is missing on this machine.
+  assert.equal(out.model.probe.needs_python_dev_headers, (out.model.probe.missing || []).includes('swisseph'));
 });
 
 test('Klein Mesh relationship bus answers without replacing DISEMINER', async () => {
@@ -79,7 +80,8 @@ test('Klein Mesh relationship bus answers without replacing DISEMINER', async ()
 
 test('probe says python dev headers are for pyswisseph, not the paper tools', async () => {
   const probe = await probeLanguageModel();
-  assert.equal(probe.needs_python_dev_headers, true);
-  assert.ok(probe.missing.includes('swisseph'));
-  assert.equal(probe.weights_present, true);
+  // The rule, not one machine's state: headers are only for pyswisseph,
+  // and weights_present reports whether model.pt is actually on disk.
+  assert.equal(probe.needs_python_dev_headers, probe.missing.includes('swisseph'));
+  assert.equal(typeof probe.weights_present, 'boolean');
 });
