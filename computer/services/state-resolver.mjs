@@ -140,6 +140,7 @@ export class StateResolver {
       trajectory: trace.history,
       confidence,
       source_provider: `${this.providerId} (address via ${resolved.provider})`,
+      ...(this.contextual?.get(identity) ? { capability_context: this.contextual.get(identity) } : {}),
     };
   }
 }

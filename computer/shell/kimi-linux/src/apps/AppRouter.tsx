@@ -4,9 +4,11 @@ import TextEditor from './TextEditor';
 import CodeEditor from './CodeEditor';
 import Chat from './Chat';
 import Ingest from './Ingest';
+import Computer from './Computer';
 interface AppRouterProps { appId: string; windowId: string; }
 const AppRouter: FC<AppRouterProps> = ({ appId }) => {
   switch (appId) {
+    case 'computer': return <Computer />;
     case 'filemanager': return <FileManager />;
     case 'texteditor': return <TextEditor />;
     case 'codeeditor': return <CodeEditor />;

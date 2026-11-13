@@ -1,0 +1,12 @@
+{
+  "ok": true,
+  "checks": [
+    "Actual desktop import",
+    "Resident evidence search",
+    "Explicit approval and real Docker build/test through UI",
+    "Real artifact download, interactive source preview, opaque origin and network-denying CSP"
+  ],
+  "pageErrors": [],
+  "jobId": "f5fa89e98c4a90ec63cd600f9fe502f4ebc0da63f236d15fc6f118041ebd63ef",
+  "receiptId": "868ecc8e-c756-490b-9fbe-3354d1be0670"
+}

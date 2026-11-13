@@ -1,0 +1,2 @@
+# Original Penta ephemeris donor; ordinary project workflow uses Node only.
+ephem==4.2

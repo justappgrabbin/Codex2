@@ -94,6 +94,7 @@ const Dock = memo(function Dock() {
 
         {/* Icon */}
         <button
+          aria-label={isTrash ? 'Trash' : app?.name || appId}
           onClick={() => isTrash ? handleTrashClick() : handleAppClick(appId)}
           className="w-10 h-10 rounded-[10px] flex items-center justify-center transition-all"
           style={{

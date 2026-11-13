@@ -1,0 +1,390 @@
+TAP version 13
+# Subtest: ACCEPTANCE 1: capability routing for resolve_address
+ok 1 - ACCEPTANCE 1: capability routing for resolve_address
+  ---
+  duration_ms: 558.071908
+  type: 'test'
+  ...
+# (2/3) providers: back-up-:execution-spine-canonical-address[WIRED] back-up-:kimi-dms-codec[VERIFIED] back-up-:kimi-coordinate-engine[PRESENT] recovered:yniv-addressing-engine[WIRED]
+# (4-6) auto route -> recovered:yniv-addressing-engine; micro index 45088 -> gate 42
+# (7-10) consumption receipt persisted; evidence=computer/tests/acceptance-1-routing.test.mjs
+# hint change -> back-up-:execution-spine-canonical-address; canonical_key=planetary=4|dimension=Being|gate=42|line=5|color=3|tone=6|base=4|degree=248|minute=19|second=52|arcAxis={"arcUnit":11}|zodiac=6|house=8
+# no duplicate implementations; provider set stable across strategies
+# Subtest: ACCEPTANCE 2: application mounting with shared services + restart recovery
+ok 2 - ACCEPTANCE 2: application mounting with shared services + restart recovery
+  ---
+  duration_ms: 463.658337
+  type: 'test'
+  ...
+# mounted appId=diagnostic-shell mountId=mount-1794545011705-4x9wm artifact=artifact-78bc0461-adf9-4155-867f-2fbd52fc9476
+# app emitted evt-750535af-a11e-4fdd-9642-7cfdb6214407; address gate 64 resolved on app's behalf; state persisted
+# restart recovery: app state + mount record + event all recovered
+# Subtest: ACCEPTANCE 3: reality/world event through the mounted world process
+ok 3 - ACCEPTANCE 3: reality/world event through the mounted world process
+  ---
+  duration_ms: 1156.755525
+  type: 'test'
+  ...
+# origin event evt-0eb14fd4-222a-4cd3-b863-062dc9c59f99 addressed gate 64
+# world: agent moved 88.3->86.1; memory consolidated (longTerm=1); 5W events=4
+# backward trace: evt-7e59217c-9749-41bc-9ba7-494b4d33c40c -> parents -> evt-0eb14fd4-222a-4cd3-b863-062dc9c59f99 (restart replay intact)
+# penta roles: A=Provider(G44) B=Foundation(G42) C=Director(G46) D=Director(G54) E=Foundation(G33); needed=Connector,Transmitter [position formula: PLACEHOLDER — flagged]
+# Subtest: ACCEPTANCE 4: digital skynthia effect (morph-expression, honest contract)
+ok 4 - ACCEPTANCE 4: digital skynthia effect (morph-expression, honest contract)
+  ---
+  duration_ms: 1017.344671
+  type: 'test'
+  ...
+# effect: world move 1.70 -> morph.express -> StateStore morph.targets + event persisted+replayed; renderer NOT FOUND (path: wire morph.targets to a public/ shell or a canvas renderer service)
+# Subtest: ACCEPTANCE 5: restart recovery of all persistence categories
+ok 5 - ACCEPTANCE 5: restart recovery of all persistence categories
+  ---
+  duration_ms: 433.923794
+  type: 'test'
+  ...
+# recovered: identity, state, app mount, events+trajectory+lineage, services, capability registry+verification history; operation continued (gate 7)
+# Subtest: ACCEPTANCE 6: resonance/project loop with real providers
+ok 6 - ACCEPTANCE 6: resonance/project loop with real providers
+  ---
+  duration_ms: 547.853727
+  type: 'test'
+  ...
+# loop: project=project-7a0dbb97-fcf4-446c-b94e-86f787a76966 channel=AWAKENING gate=38 artifact+participant state persisted; trajectory explanation assembled
+# Subtest: ACCEPTANCE 7: experiment loop with explicit evidence classification
+ok 7 - ACCEPTANCE 7: experiment loop with explicit evidence classification
+  ---
+  duration_ms: 430.610703
+  type: 'test'
+  ...
+# experiment: run1 gate 38 -> observation (no replication); run2 replicated -> donor evaluate -> supported_result (hypothesis supported); 2 events persisted+replayed
+# Subtest: ACCEPTANCE 8: state-space resolution end-to-end
+ok 8 - ACCEPTANCE 8: state-space resolution end-to-end
+  ---
+  duration_ms: 456.275908
+  type: 'test'
+  ...
+# E2E: user:traveler G64 -> edge NONE -> routed to recovered:foundry-glyphs-ephemeris (G38); explanation: 2 events chained
+# Subtest: ACCEPTANCE 9: historical recovery proof for all recovered donors
+ok 9 - ACCEPTANCE 9: historical recovery proof for all recovered donors
+  ---
+  duration_ms: 432.810288
+  type: 'test'
+  ...
+# recovery proof: 4 provenance records w/ SHA, 5 providers registered+executed (YNIV 45088, AWAKENING, gate 38, world spawn, penta G44)
+# [a] resolveAddress(1990-01-01 12:00 UTC) = {"planetary":"Sun","dimension":null,"gate":64,"line":5,"color":2,"tone":2,"base":4,"degree":11,"minute":19,"second":15,"arc":1012756,"zodiac":"Capricorn","house":7}
+# [a] provider = back-up-:kimi-human-design
+# Subtest: (a) resolveAddress for real birth datum returns 13-field address from the REAL donor provider
+ok 10 - (a) resolveAddress for real birth datum returns 13-field address from the REAL donor provider
+  ---
+  duration_ms: 428.172994
+  type: 'test'
+  ...
+# [b] resolveState source_provider = back-up-:kimi-mesh-state-space+kimi-human-design (address via back-up-:kimi-human-design)
+# [b] confidence = {"level":"high","resolved_fields":12,"of":13}
+# Subtest: (b) resolveState returns address+state with source_provider naming the donor module
+ok 11 - (b) resolveState returns address+state with source_provider naming the donor module
+  ---
+  duration_ms: 15.06209
+  type: 'test'
+  ...
+# [c] persisted + re-read event evt-431d191e-7a8f-4653-968b-d80c06cafbb9 trajectory traj-ecd60bbc-a5e7-4338-899b-0276b98c3541
+# Subtest: (c) emitEvent persists to events.jsonl and survives simulated restart
+ok 12 - (c) emitEvent persists to events.jsonl and survives simulated restart
+  ---
+  duration_ms: 29.743617
+  type: 'test'
+  ...
+# [d] resolve_address providers = ["back-up-:execution-spine-canonical-address","back-up-:kimi-dms-codec","back-up-:kimi-coordinate-engine","recovered:yniv-addressing-engine"]
+# [d] route(resolve_address) -> back-up-:kimi-dms-codec
+# Subtest: (d) queryCapability lists the donor providers with statuses
+ok 13 - (d) queryCapability lists the donor providers with statuses
+  ---
+  duration_ms: 16.781627
+  type: 'test'
+  ...
+# Subtest: actual host interruption reconciles worker without replay and retains source/approval
+not ok 14 - actual host interruption reconciles worker without replay and retains source/approval
+  ---
+  duration_ms: 9207.286616
+  type: 'test'
+  location: '/workspace/Codex2/computer/tests/continuity-http.test.mjs:13:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    Kill only after actual container execution starts, not merely a queued/claimed job
+    
+    false !== true
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: true
+  actual: false
+  operator: 'strictEqual'
+  stack: |-
+    TestContext.<anonymous> (file:///workspace/Codex2/computer/tests/continuity-http.test.mjs:65:12)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async startSubtestAfterBootstrap (node:internal/test_runner/harness:296:3)
+  ...
+# Subtest: context changes retain identity, trust gates, evidence, dependency chains and durable checkpoints
+ok 15 - context changes retain identity, trust gates, evidence, dependency chains and durable checkpoints
+  ---
+  duration_ms: 6.589601
+  type: 'test'
+  ...
+# Subtest: guarded plans reject paths, approval forgery, duplicate keys and unauthorized execution; interrupted jobs never replay
+ok 16 - guarded plans reject paths, approval forgery, duplicate keys and unauthorized execution; interrupted jobs never replay
+  ---
+  duration_ms: 543.42864
+  type: 'test'
+  ...
+# Subtest: real unfinished application: import, defer, observe, repair, Docker build/tests, artifact and disk restart
+not ok 17 - real unfinished application: import, defer, observe, repair, Docker build/tests, artifact and disk restart
+  ---
+  duration_ms: 2.12293
+  type: 'test'
+  location: '/workspace/Codex2/computer/tests/continuity.test.mjs:76:1'
+  failureType: 'testCodeFailure'
+  error: "ENOSPC: no space left on device, mkdtemp '/tmp/synthia-acceptance-pLotlQ'"
+  code: 'ENOSPC'
+  stack: |-
+    async mkdtemp (node:internal/fs/promises:1177:10)
+    async TestContext.<anonymous> (file:///workspace/Codex2/computer/tests/continuity.test.mjs:77:21)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: execute intake preserves identities and rejects mismatched addressed paths
+not ok 18 - execute intake preserves identities and rejects mismatched addressed paths
+  ---
+  duration_ms: 8.423926
+  type: 'test'
+  location: '/workspace/Codex2/computer/tests/execute-intake-preservation.test.mjs:50:1'
+  failureType: 'testCodeFailure'
+  error: "ENOSPC: no space left on device, mkdtemp '/tmp/synthia-execute-2q6zRk'"
+  code: 'ENOSPC'
+  stack: |-
+    async mkdtemp (node:internal/fs/promises:1177:10)
+    async TestContext.<anonymous> (file:///workspace/Codex2/computer/tests/execute-intake-preservation.test.mjs:52:15)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async startSubtestAfterBootstrap (node:internal/test_runner/harness:296:3)
+  ...
+# Subtest: full Computer rejects foreign HTTP origins and hosts without breaking local WebView
+not ok 19 - full Computer rejects foreign HTTP origins and hosts without breaking local WebView
+  ---
+  duration_ms: 3.255306
+  type: 'test'
+  location: '/workspace/Codex2/computer/tests/http-origin-boundary.test.mjs:29:1'
+  failureType: 'testCodeFailure'
+  error: "ENOSPC: no space left on device, mkdtemp '/tmp/synthia-http-boundary-qPyUxU'"
+  code: 'ENOSPC'
+  stack: |-
+    async mkdtemp (node:internal/fs/promises:1177:10)
+    async TestContext.<anonymous> (file:///workspace/Codex2/computer/tests/http-origin-boundary.test.mjs:30:15)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async startSubtestAfterBootstrap (node:internal/test_runner/harness:296:3)
+  ...
+# Subtest: packaged Computer imports retain originals across duplicate names, concurrent requests and restart
+not ok 20 - packaged Computer imports retain originals across duplicate names, concurrent requests and restart
+  ---
+  duration_ms: 3.494206
+  type: 'test'
+  location: '/workspace/Codex2/computer/tests/import-preservation.test.mjs:44:1'
+  failureType: 'testCodeFailure'
+  error: "ENOSPC: no space left on device, mkdtemp '/tmp/synthia-import-preservation-7hFEIy'"
+  code: 'ENOSPC'
+  stack: |-
+    async mkdtemp (node:internal/fs/promises:1177:10)
+    async TestContext.<anonymous> (file:///workspace/Codex2/computer/tests/import-preservation.test.mjs:45:19)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async startSubtestAfterBootstrap (node:internal/test_runner/harness:296:3)
+  ...
+# Subtest: MILESTONE: one real event through the full chain
+not ok 21 - MILESTONE: one real event through the full chain
+  ---
+  duration_ms: 2.259285
+  type: 'test'
+  location: '/workspace/Codex2/computer/tests/milestone-one-real-event.test.mjs:18:1'
+  failureType: 'testCodeFailure'
+  error: "ENOSPC: no space left on device, mkdtemp '/tmp/computer-milestone-C5rpdI'"
+  code: 'ENOSPC'
+  stack: |-
+    async mkdtemp (node:internal/fs/promises:1177:10)
+    async TestContext.<anonymous> (file:///workspace/Codex2/computer/tests/milestone-one-real-event.test.mjs:19:15)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async startSubtestAfterBootstrap (node:internal/test_runner/harness:296:3)
+  ...
+# Subtest: imported source survives restart and exact address reactivates ATO and execution
+not ok 22 - imported source survives restart and exact address reactivates ATO and execution
+  ---
+  duration_ms: 2.485296
+  type: 'test'
+  location: '/workspace/Codex2/computer/tests/reassembly-ingest-e2e.test.mjs:11:1'
+  failureType: 'testCodeFailure'
+  error: "ENOSPC: no space left on device, mkdtemp '/tmp/synthia-computer-e2e-nI5zdO'"
+  code: 'ENOSPC'
+  stack: |-
+    async mkdtemp (node:internal/fs/promises:1177:10)
+    async TestContext.<anonymous> (file:///workspace/Codex2/computer/tests/reassembly-ingest-e2e.test.mjs:12:21)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async startSubtestAfterBootstrap (node:internal/test_runner/harness:296:3)
+  ...
+# Subtest: stage4d: recovered YNIV addressing + Foundry-Glyphs ephemeris
+not ok 23 - stage4d: recovered YNIV addressing + Foundry-Glyphs ephemeris
+  ---
+  duration_ms: 2.960952
+  type: 'test'
+  location: '/workspace/Codex2/computer/tests/recovered-donors.test.mjs:16:1'
+  failureType: 'testCodeFailure'
+  error: "ENOSPC: no space left on device, mkdtemp '/tmp/computer-stage4d-r0Uncg'"
+  code: 'ENOSPC'
+  stack: |-
+    async mkdtemp (node:internal/fs/promises:1177:10)
+    async TestContext.<anonymous> (file:///workspace/Codex2/computer/tests/recovered-donors.test.mjs:17:15)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async startSubtestAfterBootstrap (node:internal/test_runner/harness:296:3)
+  ...
+# Subtest: real Computer boot restores mounted application and exact dotted source bytes
+ok 24 - real Computer boot restores mounted application and exact dotted source bytes
+  ---
+  duration_ms: 441.873752
+  type: 'test'
+  ...
+# Subtest: legacy VFS-only source recovers its original bytes and mount after restart
+ok 25 - legacy VFS-only source recovers its original bytes and mount after restart
+  ---
+  duration_ms: 37.858091
+  type: 'test'
+  ...
+# Subtest: corrupt registration is reported but never removed from source state
+ok 26 - corrupt registration is reported but never removed from source state
+  ---
+  duration_ms: 22.861364
+  type: 'test'
+  ...
+# Subtest: conflicting persisted artifact registration is preserved, never replaced by legacy recovery
+ok 27 - conflicting persisted artifact registration is preserved, never replaced by legacy recovery
+  ---
+  duration_ms: 25.01501
+  type: 'test'
+  ...
+# Subtest: ambiguous legacy VFS files are retained without arbitrary app registration
+ok 28 - ambiguous legacy VFS files are retained without arbitrary app registration
+  ---
+  duration_ms: 22.491637
+  type: 'test'
+  ...
+# Subtest: restart refuses contradictory persisted mounts without changing their source records
+ok 29 - restart refuses contradictory persisted mounts without changing their source records
+  ---
+  duration_ms: 22.424817
+  type: 'test'
+  ...
+# Subtest: live mount refuses app ID reused for a different artifact, preserving prior mount
+ok 30 - live mount refuses app ID reused for a different artifact, preserving prior mount
+  ---
+  duration_ms: 11.099678
+  type: 'test'
+  ...
+# Subtest: compatible multiple mounts survive restart and retain the same artifact identity
+ok 31 - compatible multiple mounts survive restart and retain the same artifact identity
+  ---
+  duration_ms: 24.625883
+  type: 'test'
+  ...
+# Subtest: live mount cannot replace an existing non-artifact application identity
+ok 32 - live mount cannot replace an existing non-artifact application identity
+  ---
+  duration_ms: 11.473912
+  type: 'test'
+  ...
+# Subtest: boot macros micros
+ok 33 - boot macros micros
+  ---
+  duration_ms: 430.558549
+  type: 'test'
+  ...
+# Subtest: intake mutation mount persistence
+ok 34 - intake mutation mount persistence
+  ---
+  duration_ms: 30.724044
+  type: 'test'
+  ...
+# Subtest: mutation failure surfaces
+ok 35 - mutation failure surfaces
+  ---
+  duration_ms: 20.269037
+  type: 'test'
+  ...
+# Subtest: automata and process use real inputs
+ok 36 - automata and process use real inputs
+  ---
+  duration_ms: 12.983328
+  type: 'test'
+  ...
+# Subtest: cultivation persists
+ok 37 - cultivation persists
+  ---
+  duration_ms: 12.327328
+  type: 'test'
+  ...
+# Subtest: xynthai boundary
+ok 38 - xynthai boundary
+  ---
+  duration_ms: 14.350597
+  type: 'test'
+  ...
+# Subtest: project workspace persists real files and publication result
+ok 39 - project workspace persists real files and publication result
+  ---
+  duration_ms: 25.724299
+  type: 'test'
+  ...
+# Subtest: GitHub adapter sends project files and surfaces bridge failures
+ok 40 - GitHub adapter sends project files and surfaces bridge failures
+  ---
+  duration_ms: 0.767817
+  type: 'test'
+  ...
+# Subtest: Generative analysis shares the resident Computer engine, preserves custom tools, and persists actual receipts
+not ok 41 - Generative analysis shares the resident Computer engine, preserves custom tools, and persists actual receipts
+  ---
+  duration_ms: 4.045808
+  type: 'test'
+  location: '/workspace/Codex2/computer/tests/shared-generative-engine.test.mjs:13:1'
+  failureType: 'testCodeFailure'
+  error: "ENOSPC: no space left on device, mkdtemp '/tmp/synthia-shared-engine-aqNTvw'"
+  code: 'ENOSPC'
+  stack: |-
+    async mkdtemp (node:internal/fs/promises:1177:10)
+    async TestContext.<anonymous> (file:///workspace/Codex2/computer/tests/shared-generative-engine.test.mjs:14:21)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async startSubtestAfterBootstrap (node:internal/test_runner/harness:296:3)
+  ...
+# Subtest: failed adapter mounting rolls back original tools, maps and context hooks
+ok 42 - failed adapter mounting rolls back original tools, maps and context hooks
+  ---
+  duration_ms: 137.368758
+  type: 'test'
+  ...
+# Subtest: shared-engine analysis survives an actual Computer process restart without reanalysis
+not ok 43 - shared-engine analysis survives an actual Computer process restart without reanalysis
+  ---
+  duration_ms: 3.760287
+  type: 'test'
+  location: '/workspace/Codex2/computer/tests/shared-generative-restart.test.mjs:32:1'
+  failureType: 'testCodeFailure'
+  error: "ENOSPC: no space left on device, mkdtemp '/tmp/synthia-generative-restart-ry5A77'"
+  code: 'ENOSPC'
+  stack: |-
+    async mkdtemp (node:internal/fs/promises:1177:10)
+    async TestContext.<anonymous> (file:///workspace/Codex2/computer/tests/shared-generative-restart.test.mjs:33:21)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async startSubtestAfterBootstrap (node:internal/test_runner/harness:296:3)
+  ...
+1..43
+# tests 43
+# suites 0
+# pass 33
+# fail 10
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 18728.381576

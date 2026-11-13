@@ -33,6 +33,12 @@ export class CapabilityRegistryService {
 
   /** Contract: queryCapability(name) -> capability entry with provider statuses. */
   queryCapability(name) {
+    const contextual = this.contextual?.get(name);
+    if (contextual) return {
+      capability: name, found: true, description: contextual.meaning, contextual,
+      providers: [{ provider_id: 'contextual-capabilities', status: contextual.applicability === 'ACTIVE' ? 'VERIFIED' : 'PRESENT',
+        repository: contextual.source, verification_evidence: contextual.evidence, known_limitations: contextual.reasons }],
+    };
     const entry = this.capabilities.get(name) ?? null;
     return {
       capability: name,
@@ -63,7 +69,7 @@ export class CapabilityRegistryService {
     const q = this.queryCapability(capability);
     const candidates = q.providers;
     const rank = (s) => STATUSES.indexOf(s);
-    const selected = [...candidates].sort((a, b) => rank(b.status) - rank(a.status))[0] ?? null;
+    const selected = q.contextual && q.contextual.applicability !== 'ACTIVE' ? null : [...candidates].sort((a, b) => rank(b.status) - rank(a.status))[0] ?? null;
     const decision = {
       request_id: ctx.request_id ?? `req-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
       required_capability: capability,

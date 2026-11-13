@@ -5,3 +5,7 @@ computer/shell/kimi-linux/dist/
 *.tsbuildinfo
 __pycache__/
 .DS_Store
+local-data/
+/release/
+/core
+/core.[0-9]*

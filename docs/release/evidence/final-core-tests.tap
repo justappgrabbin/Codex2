@@ -1,0 +1,429 @@
+TAP version 13
+# Subtest: ACCEPTANCE 1: capability routing for resolve_address
+ok 1 - ACCEPTANCE 1: capability routing for resolve_address
+  ---
+  duration_ms: 508.72825
+  type: 'test'
+  ...
+# (2/3) providers: back-up-:execution-spine-canonical-address[WIRED] back-up-:kimi-dms-codec[VERIFIED] back-up-:kimi-coordinate-engine[PRESENT] recovered:yniv-addressing-engine[WIRED]
+# (4-6) auto route -> recovered:yniv-addressing-engine; micro index 45088 -> gate 42
+# (7-10) consumption receipt persisted; evidence=computer/tests/acceptance-1-routing.test.mjs
+# hint change -> back-up-:execution-spine-canonical-address; canonical_key=planetary=4|dimension=Being|gate=42|line=5|color=3|tone=6|base=4|degree=248|minute=19|second=52|arcAxis={"arcUnit":11}|zodiac=6|house=8
+# no duplicate implementations; provider set stable across strategies
+# Subtest: ACCEPTANCE 2: application mounting with shared services + restart recovery
+ok 2 - ACCEPTANCE 2: application mounting with shared services + restart recovery
+  ---
+  duration_ms: 385.249028
+  type: 'test'
+  ...
+# mounted appId=diagnostic-shell mountId=mount-1794545165695-xnb12 artifact=artifact-b00faf0a-042e-44fc-b9d6-673f7116dcee
+# app emitted evt-fa645af1-e5d0-430b-a2a0-571f0365139b; address gate 64 resolved on app's behalf; state persisted
+# restart recovery: app state + mount record + event all recovered
+# Subtest: ACCEPTANCE 3: reality/world event through the mounted world process
+ok 3 - ACCEPTANCE 3: reality/world event through the mounted world process
+  ---
+  duration_ms: 1053.345265
+  type: 'test'
+  ...
+# origin event evt-764218c2-b156-4a3d-a5b3-abcdc012492e addressed gate 64
+# world: agent moved 57.9->55.7; memory consolidated (longTerm=1); 5W events=4
+# backward trace: evt-67bc0200-7d39-4456-a620-adc76377aa4e -> parents -> evt-764218c2-b156-4a3d-a5b3-abcdc012492e (restart replay intact)
+# penta roles: A=Provider(G44) B=Foundation(G42) C=Director(G46) D=Director(G54) E=Foundation(G33); needed=Connector,Transmitter [position formula: PLACEHOLDER — flagged]
+# Subtest: ACCEPTANCE 4: digital skynthia effect (morph-expression, honest contract)
+ok 4 - ACCEPTANCE 4: digital skynthia effect (morph-expression, honest contract)
+  ---
+  duration_ms: 881.07118
+  type: 'test'
+  ...
+# effect: world move 1.70 -> morph.express -> StateStore morph.targets + event persisted+replayed; renderer NOT FOUND (path: wire morph.targets to a public/ shell or a canvas renderer service)
+# Subtest: ACCEPTANCE 5: restart recovery of all persistence categories
+ok 5 - ACCEPTANCE 5: restart recovery of all persistence categories
+  ---
+  duration_ms: 436.138001
+  type: 'test'
+  ...
+# recovered: identity, state, app mount, events+trajectory+lineage, services, capability registry+verification history; operation continued (gate 7)
+# Subtest: ACCEPTANCE 6: resonance/project loop with real providers
+ok 6 - ACCEPTANCE 6: resonance/project loop with real providers
+  ---
+  duration_ms: 460.387925
+  type: 'test'
+  ...
+# loop: project=project-318da7b1-5a22-4efe-aa69-ce93ca293377 channel=AWAKENING gate=38 artifact+participant state persisted; trajectory explanation assembled
+# Subtest: ACCEPTANCE 7: experiment loop with explicit evidence classification
+ok 7 - ACCEPTANCE 7: experiment loop with explicit evidence classification
+  ---
+  duration_ms: 355.682004
+  type: 'test'
+  ...
+# experiment: run1 gate 38 -> observation (no replication); run2 replicated -> donor evaluate -> supported_result (hypothesis supported); 2 events persisted+replayed
+# Subtest: ACCEPTANCE 8: state-space resolution end-to-end
+ok 8 - ACCEPTANCE 8: state-space resolution end-to-end
+  ---
+  duration_ms: 430.118992
+  type: 'test'
+  ...
+# E2E: user:traveler G64 -> edge NONE -> routed to recovered:foundry-glyphs-ephemeris (G38); explanation: 2 events chained
+# Subtest: ACCEPTANCE 9: historical recovery proof for all recovered donors
+ok 9 - ACCEPTANCE 9: historical recovery proof for all recovered donors
+  ---
+  duration_ms: 420.343825
+  type: 'test'
+  ...
+# recovery proof: 4 provenance records w/ SHA, 5 providers registered+executed (YNIV 45088, AWAKENING, gate 38, world spawn, penta G44)
+# [a] resolveAddress(1990-01-01 12:00 UTC) = {"planetary":"Sun","dimension":null,"gate":64,"line":5,"color":2,"tone":2,"base":4,"degree":11,"minute":19,"second":15,"arc":1012756,"zodiac":"Capricorn","house":7}
+# [a] provider = back-up-:kimi-human-design
+# Subtest: (a) resolveAddress for real birth datum returns 13-field address from the REAL donor provider
+ok 10 - (a) resolveAddress for real birth datum returns 13-field address from the REAL donor provider
+  ---
+  duration_ms: 420.313679
+  type: 'test'
+  ...
+# [b] resolveState source_provider = back-up-:kimi-mesh-state-space+kimi-human-design (address via back-up-:kimi-human-design)
+# [b] confidence = {"level":"high","resolved_fields":12,"of":13}
+# Subtest: (b) resolveState returns address+state with source_provider naming the donor module
+ok 11 - (b) resolveState returns address+state with source_provider naming the donor module
+  ---
+  duration_ms: 14.763209
+  type: 'test'
+  ...
+# [c] persisted + re-read event evt-137bdc9c-27a9-4c08-9321-383eca9148ff trajectory traj-95263152-56a3-49b5-99eb-94114abfda14
+# Subtest: (c) emitEvent persists to events.jsonl and survives simulated restart
+ok 12 - (c) emitEvent persists to events.jsonl and survives simulated restart
+  ---
+  duration_ms: 34.053873
+  type: 'test'
+  ...
+# [d] resolve_address providers = ["back-up-:execution-spine-canonical-address","back-up-:kimi-dms-codec","back-up-:kimi-coordinate-engine","recovered:yniv-addressing-engine"]
+# [d] route(resolve_address) -> back-up-:kimi-dms-codec
+# Subtest: (d) queryCapability lists the donor providers with statuses
+ok 13 - (d) queryCapability lists the donor providers with statuses
+  ---
+  duration_ms: 14.410227
+  type: 'test'
+  ...
+# Subtest: actual host interruption reconciles worker without replay and retains source/approval
+ok 14 - actual host interruption reconciles worker without replay and retains source/approval # SKIP
+  ---
+  duration_ms: 0.592733
+  type: 'test'
+  ...
+# Subtest: context changes retain identity, trust gates, evidence, dependency chains and durable checkpoints
+ok 15 - context changes retain identity, trust gates, evidence, dependency chains and durable checkpoints
+  ---
+  duration_ms: 6.520958
+  type: 'test'
+  ...
+# Subtest: guarded plans reject paths, approval forgery, duplicate keys and unauthorized execution; interrupted jobs never replay
+ok 16 - guarded plans reject paths, approval forgery, duplicate keys and unauthorized execution; interrupted jobs never replay
+  ---
+  duration_ms: 553.140221
+  type: 'test'
+  ...
+# Subtest: real unfinished application: import, defer, observe, repair, Docker build/tests, artifact and disk restart
+ok 17 - real unfinished application: import, defer, observe, repair, Docker build/tests, artifact and disk restart # SKIP
+  ---
+  duration_ms: 0.230747
+  type: 'test'
+  ...
+# Subtest: execute intake preserves identities and rejects mismatched addressed paths
+    # Subtest: same-name sequential and concurrent source admissions remain distinct
+    ok 1 - same-name sequential and concurrent source admissions remain distinct
+      ---
+      duration_ms: 654.609553
+      type: 'test'
+      ...
+    # Subtest: address with explicit wrong path cannot execute a fallback artifact
+    ok 2 - address with explicit wrong path cannot execute a fallback artifact
+      ---
+      duration_ms: 3.402828
+      type: 'test'
+      ...
+    # Subtest: all ten path and digest pairs survive service restart
+    ok 3 - all ten path and digest pairs survive service restart
+      ---
+      duration_ms: 628.827075
+      type: 'test'
+      ...
+    1..3
+ok 18 - execute intake preserves identities and rejects mismatched addressed paths
+  ---
+  duration_ms: 1749.213125
+  type: 'test'
+  ...
+# Subtest: full Computer rejects foreign HTTP origins and hosts without breaking local WebView
+    # Subtest: foreign Origin rejected
+    ok 1 - foreign Origin rejected
+      ---
+      duration_ms: 2.34266
+      type: 'test'
+      ...
+    # Subtest: foreign Host rejected
+    ok 2 - foreign Host rejected
+      ---
+      duration_ms: 3.425512
+      type: 'test'
+      ...
+    # Subtest: cross-site Fetch Metadata rejected
+    ok 3 - cross-site Fetch Metadata rejected
+      ---
+      duration_ms: 1.294791
+      type: 'test'
+      ...
+    # Subtest: opaque Origin rejected
+    ok 4 - opaque Origin rejected
+      ---
+      duration_ms: 0.910522
+      type: 'test'
+      ...
+    # Subtest: Android WebView same-origin accepted
+    ok 5 - Android WebView same-origin accepted
+      ---
+      duration_ms: 8.548433
+      type: 'test'
+      ...
+    # Subtest: native localhost client accepted
+    ok 6 - native localhost client accepted
+      ---
+      duration_ms: 6.26368
+      type: 'test'
+      ...
+    # Subtest: denied writes have no persistent records
+    ok 7 - denied writes have no persistent records
+      ---
+      duration_ms: 1.137745
+      type: 'test'
+      ...
+    # Subtest: Generative analysis uses the same origin boundary
+    ok 8 - Generative analysis uses the same origin boundary
+      ---
+      duration_ms: 3.080813
+      type: 'test'
+      ...
+    # Subtest: Generative endpoint analyzes through the live shared engine and saves a receipt
+    ok 9 - Generative endpoint analyzes through the live shared engine and saves a receipt
+      ---
+      duration_ms: 73.49222
+      type: 'test'
+      ...
+    # Subtest: foreign Origin cannot read API GET
+    ok 10 - foreign Origin cannot read API GET
+      ---
+      duration_ms: 0.816601
+      type: 'test'
+      ...
+    1..10
+ok 19 - full Computer rejects foreign HTTP origins and hosts without breaking local WebView
+  ---
+  duration_ms: 634.994195
+  type: 'test'
+  ...
+# Subtest: packaged Computer imports retain originals across duplicate names, concurrent requests and restart
+    # Subtest: same filename allocates a second path
+    ok 1 - same filename allocates a second path
+      ---
+      duration_ms: 0.767537
+      type: 'test'
+      ...
+    # Subtest: both JS byte strings remain addressable
+    ok 2 - both JS byte strings remain addressable
+      ---
+      duration_ms: 7.252799
+      type: 'test'
+      ...
+    # Subtest: ZIP originals receive separate paths
+    ok 3 - ZIP originals receive separate paths
+      ---
+      duration_ms: 0.191518
+      type: 'test'
+      ...
+    # Subtest: extracted ZIP files do not overwrite
+    ok 4 - extracted ZIP files do not overwrite
+      ---
+      duration_ms: 4.548615
+      type: 'test'
+      ...
+    # Subtest: five simultaneous same-name imports receive distinct paths
+    ok 5 - five simultaneous same-name imports receive distinct paths
+      ---
+      duration_ms: 0.327624
+      type: 'test'
+      ...
+    # Subtest: all simultaneous originals retain their exact digest
+    ok 6 - all simultaneous originals retain their exact digest
+      ---
+      duration_ms: 8.179577
+      type: 'test'
+      ...
+    # Subtest: restart restores first JS and first ZIP member
+    ok 7 - restart restores first JS and first ZIP member
+      ---
+      duration_ms: 4.680274
+      type: 'test'
+      ...
+    # Subtest: restart restores all five concurrent records
+    ok 8 - restart restores all five concurrent records
+      ---
+      duration_ms: 12.178855
+      type: 'test'
+      ...
+    1..8
+ok 20 - packaged Computer imports retain originals across duplicate names, concurrent requests and restart
+  ---
+  duration_ms: 1287.197492
+  type: 'test'
+  ...
+# Subtest: MILESTONE: one real event through the full chain
+ok 21 - MILESTONE: one real event through the full chain
+  ---
+  duration_ms: 408.421151
+  type: 'test'
+  ...
+# ADDRESS: {"planetary":"Sun","dimension":null,"gate":64,"line":5,"color":2,"tone":2,"base":4,"degree":11,"minute":19,"second":15,"arc":1012756,"zodiac":"Capricorn","house":7}
+# STATE: source_provider=back-up-:kimi-mesh-state-space+kimi-human-design (address via back-up-:kimi-human-design)
+# SWARM: processCount=47
+# LEARN: worker=deg-grammar-learner rules=15
+# GENERATE: nodes=4 applications=3
+# EVENT: evt-3a6c7165-f546-433f-a72d-36ab621a9a20 persisted, trajectory=traj-milestone-one-real-event
+# REPLAY: event evt-3a6c7165-f546-433f-a72d-36ab621a9a20 recovered; consumption receipt intact (task milestone-generate)
+# MILESTONE COMPLETE: EVENT->ADDRESS->STATE-SPACE->AUTOMATA->ROUTE->ACTION->RESULT->CONSUMPTION->VERIFY->STATE TRANSITION->TRAJECTORY->REPLAY
+# Subtest: stage4d: recovered YNIV addressing + Foundry-Glyphs ephemeris
+ok 22 - stage4d: recovered YNIV addressing + Foundry-Glyphs ephemeris
+  ---
+  duration_ms: 465.103225
+  type: 'test'
+  ...
+# (a) YNIV micro index=45088 -> G42.L5.C3.T6.B4; macro index=2515
+# (b) resolveRelationship(g10,g20) edge=AWAKENING score=0.7 trace="Awakening: Gates 10 and 20 awaken to 0.800"
+# (c) ephemeris Capricorn 11°19'15" -> G38.L2.C6.T4.B5; resolveState source=back-up-:kimi-mesh-state-space+kimi-human-design (address via recovered:foundry-glyphs-ephemeris)
+# (d) routing_decision candidates=back-up-:execution-spine-canonical-address, back-up-:kimi-dms-codec, back-up-:kimi-coordinate-engine, recovered:yniv-addressing-engine -> selected=recovered:yniv-addressing-engine
+# (e) event evt-9a3cb8b5-3459-4dd3-8771-473b52182a06 persisted; fresh-runtime replay intact
+# Subtest: real Computer boot restores mounted application and exact dotted source bytes
+ok 23 - real Computer boot restores mounted application and exact dotted source bytes
+  ---
+  duration_ms: 374.249022
+  type: 'test'
+  ...
+# Subtest: legacy VFS-only source recovers its original bytes and mount after restart
+ok 24 - legacy VFS-only source recovers its original bytes and mount after restart
+  ---
+  duration_ms: 34.719054
+  type: 'test'
+  ...
+# Subtest: corrupt registration is reported but never removed from source state
+ok 25 - corrupt registration is reported but never removed from source state
+  ---
+  duration_ms: 22.019906
+  type: 'test'
+  ...
+# Subtest: conflicting persisted artifact registration is preserved, never replaced by legacy recovery
+ok 26 - conflicting persisted artifact registration is preserved, never replaced by legacy recovery
+  ---
+  duration_ms: 21.422105
+  type: 'test'
+  ...
+# Subtest: ambiguous legacy VFS files are retained without arbitrary app registration
+ok 27 - ambiguous legacy VFS files are retained without arbitrary app registration
+  ---
+  duration_ms: 19.844688
+  type: 'test'
+  ...
+# Subtest: restart refuses contradictory persisted mounts without changing their source records
+ok 28 - restart refuses contradictory persisted mounts without changing their source records
+  ---
+  duration_ms: 20.896143
+  type: 'test'
+  ...
+# Subtest: live mount refuses app ID reused for a different artifact, preserving prior mount
+ok 29 - live mount refuses app ID reused for a different artifact, preserving prior mount
+  ---
+  duration_ms: 10.741679
+  type: 'test'
+  ...
+# Subtest: compatible multiple mounts survive restart and retain the same artifact identity
+ok 30 - compatible multiple mounts survive restart and retain the same artifact identity
+  ---
+  duration_ms: 20.85485
+  type: 'test'
+  ...
+# Subtest: live mount cannot replace an existing non-artifact application identity
+ok 31 - live mount cannot replace an existing non-artifact application identity
+  ---
+  duration_ms: 10.420255
+  type: 'test'
+  ...
+# Subtest: boot macros micros
+ok 32 - boot macros micros
+  ---
+  duration_ms: 368.087806
+  type: 'test'
+  ...
+# Subtest: intake mutation mount persistence
+ok 33 - intake mutation mount persistence
+  ---
+  duration_ms: 26.770565
+  type: 'test'
+  ...
+# Subtest: mutation failure surfaces
+ok 34 - mutation failure surfaces
+  ---
+  duration_ms: 10.958545
+  type: 'test'
+  ...
+# Subtest: automata and process use real inputs
+ok 35 - automata and process use real inputs
+  ---
+  duration_ms: 17.086801
+  type: 'test'
+  ...
+# Subtest: cultivation persists
+ok 36 - cultivation persists
+  ---
+  duration_ms: 10.413534
+  type: 'test'
+  ...
+# Subtest: xynthai boundary
+ok 37 - xynthai boundary
+  ---
+  duration_ms: 9.464905
+  type: 'test'
+  ...
+# Subtest: project workspace persists real files and publication result
+ok 38 - project workspace persists real files and publication result
+  ---
+  duration_ms: 21.329505
+  type: 'test'
+  ...
+# Subtest: GitHub adapter sends project files and surfaces bridge failures
+ok 39 - GitHub adapter sends project files and surfaces bridge failures
+  ---
+  duration_ms: 0.553805
+  type: 'test'
+  ...
+# Subtest: Generative analysis shares the resident Computer engine, preserves custom tools, and persists actual receipts
+ok 40 - Generative analysis shares the resident Computer engine, preserves custom tools, and persists actual receipts
+  ---
+  duration_ms: 570.059183
+  type: 'test'
+  ...
+# Subtest: failed adapter mounting rolls back original tools, maps and context hooks
+ok 41 - failed adapter mounting rolls back original tools, maps and context hooks
+  ---
+  duration_ms: 12.217834
+  type: 'test'
+  ...
+# Subtest: shared-engine analysis survives an actual Computer process restart without reanalysis
+ok 42 - shared-engine analysis survives an actual Computer process restart without reanalysis
+  ---
+  duration_ms: 1080.074294
+  type: 'test'
+  ...
+1..42
+# tests 63
+# suites 0
+# pass 61
+# fail 0
+# cancelled 0
+# skipped 2
+# todo 0
+# duration_ms 19385.388269

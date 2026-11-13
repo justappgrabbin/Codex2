@@ -17,6 +17,7 @@ import { WorldEngineGateway } from './services/world-engine.mjs';
 import { PentaEphemerisService } from './services/penta-ephemeris.mjs';
 import { GenerativeAssemblyService } from './services/generative-assembly.mjs';
 import { ExperimentLoop } from './services/experiment-loop.mjs';
+import { ContextualCapabilities } from './services/contextual-capabilities.mjs';
 
 export class ComputerRuntime {
   constructor({ persistence = new MemoryPersistence(), namespace = 'synthai-computer', github = null, eventLogPath = null } = {}) {
@@ -51,6 +52,7 @@ export class ComputerRuntime {
     this.mutations = new MutationDispatcher({ bus: this.bus, state: this.state, shellManager: this.shellManager, automata: this.automata, tools: this.tools, agents: this.agents, morph: this.morph });
     this.intake = new ArtifactIntake({ bus: this.bus, vfs: this.vfs, artifacts: this.artifacts, mutations: this.mutations });
     this.projects = new ProjectWorkspace({ bus: this.bus, state: this.state, vfs: this.vfs, backends: this.backends });
+    this.contextual = new ContextualCapabilities(this);
 
     if (github) this.configureGitHub(github);
   }
@@ -69,6 +71,7 @@ export class ComputerRuntime {
 
   async boot() {
     await this.state.restore();
+    await this.contextual.boot();
     if (!this.shells.has('workspace')) this.shells.register('workspace', { name: 'Workspace Shell', kind: 'generic' });
     if (!this.shells.has('hover-field')) this.shells.register('hover-field', { name: 'Hover Field Shell', kind: 'morph-field' });
     registerCanonicalMicros(this.micros);
@@ -95,6 +98,8 @@ export class ComputerRuntime {
       eventLog: () => this.eventEmitter.readAll(),
     });
     this.capabilityRegistryService = await new CapabilityRegistryService({ bus: this.bus }).load();
+    this.capabilityRegistryService.contextual = this.contextual;
+    this.stateResolver.contextual = this.contextual;
     this.addressService.capabilityRegistry = this.capabilityRegistryService; // routing_decision recording
     this.services.register('event-emitter', { provider: this.eventEmitter, contract: 'emitEvent' });
     this.services.register('address-service', { provider: this.addressService, contract: 'resolveAddress' });

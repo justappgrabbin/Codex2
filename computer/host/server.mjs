@@ -7,6 +7,8 @@ import { JsonFilePersistence } from '../runtime/json-file-persistence.mjs';
 import { ConversationExecution } from '../services/conversation-execution.mjs';
 import { FileAdmission } from '../services/file-admission.mjs';
 import { readZipMembers } from './zip-members.mjs';
+import { ProjectResearch } from '../services/project-research.mjs';
+import { ConstructionWorker } from '../services/construction-worker.mjs';
 
 const root = resolve(fileURLToPath(new URL('../shell/kimi-linux/dist/', import.meta.url)));
 const dataDir = resolve(process.env.SYNTHIA_DATA_DIR ?? fileURLToPath(new URL('../runtime/data/local-computer/', import.meta.url)));
@@ -32,6 +34,19 @@ const computer = await new ComputerRuntime({
 const conversation = new ConversationExecution(computer);
 const files = new FileAdmission(computer, conversation.execution);
 const generative = computer.generative;
+const research = await new ProjectResearch(computer).boot();
+const worker = await new ConstructionWorker(computer).boot();
+computer.services.register('project-research', { provider: research, contract: 'inspect' });
+computer.services.register('bounded-construction', { provider: worker, contract: 'propose/approve/run' });
+await computer.contextual.updateEnvironment({ 'runtime:node': true });
+let journalPending = Promise.resolve();
+computer.bus.on('*', event => {
+  if (!/^(research:|worker:|contextual:|generative:|project:)/.test(event.type)) return;
+  journalPending = journalPending.then(async () => {
+    const history = computer.state.get('computer.activity', []);
+    await computer.state.set('computer.activity', [...history, event], { source: 'activity-journal' });
+  }).catch(error => console.error('Activity checkpoint failed:', error.message));
+});
 
 // Import names are allocated before the first asynchronous write. This prevents
 // an upload with the same filename from replacing an earlier user's original.
@@ -131,6 +146,32 @@ const server = createServer(async (req, res) => {
       if (req.method === 'GET' && url.pathname === '/api/status') {
         const swarm = await computer.automataGateway.snapshot();
         return json(res, 200, { ready: true, computer: 'SynthAI Computer', swarmProcesses: swarm.processCount, files: computer.vfs.list('/').length });
+      }
+      if (req.method === 'GET' && url.pathname === '/api/continuity') return json(res, 200, {
+        projects: computer.projects.list(), research: research.snapshot(), capabilities: computer.contextual.list(),
+        construction: worker.snapshot(), activity: computer.state.get('computer.activity', []), runner: await worker.runner.available(),
+      });
+      if (req.method === 'GET' && url.pathname === '/api/research/search') return json(res, 200, research.search(url.searchParams.get('q') ?? ''));
+      if (req.method === 'POST' && url.pathname === '/api/projects/import') return json(res, 200, await research.import(await body(req)));
+      if (req.method === 'POST' && url.pathname === '/api/projects/from-import') {
+        const { name, prefix } = await body(req);
+        if (typeof prefix !== 'string' || !prefix.startsWith('/home/user/Imports/') || !prefix.endsWith('/')) throw new TypeError('Choose an admitted import folder prefix');
+        const entries = computer.vfs.list(prefix).filter(file => file.meta?.encoding !== 'base64');
+        return json(res, 200, await research.import({ name, source: prefix, files: entries.map(file => ({ path: file.path.slice(prefix.length), content: file.content, originalPath: file.path })) }));
+      }
+      if (req.method === 'POST' && url.pathname === '/api/projects/inspect') {
+        const { projectId } = await body(req); return json(res, 200, await research.enqueue(() => research.inspect(projectId)));
+      }
+      if (req.method === 'POST' && url.pathname === '/api/construction/propose') return json(res, 200, await worker.propose(await body(req)));
+      if (req.method === 'POST' && url.pathname === '/api/construction/approve') {
+        const request = await body(req); return json(res, 200, await worker.approve(request.id, request));
+      }
+      if (req.method === 'POST' && url.pathname === '/api/construction/run') return json(res, 200, await computer.processes.execute('bounded-construction', await body(req)));
+      if (req.method === 'GET' && url.pathname === '/api/artifact') {
+        const artifact = worker.artifact(url.searchParams.get('id'));
+        if (!artifact) return json(res, 404, { error: 'Verified artifact not found' });
+        res.setHeader('Content-Disposition', `attachment; filename="${artifact.name}"`);
+        return json(res, 200, artifact);
       }
       if (req.method === 'GET' && url.pathname === '/api/generative/status') return json(res, 200, await generative.status());
       if (req.method === 'GET' && url.pathname === '/api/generative/history') return json(res, 200, generative.history());

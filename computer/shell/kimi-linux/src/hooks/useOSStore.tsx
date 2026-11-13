@@ -36,6 +36,7 @@ const createWindow = (state: OSState, appId: string, title?: string): Window => 
 
 // ---- Initial State ----
 const defaultDesktopIcons: DesktopIcon[] = [
+  { id: 'desk-computer', name: 'Computer', icon: 'Monitor', appId: 'computer', position: { x: 176, y: 106 }, isSelected: false },
   { id: 'desk-home', name: 'Files', icon: 'Folder', appId: 'filemanager', position: { x: 16, y: 16 }, isSelected: false },
   { id: 'desk-ingest', name: 'Import', icon: 'FileUp', appId: 'ingest', position: { x: 176, y: 16 }, isSelected: false },
   { id: 'desk-chat', name: 'Synthia', icon: 'MessageSquare', appId: 'chat', position: { x: 96, y: 16 }, isSelected: false },

@@ -1,0 +1,34 @@
+TAP version 13
+# Subtest: actual host interruption reconciles worker without replay and retains source/approval
+ok 1 - actual host interruption reconciles worker without replay and retains source/approval
+  ---
+  duration_ms: 4114.45839
+  type: 'test'
+  ...
+# Subtest: context changes retain identity, trust gates, evidence, dependency chains and durable checkpoints
+ok 2 - context changes retain identity, trust gates, evidence, dependency chains and durable checkpoints
+  ---
+  duration_ms: 6.261767
+  type: 'test'
+  ...
+# Subtest: guarded plans reject paths, approval forgery, duplicate keys and unauthorized execution; interrupted jobs never replay
+ok 3 - guarded plans reject paths, approval forgery, duplicate keys and unauthorized execution; interrupted jobs never replay
+  ---
+  duration_ms: 1222.674308
+  type: 'test'
+  ...
+# Subtest: real unfinished application: import, defer, observe, repair, Docker build/tests, artifact and disk restart
+ok 4 - real unfinished application: import, defer, observe, repair, Docker build/tests, artifact and disk restart
+  ---
+  duration_ms: 14398.652882
+  type: 'test'
+  ...
+1..4
+# tests 4
+# suites 0
+# pass 4
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 20150.974601
