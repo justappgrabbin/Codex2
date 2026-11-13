@@ -9,6 +9,7 @@ import { FileAdmission } from '../services/file-admission.mjs';
 import { readZipMembers } from './zip-members.mjs';
 import { ProjectResearch } from '../services/project-research.mjs';
 import { ConstructionWorker } from '../services/construction-worker.mjs';
+import { EncryptedFilePersistence, EncryptedEventEmitter, readStateKey } from '../runtime/encrypted-persistence.mjs';
 
 const root = resolve(fileURLToPath(new URL('../shell/kimi-linux/dist/', import.meta.url)));
 const dataDir = resolve(process.env.SYNTHIA_DATA_DIR ?? fileURLToPath(new URL('../runtime/data/local-computer/', import.meta.url)));
@@ -27,9 +28,16 @@ function isLocalRequest(req) {
     && (fetchSite === undefined || fetchSite === 'same-origin' || fetchSite === 'none');
 }
 await mkdir(dataDir, { recursive: true });
+const keyPath = process.env.SYNTHIA_STATE_KEY_FILE;
+const stateKey = keyPath ? await readStateKey(keyPath) : null;
+if (!stateKey && ((await stat(join(dataDir, 'state.enc.json')).catch(() => null)) || (await stat(join(dataDir, 'events.enc.jsonl')).catch(() => null))))
+  throw new Error('Encrypted data exists; provide its SYNTHIA_STATE_KEY_FILE. Refusing to create an empty plaintext replacement.');
+if (stateKey && ((await stat(join(dataDir, 'state.json')).catch(() => null)) || (await stat(join(dataDir, 'events.jsonl')).catch(() => null))))
+  throw new Error('Encryption opt-in requires a new data directory. Existing plaintext data is preserved; automatic migration is not implemented.');
 const computer = await new ComputerRuntime({
-  persistence: new JsonFilePersistence(join(dataDir, 'state.json')),
-  eventLogPath: join(dataDir, 'events.jsonl'),
+  persistence: stateKey ? new EncryptedFilePersistence(join(dataDir, 'state.enc.json'), stateKey) : new JsonFilePersistence(join(dataDir, 'state.json')),
+  eventLogPath: join(dataDir, stateKey ? 'events.enc.jsonl' : 'events.jsonl'),
+  ...(stateKey ? { eventEmitterFactory: options => new EncryptedEventEmitter({ ...options, key: stateKey }) } : {}),
 }).boot();
 const conversation = new ConversationExecution(computer);
 const files = new FileAdmission(computer, conversation.execution);
@@ -148,6 +156,8 @@ const server = createServer(async (req, res) => {
         return json(res, 200, { ready: true, computer: 'SynthAI Computer', swarmProcesses: swarm.processCount, files: computer.vfs.list('/').length });
       }
       if (req.method === 'GET' && url.pathname === '/api/continuity') return json(res, 200, {
+        memory: await computer.automataGateway.memoryStatus(),
+        storage: { encryptedCheckpointAndJournal: Boolean(stateKey), keyRecovery: 'Owner-managed key file; Android Keystore integration pending', localHttpAuthenticated: false },
         projects: computer.projects.list(), research: research.snapshot(), capabilities: computer.contextual.list(),
         construction: worker.snapshot(), activity: computer.state.get('computer.activity', []), runner: await worker.runner.available(),
       });

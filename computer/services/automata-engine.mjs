@@ -16,6 +16,7 @@
  */
 
 import { fileURLToPath } from 'node:url';
+import { ResidentCheckpointStore } from '../runtime/resident-checkpoint-store.mjs';
 
 const DONOR_SWARM = fileURLToPath(new URL(
   '../donors/Back-up-/vendor/pure-synthia-v0.4.0/src/synthia/swarm/bootstrap.mjs',
@@ -35,15 +36,23 @@ export class AutomataEngineGateway {
     this.providerId = SWARM_PROVIDER_ID;
     this._swarm = null;
     this._synthia = null;
+    this._booting = null;
+    this._operations = Promise.resolve();
   }
 
   /** Lazy donor bootstrap; failure surfaces as an event, never swallowed. */
   async _boot() {
     if (this._swarm) return this._swarm;
+    if (!this._booting) this._booting = this._initialize().finally(() => { this._booting = null; });
+    return this._booting;
+  }
+
+  async _initialize() {
     try {
       const { bootstrapCurrentSynthiaSwarm } = await import(DONOR_SWARM);
       const { MemoryCheckpointStore } = await import(DONOR_STORES);
-      const { swarm, synthia } = await bootstrapCurrentSynthiaSwarm({ store: new MemoryCheckpointStore() });
+      const store = this.state ? new ResidentCheckpointStore(this.state) : new MemoryCheckpointStore();
+      const { swarm, synthia } = await bootstrapCurrentSynthiaSwarm({ store });
       this._swarm = swarm;
       this._synthia = synthia;
       this.bus?.emit('automata-gateway:booted', { provider: this.providerId, processCount: swarm.snapshot().processCount });
@@ -71,9 +80,16 @@ export class AutomataEngineGateway {
 
   /** The donor's actual Morph Chat path, including AutoLing, DISEMINER and ATO. */
   async talk(text, options = {}) {
+    const work = () => this._talk(text, options);
+    const result = this._operations.then(work, work);
+    this._operations = result.catch(() => {}); return result;
+  }
+
+  async _talk(text, options = {}) {
     await this._boot();
     try {
       const response = await this._synthia.talk(text, options);
+      await this._swarm.checkpoint('computer-conversation');
       this.bus?.emit('automata-gateway:conversation', {
         provider: this.providerId,
         address: response.runtime?.address ?? null,
@@ -100,6 +116,12 @@ export class AutomataEngineGateway {
    * donor's error; pending tasks are reported, not faked).
    */
   async execute(capability, input = null, { taskId = null, meta = {} } = {}) {
+    const work = () => this._execute(capability, input, { taskId, meta });
+    const result = this._operations.then(work, work);
+    this._operations = result.catch(() => {}); return result;
+  }
+
+  async _execute(capability, input = null, { taskId = null, meta = {} } = {}) {
     const swarm = await this._boot();
     const workers = swarm.find(capability);
     if (!workers.length) {
@@ -124,6 +146,19 @@ export class AutomataEngineGateway {
     if (record.status === 'failed') this.bus?.emit('automata-gateway:failed', record);
     else this.bus?.emit('automata-gateway:complete', { capability, taskId: record.taskId, workerId: record.workerId, cycle: record.cycle });
     return record;
+  }
+
+  async memoryStatus() {
+    const swarm = await this._boot();
+    const workers = [...swarm.workers.values()].map(worker => {
+      const captured = worker.checkpoint().state;
+      const restorable = captured?.kind !== 'none' && (typeof worker.target?.hydrate === 'function' || typeof worker.target?.importState === 'function' ||
+        (['ownedState', 'exportState'].includes(captured?.kind) && worker.target && 'ownedState' in worker.target));
+      return { id: worker.id, capture: captured?.kind ?? 'none', restorable: Boolean(restorable) };
+    });
+    return { persistence: this.state ? 'resident-StateStore' : 'memory-only', revisions: this.state?.get('computer.automataCheckpoints.history', []).length ?? 0,
+      workers, completeLearnedStateCoverage: false,
+      limitation: 'Only original donor export/hydrate/importState/ownedState contracts are restored. Observational snapshots are not claimed as restorable learned state. No recovered action is automatically replayed.' };
   }
 }
 

@@ -1,5 +1,7 @@
 # Synthia Computer — build in progress
 
+Latest work and remaining tasks: [tonight's additive memory/security handoff](docs/release/TONIGHT-STATUS.md). The downloadable ZIP remains the earlier checkpoint; the branch includes the newer source additions.
+
 ## Tested local continuity distribution
 
 The resident Computer now includes persistent contextual capability resolution, source evidence/structural inspection, event-driven project observation and an approval-bound isolated build/test worker. The existing desktop exposes these through **Computer**. Start a packaged checkout with `Start-Synthia.cmd` or `sh start-synthia.sh` (Node 22+). See [setup, actual scope and limits](docs/release/START-HERE.md), [verification](docs/release/VERIFICATION.md) and [continuity checkpoint](docs/release/CONTINUITY.md). This is a working integration checkpoint; the full mission, Codex3 integration and functional Android release remain unfinished.

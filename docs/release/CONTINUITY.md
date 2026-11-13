@@ -1,5 +1,7 @@
 # Continuity checkpoint
 
+Latest additive handoff: [TONIGHT-STATUS.md](TONIGHT-STATUS.md) records the resident donor checkpoint connection, optional encrypted persistence/journal, four passing scoped tests and remaining work. The owner paused implementation after requesting the branch update. Existing ZIP qualification is unchanged.
+
 Foundation: Codex2 `1e4892b7b856ce7830a83e982d5145ace79736c6`; Back-up- `1c45318a668de3bb3c54ae488b3d5f4109d1ba6b`; Generative `ce1704d5d53d5729b499463f7eeaf5dcd5091550`; Simlish `239fbbd28194aa72b9f0db5800d685d492468d64`. SOURCE-INVENTORY.json records full Codex3/SynthAi current commits; DONORS.json records each donor branch revision/hash. Local final commit, if present, is recorded by the package FILES.json. Nothing was pushed.
 
 Changed resident contracts: ComputerRuntime mounts contextual state; CapabilityGraph availability, capability registry queries/routes and StateResolver contextual metadata use that state. Existing source-derived addresses and original engine identity stay intact. Host mounts resident research/construction, loopback API operations and persistent activity. Conversation exposes true project/capability/work limitations.

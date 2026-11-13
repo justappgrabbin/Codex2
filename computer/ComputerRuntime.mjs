@@ -20,8 +20,9 @@ import { ExperimentLoop } from './services/experiment-loop.mjs';
 import { ContextualCapabilities } from './services/contextual-capabilities.mjs';
 
 export class ComputerRuntime {
-  constructor({ persistence = new MemoryPersistence(), namespace = 'synthai-computer', github = null, eventLogPath = null } = {}) {
+  constructor({ persistence = new MemoryPersistence(), namespace = 'synthai-computer', github = null, eventLogPath = null, eventEmitterFactory = null } = {}) {
     this.eventLogPath = eventLogPath;
+    this.eventEmitterFactory = eventEmitterFactory;
     this.bus = new EventBus();
     this.state = new StateStore({ bus: this.bus, persistence, namespace });
     const registry = kind => new Registry({ kind, bus: this.bus });
@@ -90,7 +91,8 @@ export class ComputerRuntime {
     // Computer contracts. Services are Computer components; donor modules stay
     // sovereign and are only wrapped (lazy dynamic import, failures surface
     // as 'service:provider-failure' bus events).
-    this.eventEmitter = new EventEmitter({ bus: this.bus, ...(this.eventLogPath ? { logPath: this.eventLogPath } : {}) });
+    const eventOptions = { bus: this.bus, ...(this.eventLogPath ? { logPath: this.eventLogPath } : {}) };
+    this.eventEmitter = this.eventEmitterFactory ? this.eventEmitterFactory(eventOptions) : new EventEmitter(eventOptions);
     this.addressService = new AddressService({ bus: this.bus });
     this.stateResolver = new StateResolver({
       bus: this.bus,

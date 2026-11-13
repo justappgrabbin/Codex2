@@ -1,5 +1,7 @@
 # Android readiness
 
+Additive clarification from the owner's cumulative specification: a full secondary operating-system VM is not required. Continue the existing resident Node/JNI Computer and its package/signing/data continuity. Docker remains an optional desktop execution boundary, not an assumed phone dependency. No VM replacement is proposed by this checkpoint.
+
 The existing `computer/android` implementation is preserved. `MainActivity.java` loads `computer-node` and `node` native libraries, extracts packaged runtime assets into private storage, launches Node from a Java thread and presents the loopback Computer in a WebView. This is stronger than a WebView alone. Its current manifest declares INTERNET and an Activity; it has no foreground Service, background-task scheduling or notification permission/lifecycle implementation.
 
 Gradle targets SDK 35, minSDK 26 and arm64-v8a/x86_64, with a JNI/CMake bridge. `prepare-node.py`, `prepare-assets.py`, native source, and the existing APK workflow are retained. Tasker/device-action components were not located in the current Codex2 tracked-path inventory; no device permission contract is asserted from their names in other sources.
