@@ -12,12 +12,31 @@ import WindowManager from '@/components/WindowManager';
 import ContextMenu from '@/components/ContextMenu';
 import NotificationSystem from '@/components/NotificationSystem';
 import NotificationCenter from '@/components/NotificationCenter';
+import { rememberTheme, startSettingsRemember } from '@/lib/settings-remember.mjs';
 
 function AppShell() {
   const { state, dispatch } = useOS();
   const [hostState, setHostState] = useState<'checking' | 'ready' | 'failed'>('checking');
   const [preview, setPreview] = useState<{ url: string; name: string } | null>(null);
+  const [settingsReady, setSettingsReady] = useState(false);
   const altTabRef = useRef<{ holding: boolean }>({ holding: false });
+
+  useEffect(() => {
+    let live = true;
+    startSettingsRemember().then((theme) => {
+      if (!live) return;
+      if (theme && (theme.mode === 'dark' || theme.mode === 'light' || theme.accent || theme.wallpaper)) {
+        dispatch({ type: 'SET_THEME', theme: { ...theme, mode: theme.mode === 'light' ? 'light' : theme.mode === 'dark' ? 'dark' : undefined } });
+      }
+      setSettingsReady(true);
+    });
+    return () => { live = false; };
+  }, [dispatch]);
+
+  useEffect(() => {
+    if (!settingsReady) return;
+    rememberTheme(state.theme);
+  }, [settingsReady, state.theme]);
 
   useEffect(() => {
     fetch('/api/status').then((response) => {

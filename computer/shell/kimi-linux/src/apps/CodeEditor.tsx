@@ -344,7 +344,24 @@ export default function CodeEditor() {
         );
       }
     }
-    setExecutionOutput(`Saved ${activeTab.name} in the Computer workspace.`);
+    // WIRE: her ProjectWorkspace keeps the named project. The file above is already stored.
+    let workspaceNote = '';
+    try {
+      const response = await fetch('/api/workspace', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: 'Computer workspace',
+          files: [{ path: activeTab.name, content: activeTab.content, type: 'text/plain' }],
+        }),
+      });
+      const saved = await response.json();
+      if (!response.ok) throw new Error(saved.error || 'Workspace save failed');
+      workspaceNote = ` Project ${saved.id} kept.`;
+    } catch (error) {
+      workspaceNote = ` Workspace record was not kept: ${error instanceof Error ? error.message : String(error)}`;
+    }
+    setExecutionOutput(`Saved ${activeTab.name} in the Computer workspace.${workspaceNote}`);
   }, [activeTab, fs, userNodeId]);
 
   const updateContent = useCallback(

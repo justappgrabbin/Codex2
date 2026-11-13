@@ -65,6 +65,8 @@ export interface FileSystemNode {
   content?: string;
   size?: number;
   isHidden?: boolean;
+  // Filled from her Codex2 organizeArtifact result when a file is saved.
+  organization?: { category: string; topic: string; keywords: string[]; collection: string };
 }
 
 export interface TrashItemMetadata {

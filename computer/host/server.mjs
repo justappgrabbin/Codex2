@@ -13,6 +13,10 @@ import { createTridentMcp } from '../services/trident-mcp-glue.mjs';
 import { mindsStatus, routeChat } from '../services/resident-minds.mjs';
 import { GroveStore } from '../services/grove-store.mjs';
 import { describePlatforms, detectPlatform } from '../services/platform-runtime.mjs';
+import { PersonalVault } from '../donors/Back-up-/vendor/pure-synthia-v0.4.0/src/synthia/morph-engine/substrate/vault/PersonalVault.mjs';
+import { FileVaultStore } from '../services/vault-file-store.mjs';
+import { openActivityJournal } from '../services/activity-journal.mjs';
+import { saveNamedWorkspace } from '../services/workspace-remember.mjs';
 
 // The Computer ships with its real terminal backend on. Set
 // LINUX_CONTAINER_ENABLED=false to keep both terminals read-only.
@@ -45,7 +49,12 @@ const computer = await new ComputerRuntime({
   hostRoot: filesRoot,
 }).boot();
 const conversation = new ConversationExecution(computer);
-const files = new FileAdmission(computer, conversation.execution);
+const vaultStore = new FileVaultStore(join(dataDir, 'codex2-vault.json'));
+await vaultStore.ready;
+const vault = new PersonalVault({ store: vaultStore });
+const files = new FileAdmission(computer, conversation.execution, { vault });
+const journal = openActivityJournal(computer);
+const SETTINGS_KEYS = ['ubuntuos_settings', 'synthia_computer_settings', 'synthia_computer_theme'];
 const generative = computer.generative;
 const shell = createHostShell({ userRoot: join(filesRoot, 'home/user'), systemRoot });
 const mcp = createTridentMcp({ vfs: computer.vfs, shell, computer });
@@ -300,6 +309,27 @@ const server = createServer(async (req, res) => {
         return json(res, 200, await grove.install(request.id ?? request.packageId));
       }
       if (req.method === 'GET' && url.pathname === '/api/platform') return json(res, 200, { current: detectPlatform(), adapters: describePlatforms() });
+      if (req.method === 'GET' && url.pathname === '/api/settings') return json(res, 200, computer.state.get('computer.settings.local', {}));
+      if (req.method === 'PUT' && url.pathname === '/api/settings') {
+        const incoming = await body(req);
+        if (!incoming || typeof incoming !== 'object' || Array.isArray(incoming)) throw new TypeError('Settings must be an object.');
+        const next = { ...(computer.state.get('computer.settings.local', {})) };
+        for (const key of SETTINGS_KEYS) {
+          if (typeof incoming[key] !== 'string') continue;
+          if (incoming[key].length > 200000) throw new RangeError('Setting is too large.');
+          next[key] = incoming[key];
+        }
+        await computer.state.set('computer.settings.local', next, { source: 'settings-remember' });
+        return json(res, 200, next);
+      }
+      if (req.method === 'GET' && url.pathname === '/api/journal') return json(res, 200, { records: journal.list(), routes: journal.rank() });
+      if (req.method === 'POST' && url.pathname === '/api/journal') return json(res, 200, await journal.write(await body(req)));
+      if (req.method === 'GET' && url.pathname === '/api/workspace') return json(res, 200, computer.projects.list());
+      if (req.method === 'POST' && url.pathname === '/api/workspace') return json(res, 200, await saveNamedWorkspace(computer, await body(req)));
+      if (req.method === 'GET' && url.pathname === '/api/vault') {
+        const items = await vault.list();
+        return json(res, 200, items.map(({ bytes, ...item }) => item));
+      }
       return json(res, 404, { error: 'Unknown computer operation.' });
 
     }
