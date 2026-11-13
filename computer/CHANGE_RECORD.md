@@ -1,3 +1,15 @@
+# Change record — Klein relationship layer (feat/klein-relationship-layer, off assemble-core)
+
+WHAT EXISTED BEFORE: `computer/services/klein-resident.mjs` and `klein-bridge.py` talk to Cynthia-Klein-Original-Trained when a PyTorch environment is present. Klein tools were not wired as a relationship layer on that lane.
+
+PRESERVED: Her tool files are copies under `computer/modules/klein-relationship-layer/vendor/`. The originals on Drive and in `/workspace/model-plan/dl/` are untouched. `klein-resident.mjs` and `klein-bridge.py` were not edited. Addressing and birth time remain on hold. No push, merge, or PR.
+
+ADDED:
+- `computer/modules/klein-relationship-layer/` — copies of DISEMINER, AutoLing, CompGram, the 1963 dependency Resolver, and the v5.1 KleinEngine bus, plus minimal glue (`relationship_layer.py`, `relationship-layer.mjs`).
+- Tests: `python3 -m unittest discover -s computer/modules/klein-relationship-layer/tests -v` (8) and `node --test computer/tests/klein-relationship-layer.test.mjs` (9).
+
+LEFT OUT: `frame_resolver.py` and `pyswisseph` (address / birth time). The trained `.pt` weights are not copied into the repo.
+
 
 # Change record — both terminals run commands, and Play runs the selected project (assemble-core)
 
