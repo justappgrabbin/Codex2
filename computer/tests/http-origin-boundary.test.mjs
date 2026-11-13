@@ -93,6 +93,23 @@ test('full Computer rejects foreign HTTP origins and hosts without breaking loca
     const history = JSON.parse((await http(port, '/api/generative/history')).body);
     assert.equal(history[0].id, receipt.id);
   });
+  await t.test('learning API preserves origin boundary and executes a checked retained component', async () => {
+    const send = (route, value, origin = 'http://' + host) => http(port, '/api/learning' + route, 'POST',
+      { Host: host, Origin: origin, 'Content-Type': 'application/json' }, JSON.stringify(value));
+    assert.equal((await send('/teach', { text: 'private lesson' }, 'https://foreign.example')).status, 403);
+    assert.equal((await send('/teach', { text: 'A quotation includes sales tax.' })).status, 200);
+    const hits = JSON.parse((await send('/search', { query: 'quotation tax' })).body);
+    assert.equal(hits[0].provenance.kind, 'user-teaching');
+    const response = await send('/build', { goal: 'quotation tax', files: { '/main.js': 'export function run(x){return x*1.1}' }, entry: '/main.js', exportName: 'run', tests: [{ input: 20, expected: 22 }], sourceIds: [hits[0].sourceId] });
+    assert.equal(response.status, 200, response.body);
+    const built = JSON.parse(response.body);
+    assert.equal(built.ok, true, response.body);
+    const result = await send('/run', { id: built.id, input: 40 });
+    assert.equal(JSON.parse(result.body).output, 44);
+    const shelf = JSON.parse((await http(port, '/api/learning')).body);
+    assert.equal(shelf.components[0].id, built.id);
+    assert.equal(shelf.codingAvailable, false);
+  });
   await t.test('foreign Origin cannot read API GET', async () =>
     assert.equal((await http(port, '/api/files', 'GET', { Host: host, Origin: 'https://foreign.example' })).status, 403));
 });

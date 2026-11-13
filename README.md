@@ -9,6 +9,7 @@ The earlier standalone Python file-library application was rejected and is not i
 ```sh
 git clone --recurse-submodules https://github.com/justappgrabbin/Codex2.git
 cd Codex2
+npm --prefix computer ci
 npm --prefix computer/shell/kimi-linux ci
 npm --prefix computer/shell/kimi-linux run build
 SYNTHIA_PORT=8877 node computer/host/server.mjs
@@ -27,6 +28,10 @@ The resident Computer engine now also hosts the Generative structural-analysis t
 ```sh
 npm --prefix computer run test:integration
 ```
+
+## Learning, coding, and GitHub retrieval
+
+The Import app now includes a persistent learning workspace, commit-pinned GitHub source retrieval, and a checked component shelf. A configured local coding model can generate and repair synchronous JavaScript modules using retrieved source and explicit acceptance checks. See [setup, supported behavior, and limits](computer/LEARNING.md). Model weights are not bundled, and universal semantic assembly remains unfinished.
 
 ## Source recovery
 
