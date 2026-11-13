@@ -1,0 +1,750 @@
+{
+  "schema": "synthia.source-inventory.v1",
+  "repositories": [
+    {
+      "name": "Codex2",
+      "revision": "1e4892b7b856ce7830a83e982d5145ace79736c6",
+      "trackedPaths": 928
+    },
+    {
+      "name": "Back-up-",
+      "revision": "1c45318a668de3bb3c54ae488b3d5f4109d1ba6b",
+      "trackedPaths": 949
+    },
+    {
+      "name": "Generative",
+      "revision": "ce1704d5d53d5729b499463f7eeaf5dcd5091550",
+      "trackedPaths": 1198
+    },
+    {
+      "name": "Simlish",
+      "revision": "239fbbd28194aa72b9f0db5800d685d492468d64",
+      "trackedPaths": 208
+    },
+    {
+      "name": "SynthAi",
+      "revision": "826ca35217b0d671bf81b3bdc2518afc4402e32e",
+      "trackedPaths": 690
+    },
+    {
+      "name": "Codex3",
+      "revision": "1c9402ef97029bf590a7d4d4aea4382541b01d51",
+      "trackedPaths": 396
+    }
+  ],
+  "method": "Current HEAD tracked path inventory; path matches are discovery evidence, not proof of functional integration",
+  "candidates": [
+    {
+      "name": "Original Synthia Computer",
+      "classification": "source-path candidate",
+      "matches": [
+        {
+          "repository": "Codex2",
+          "path": "computer/ComputerRuntime.mjs"
+        },
+        {
+          "repository": "Codex2",
+          "path": "computer/README.md"
+        },
+        {
+          "repository": "SynthAi",
+          "path": "computer/ComputerRuntime.mjs"
+        },
+        {
+          "repository": "SynthAi",
+          "path": "computer/README.md"
+        }
+      ],
+      "matchingPaths": 4,
+      "integration": "existing resident scope only; no indiscriminate merge",
+      "blocker": "Separate behavioral and compatibility qualification required",
+      "reevaluateWhen": "Original source identified and contract/dependencies independently tested"
+    },
+    {
+      "name": "Generative Address System",
+      "classification": "source-path candidate",
+      "matches": [
+        {
+          "repository": "Codex2",
+          "path": "sources/Generative-address-system"
+        },
+        {
+          "repository": "Generative",
+          "path": "Synthia-Generative-Address-Morphology-Integrated-v0.2.1-RUNNABLE/README.md"
+        },
+        {
+          "repository": "Generative",
+          "path": "Synthia-Generative-Address-Morphology-Integrated-v0.2.1-RUNNABLE/VERIFICATION-OUTPUT.txt"
+        },
+        {
+          "repository": "Generative",
+          "path": "Synthia-Generative-Address-Morphology-Integrated-v0.2.1-RUNNABLE/VERIFICATION-v0.2.0.txt"
+        },
+        {
+          "repository": "Generative",
+          "path": "Synthia-Generative-Address-Morphology-Integrated-v0.2.1-RUNNABLE/authorities/execution-spine/ADDRESS-RESOLUTION-v0.4.0.md"
+        },
+        {
+          "repository": "Generative",
+          "path": "Synthia-Generative-Address-Morphology-Integrated-v0.2.1-RUNNABLE/authorities/execution-spine/DONOR-MAP.md"
+        },
+        {
+          "repository": "Generative",
+          "path": "Synthia-Generative-Address-Morphology-Integrated-v0.2.1-RUNNABLE/authorities/execution-spine/INTEGRATION-v0.2.0.md"
+        },
+        {
+          "repository": "Generative",
+          "path": "Synthia-Generative-Address-Morphology-Integrated-v0.2.1-RUNNABLE/authorities/execution-spine/NEXT-MOVE.md"
+        },
+        {
+          "repository": "Generative",
+          "path": "Synthia-Generative-Address-Morphology-Integrated-v0.2.1-RUNNABLE/authorities/execution-spine/README.md"
+        },
+        {
+          "repository": "Generative",
+          "path": "Synthia-Generative-Address-Morphology-Integrated-v0.2.1-RUNNABLE/authorities/execution-spine/RUNTIME-ADAPTERS.md"
+        },
+        {
+          "repository": "Generative",
+          "path": "Synthia-Generative-Address-Morphology-Integrated-v0.2.1-RUNNABLE/authorities/execution-spine/VERIFICATION-v0.3.0.md"
+        },
+        {
+          "repository": "Generative",
+          "path": "Synthia-Generative-Address-Morphology-Integrated-v0.2.1-RUNNABLE/authorities/execution-spine/VERIFICATION-v0.4.0.md"
+        },
+        {
+          "repository": "Generative",
+          "path": "Synthia-Generative-Address-Morphology-Integrated-v0.2.1-RUNNABLE/authorities/execution-spine/WIRING-v0.3.0.md"
+        },
+        {
+          "repository": "Generative",
+          "path": "Synthia-Generative-Address-Morphology-Integrated-v0.2.1-RUNNABLE/authorities/execution-spine/donors/Online-Code-Execution-Engine-main.zip"
+        },
+        {
+          "repository": "Generative",
+          "path": "Synthia-Generative-Address-Morphology-Integrated-v0.2.1-RUNNABLE/authorities/execution-spine/donors/Synthia-Universal-Browser-Execution-v1.3.7.zip"
+        },
+        {
+          "repository": "Generative",
+          "path": "Synthia-Generative-Address-Morphology-Integrated-v0.2.1-RUNNABLE/authorities/execution-spine/donors/constants.pdf"
+        },
+        {
+          "repository": "Generative",
+          "path": "Synthia-Generative-Address-Morphology-Integrated-v0.2.1-RUNNABLE/authorities/execution-spine/donors/dag-engine.ts"
+        },
+        {
+          "repository": "Generative",
+          "path": "Synthia-Generative-Address-Morphology-Integrated-v0.2.1-RUNNABLE/authorities/execution-spine/donors/dagengine-main.zip"
+        }
+      ],
+      "matchingPaths": 1197,
+      "integration": "existing resident scope only; no indiscriminate merge",
+      "blocker": "Separate behavioral and compatibility qualification required",
+      "reevaluateWhen": "Original source identified and contract/dependencies independently tested"
+    },
+    {
+      "name": "Back-up- semantic and automata",
+      "classification": "source-path candidate",
+      "matches": [
+        {
+          "repository": "Codex2",
+          "path": "computer/engines/unified-execution-spine/src/pure-synthia/state-space/mesh-state-space.js"
+        },
+        {
+          "repository": "Back-up-",
+          "path": "vendor/execution-spine-v0.4.0/src/pure-synthia/state-space/mesh-state-space.js"
+        },
+        {
+          "repository": "Back-up-",
+          "path": "vendor/kimi-agent-automata-state-space-merge/pure-synthia-automata/src/state-space/mesh-state-space.js"
+        },
+        {
+          "repository": "Back-up-",
+          "path": "vendor/pure-synthia-v0.4.0/src/synthia/ato-core/automaton.mjs"
+        },
+        {
+          "repository": "Back-up-",
+          "path": "vendor/pure-synthia-v0.4.0/src/synthia/semantic-mesh/state-space/mesh-state-space.js"
+        },
+        {
+          "repository": "Back-up-",
+          "path": "vendor/trainable-assembly-v0.4.2/src/core/state-space/mesh-state-space.js"
+        },
+        {
+          "repository": "Generative",
+          "path": "Synthia-Generative-Address-Morphology-Integrated-v0.2.1-RUNNABLE/authorities/execution-spine/src/pure-synthia/state-space/mesh-state-space.js"
+        },
+        {
+          "repository": "Codex3",
+          "path": "synthia-dual-swarm/vendor/recovered/src/synthia/ato-core/automaton.mjs"
+        },
+        {
+          "repository": "Codex3",
+          "path": "synthia-dual-swarm/vendor/recovered/src/synthia/semantic-mesh/state-space/mesh-state-space.js"
+        }
+      ],
+      "matchingPaths": 9,
+      "integration": "existing resident scope only; no indiscriminate merge",
+      "blocker": "Separate behavioral and compatibility qualification required",
+      "reevaluateWhen": "Original source identified and contract/dependencies independently tested"
+    },
+    {
+      "name": "Simlish",
+      "classification": "source-path candidate",
+      "matches": [
+        {
+          "repository": "Codex2",
+          "path": "computer/engines/unified-execution-spine/src/pure-synthia/integration/language-contact-models.js"
+        },
+        {
+          "repository": "Codex2",
+          "path": "sources/Simlish"
+        },
+        {
+          "repository": "Back-up-",
+          "path": "vendor/execution-spine-v0.4.0/src/pure-synthia/integration/language-contact-models.js"
+        },
+        {
+          "repository": "Back-up-",
+          "path": "vendor/trainable-assembly-v0.4.2/donors/klein-language-contact-model(4).zip"
+        },
+        {
+          "repository": "Generative",
+          "path": "Synthia-Generative-Address-Morphology-Integrated-v0.2.1-RUNNABLE/authorities/execution-spine/src/pure-synthia/integration/language-contact-models.js"
+        },
+        {
+          "repository": "Generative",
+          "path": "Synthia-Generative-Address-Morphology-Integrated-v0.2.1-RUNNABLE/authorities/trainable-core/donors/klein-language-contact-model(4).zip"
+        },
+        {
+          "repository": "Simlish",
+          "path": "you-n-i-verse/unified-swarm/src/simlish-host.mjs"
+        },
+        {
+          "repository": "Simlish",
+          "path": "you-n-i-verse/unified-swarm/test/simlish-host.test.mjs"
+        }
+      ],
+      "matchingPaths": 8,
+      "integration": "existing resident scope only; no indiscriminate merge",
+      "blocker": "Separate behavioral and compatibility qualification required",
+      "reevaluateWhen": "Original source identified and contract/dependencies independently tested"
+    },
+    {
+      "name": "Trainable StateSpace / ATO / Klein",
+      "classification": "source-path candidate",
+      "matches": [
+        {
+          "repository": "Codex2",
+          "path": "computer/donors/recovered/synthai-r21.22-self-cultivation-graph-integrated/organs/today/KleinLinguisticLayer.js"
+        },
+        {
+          "repository": "Codex2",
+          "path": "computer/donors/recovered/synthai-r21.22-self-cultivation-graph-integrated/substrate/mesh072/core/klein_autoling_learner.mjs"
+        },
+        {
+          "repository": "Codex2",
+          "path": "computer/donors/recovered/synthai-r21.22-self-cultivation-graph-integrated/substrate/mesh072/core/state_space_core.mjs"
+        },
+        {
+          "repository": "Codex2",
+          "path": "computer/donors/recovered/synthai-r21.22-self-cultivation-graph-integrated/suite/graphs/synthia_state_space_assembled.node.mjs"
+        },
+        {
+          "repository": "Codex2",
+          "path": "computer/donors/recovered/synthai-r21.22-self-cultivation-graph-integrated/vendor/ato-core/src/klein-iching.mjs"
+        },
+        {
+          "repository": "Codex2",
+          "path": "computer/donors/recovered/synthai-r21.22-self-cultivation-graph-integrated/vendor/ato-core/src/klein-module-registry.mjs"
+        },
+        {
+          "repository": "Codex2",
+          "path": "computer/donors/recovered/synthai-r21.22-self-cultivation-graph-integrated/vendor/ato-core/src/klein-tools.mjs"
+        },
+        {
+          "repository": "Codex2",
+          "path": "computer/donors/recovered/synthai-r21.22-self-cultivation-graph-integrated/vendor/ato-core/src/state-space-kernel.mjs"
+        },
+        {
+          "repository": "Codex2",
+          "path": "computer/donors/recovered/you-n-i-verse-corrected/state-space-engine-v2.ported.mjs"
+        },
+        {
+          "repository": "Codex2",
+          "path": "computer/donors/recovered/you-n-i-verse-corrected/state-space-engine-v2.ts"
+        },
+        {
+          "repository": "Codex2",
+          "path": "computer/engines/unified-execution-spine/src/pure-synthia/automata/tools/tool-03-klein-analogy.js"
+        },
+        {
+          "repository": "Codex2",
+          "path": "computer/engines/unified-execution-spine/src/pure-synthia/engine/klein-distributional.js"
+        },
+        {
+          "repository": "Codex2",
+          "path": "computer/engines/unified-execution-spine/src/pure-synthia/engine/klein.js"
+        },
+        {
+          "repository": "Codex2",
+          "path": "computer/engines/unified-execution-spine/src/pure-synthia/integration/focal-state-space.js"
+        },
+        {
+          "repository": "Codex2",
+          "path": "computer/engines/unified-execution-spine/src/pure-synthia/state-space/addressing.js"
+        },
+        {
+          "repository": "Codex2",
+          "path": "computer/engines/unified-execution-spine/src/pure-synthia/state-space/chains.js"
+        },
+        {
+          "repository": "Codex2",
+          "path": "computer/engines/unified-execution-spine/src/pure-synthia/state-space/claim-status.js"
+        },
+        {
+          "repository": "Codex2",
+          "path": "computer/engines/unified-execution-spine/src/pure-synthia/state-space/colors.js"
+        }
+      ],
+      "matchingPaths": 640,
+      "integration": "existing resident scope only; no indiscriminate merge",
+      "blocker": "Separate behavioral and compatibility qualification required",
+      "reevaluateWhen": "Original source identified and contract/dependencies independently tested"
+    },
+    {
+      "name": "Unified Swarm",
+      "classification": "source-path candidate",
+      "matches": [
+        {
+          "repository": "Simlish",
+          "path": ".github/workflows/unified-swarm-321.yml"
+        },
+        {
+          "repository": "Simlish",
+          "path": "you-n-i-verse/UNIFIED-SWARM-GITHUB.md"
+        },
+        {
+          "repository": "Simlish",
+          "path": "you-n-i-verse/source-archives/Synthia-Unified-Swarm-v0.1.2-321-binaries.zip"
+        },
+        {
+          "repository": "Simlish",
+          "path": "you-n-i-verse/unified-swarm-entry.mjs"
+        },
+        {
+          "repository": "Simlish",
+          "path": "you-n-i-verse/unified-swarm-live.test.mjs"
+        },
+        {
+          "repository": "Simlish",
+          "path": "you-n-i-verse/unified-swarm/DONOR-AUDIT.md"
+        },
+        {
+          "repository": "Simlish",
+          "path": "you-n-i-verse/unified-swarm/README.md"
+        },
+        {
+          "repository": "Simlish",
+          "path": "you-n-i-verse/unified-swarm/SOURCE-MANIFEST.json"
+        },
+        {
+          "repository": "Simlish",
+          "path": "you-n-i-verse/unified-swarm/demo.mjs"
+        },
+        {
+          "repository": "Simlish",
+          "path": "you-n-i-verse/unified-swarm/package.json"
+        },
+        {
+          "repository": "Simlish",
+          "path": "you-n-i-verse/unified-swarm/src/archive/three-two-one-v0.1.1.mjs"
+        },
+        {
+          "repository": "Simlish",
+          "path": "you-n-i-verse/unified-swarm/src/index.mjs"
+        },
+        {
+          "repository": "Simlish",
+          "path": "you-n-i-verse/unified-swarm/src/semantic-cloud.mjs"
+        },
+        {
+          "repository": "Simlish",
+          "path": "you-n-i-verse/unified-swarm/src/simlish-host.mjs"
+        },
+        {
+          "repository": "Simlish",
+          "path": "you-n-i-verse/unified-swarm/src/spritesheet.mjs"
+        },
+        {
+          "repository": "Simlish",
+          "path": "you-n-i-verse/unified-swarm/src/three-two-one.mjs"
+        },
+        {
+          "repository": "Simlish",
+          "path": "you-n-i-verse/unified-swarm/src/unified-swarm.mjs"
+        },
+        {
+          "repository": "Simlish",
+          "path": "you-n-i-verse/unified-swarm/src/zhouyi-six-line.mjs"
+        }
+      ],
+      "matchingPaths": 38,
+      "integration": "existing resident scope only; no indiscriminate merge",
+      "blocker": "Separate behavioral and compatibility qualification required",
+      "reevaluateWhen": "Original source identified and contract/dependencies independently tested"
+    },
+    {
+      "name": "Synthia execution spine",
+      "classification": "source-path candidate",
+      "matches": [
+        {
+          "repository": "Codex2",
+          "path": "computer/engines/unified-execution-spine/ADDRESS-RESOLUTION-v0.4.0.md"
+        },
+        {
+          "repository": "Codex2",
+          "path": "computer/engines/unified-execution-spine/DONOR-MAP.md"
+        },
+        {
+          "repository": "Codex2",
+          "path": "computer/engines/unified-execution-spine/INTEGRATION-v0.2.0.md"
+        },
+        {
+          "repository": "Codex2",
+          "path": "computer/engines/unified-execution-spine/NEXT-MOVE.md"
+        },
+        {
+          "repository": "Codex2",
+          "path": "computer/engines/unified-execution-spine/README.md"
+        },
+        {
+          "repository": "Codex2",
+          "path": "computer/engines/unified-execution-spine/RUNTIME-ADAPTERS.md"
+        },
+        {
+          "repository": "Codex2",
+          "path": "computer/engines/unified-execution-spine/VERIFICATION-v0.3.0.md"
+        },
+        {
+          "repository": "Codex2",
+          "path": "computer/engines/unified-execution-spine/VERIFICATION-v0.4.0.md"
+        },
+        {
+          "repository": "Codex2",
+          "path": "computer/engines/unified-execution-spine/WIRING-v0.3.0.md"
+        },
+        {
+          "repository": "Codex2",
+          "path": "computer/engines/unified-execution-spine/examples/demo.mjs"
+        },
+        {
+          "repository": "Codex2",
+          "path": "computer/engines/unified-execution-spine/package.json"
+        },
+        {
+          "repository": "Codex2",
+          "path": "computer/engines/unified-execution-spine/src/canonical-address.mjs"
+        },
+        {
+          "repository": "Codex2",
+          "path": "computer/engines/unified-execution-spine/src/dag-runtime.mjs"
+        },
+        {
+          "repository": "Codex2",
+          "path": "computer/engines/unified-execution-spine/src/execution-address-resolver.mjs"
+        },
+        {
+          "repository": "Codex2",
+          "path": "computer/engines/unified-execution-spine/src/execution-pipeline.mjs"
+        },
+        {
+          "repository": "Codex2",
+          "path": "computer/engines/unified-execution-spine/src/fine-index.mjs"
+        },
+        {
+          "repository": "Codex2",
+          "path": "computer/engines/unified-execution-spine/src/index.mjs"
+        },
+        {
+          "repository": "Codex2",
+          "path": "computer/engines/unified-execution-spine/src/predicate-ir.mjs"
+        }
+      ],
+      "matchingPaths": 463,
+      "integration": "existing resident scope only; no indiscriminate merge",
+      "blocker": "Separate behavioral and compatibility qualification required",
+      "reevaluateWhen": "Original source identified and contract/dependencies independently tested"
+    },
+    {
+      "name": "AutoBuilder and AutoBuilderHub",
+      "classification": "not located by source-path inventory",
+      "matches": [],
+      "matchingPaths": 0,
+      "integration": "existing resident scope only; no indiscriminate merge",
+      "blocker": "Exact source archive/path not located in inspected trees",
+      "reevaluateWhen": "Original source identified and contract/dependencies independently tested"
+    },
+    {
+      "name": "Content Aware Orchestrator",
+      "classification": "not located by source-path inventory",
+      "matches": [],
+      "matchingPaths": 0,
+      "integration": "existing resident scope only; no indiscriminate merge",
+      "blocker": "Exact source archive/path not located in inspected trees",
+      "reevaluateWhen": "Original source identified and contract/dependencies independently tested"
+    },
+    {
+      "name": "GameEngineX and R.U.D.E.",
+      "classification": "not located by source-path inventory",
+      "matches": [],
+      "matchingPaths": 0,
+      "integration": "existing resident scope only; no indiscriminate merge",
+      "blocker": "Exact source archive/path not located in inspected trees",
+      "reevaluateWhen": "Original source identified and contract/dependencies independently tested"
+    },
+    {
+      "name": "GameAssetStudio, GAMEMAKER and VirtualGameMaster",
+      "classification": "not located by source-path inventory",
+      "matches": [],
+      "matchingPaths": 0,
+      "integration": "existing resident scope only; no indiscriminate merge",
+      "blocker": "Exact source archive/path not located in inspected trees",
+      "reevaluateWhen": "Original source identified and contract/dependencies independently tested"
+    },
+    {
+      "name": "HumanDesignReporter",
+      "classification": "not located by source-path inventory",
+      "matches": [],
+      "matchingPaths": 0,
+      "integration": "existing resident scope only; no indiscriminate merge",
+      "blocker": "Exact source archive/path not located in inspected trees",
+      "reevaluateWhen": "Original source identified and contract/dependencies independently tested"
+    },
+    {
+      "name": "ConsciousnessRealm",
+      "classification": "source-path candidate",
+      "matches": [
+        {
+          "repository": "Codex2",
+          "path": "computer/donors/recovered/synthai-r21.22-self-cultivation-graph-integrated/suite/games/consciousness-game.html"
+        },
+        {
+          "repository": "SynthAi",
+          "path": "computer/donors/recovered/synthai-r21.22-self-cultivation-graph-integrated/suite/games/consciousness-game.html"
+        }
+      ],
+      "matchingPaths": 2,
+      "integration": "existing resident scope only; no indiscriminate merge",
+      "blocker": "Separate behavioral and compatibility qualification required",
+      "reevaluateWhen": "Original source identified and contract/dependencies independently tested"
+    },
+    {
+      "name": "Paper Foundry",
+      "classification": "source-path candidate",
+      "matches": [
+        {
+          "repository": "Codex2",
+          "path": "computer/donors/recovered/foundry-glyphs/PROVENANCE.md"
+        },
+        {
+          "repository": "Codex2",
+          "path": "computer/donors/recovered/foundry-glyphs/client/index.html"
+        },
+        {
+          "repository": "Codex2",
+          "path": "computer/donors/recovered/foundry-glyphs/client/src/App.tsx"
+        },
+        {
+          "repository": "Codex2",
+          "path": "computer/donors/recovered/foundry-glyphs/client/src/components/app-sidebar.tsx"
+        },
+        {
+          "repository": "Codex2",
+          "path": "computer/donors/recovered/foundry-glyphs/client/src/components/audit-timeline.tsx"
+        },
+        {
+          "repository": "Codex2",
+          "path": "computer/donors/recovered/foundry-glyphs/client/src/components/glyph-card.tsx"
+        },
+        {
+          "repository": "Codex2",
+          "path": "computer/donors/recovered/foundry-glyphs/client/src/components/glyph-id.tsx"
+        },
+        {
+          "repository": "Codex2",
+          "path": "computer/donors/recovered/foundry-glyphs/client/src/components/glyph-type-icon.tsx"
+        },
+        {
+          "repository": "Codex2",
+          "path": "computer/donors/recovered/foundry-glyphs/client/src/components/lineage-graph.tsx"
+        },
+        {
+          "repository": "Codex2",
+          "path": "computer/donors/recovered/foundry-glyphs/client/src/components/promotion-modal.tsx"
+        },
+        {
+          "repository": "Codex2",
+          "path": "computer/donors/recovered/foundry-glyphs/client/src/components/quality-badge.tsx"
+        },
+        {
+          "repository": "Codex2",
+          "path": "computer/donors/recovered/foundry-glyphs/client/src/components/stat-card.tsx"
+        },
+        {
+          "repository": "Codex2",
+          "path": "computer/donors/recovered/foundry-glyphs/client/src/components/theme-provider.tsx"
+        },
+        {
+          "repository": "Codex2",
+          "path": "computer/donors/recovered/foundry-glyphs/client/src/components/theme-toggle.tsx"
+        },
+        {
+          "repository": "Codex2",
+          "path": "computer/donors/recovered/foundry-glyphs/client/src/components/ui/accordion.tsx"
+        },
+        {
+          "repository": "Codex2",
+          "path": "computer/donors/recovered/foundry-glyphs/client/src/components/ui/alert-dialog.tsx"
+        },
+        {
+          "repository": "Codex2",
+          "path": "computer/donors/recovered/foundry-glyphs/client/src/components/ui/alert.tsx"
+        },
+        {
+          "repository": "Codex2",
+          "path": "computer/donors/recovered/foundry-glyphs/client/src/components/ui/aspect-ratio.tsx"
+        }
+      ],
+      "matchingPaths": 306,
+      "integration": "existing resident scope only; no indiscriminate merge",
+      "blocker": "Separate behavioral and compatibility qualification required",
+      "reevaluateWhen": "Original source identified and contract/dependencies independently tested"
+    },
+    {
+      "name": "Stellar Proximology",
+      "classification": "not located by source-path inventory",
+      "matches": [],
+      "matchingPaths": 0,
+      "integration": "existing resident scope only; no indiscriminate merge",
+      "blocker": "Exact source archive/path not located in inspected trees",
+      "reevaluateWhen": "Original source identified and contract/dependencies independently tested"
+    },
+    {
+      "name": "Resonance Network",
+      "classification": "source-path candidate",
+      "matches": [
+        {
+          "repository": "Codex2",
+          "path": "computer/engines/unified-execution-spine/src/pure-synthia/engine/resonance-network.js"
+        },
+        {
+          "repository": "Back-up-",
+          "path": "vendor/execution-spine-v0.4.0/src/pure-synthia/engine/resonance-network.js"
+        },
+        {
+          "repository": "Back-up-",
+          "path": "vendor/kimi-agent-automata-state-space-merge/pure-synthia-automata/src/engine/resonance-network.js"
+        },
+        {
+          "repository": "Back-up-",
+          "path": "vendor/pure-synthia-v0.4.0/src/synthia/semantic-mesh/engine/resonance-network.js"
+        },
+        {
+          "repository": "Generative",
+          "path": "Synthia-Generative-Address-Morphology-Integrated-v0.2.1-RUNNABLE/authorities/execution-spine/src/pure-synthia/engine/resonance-network.js"
+        },
+        {
+          "repository": "Codex3",
+          "path": "synthia-dual-swarm/vendor/recovered/src/synthia/semantic-mesh/engine/resonance-network.js"
+        }
+      ],
+      "matchingPaths": 6,
+      "integration": "existing resident scope only; no indiscriminate merge",
+      "blocker": "Separate behavioral and compatibility qualification required",
+      "reevaluateWhen": "Original source identified and contract/dependencies independently tested"
+    },
+    {
+      "name": "YOU-N-I-VERSE / Indiverse",
+      "classification": "source-path candidate",
+      "matches": [
+        {
+          "repository": "Codex2",
+          "path": "computer/donors/recovered/you-n-i-verse-corrected/PROVENANCE.md"
+        },
+        {
+          "repository": "Codex2",
+          "path": "computer/donors/recovered/you-n-i-verse-corrected/coherence_calculator_v4.json"
+        },
+        {
+          "repository": "Codex2",
+          "path": "computer/donors/recovered/you-n-i-verse-corrected/emergent-edge-resolver.ported.mjs"
+        },
+        {
+          "repository": "Codex2",
+          "path": "computer/donors/recovered/you-n-i-verse-corrected/emergent-edge-resolver.ts"
+        },
+        {
+          "repository": "Codex2",
+          "path": "computer/donors/recovered/you-n-i-verse-corrected/gate_codon_dictionary.json"
+        },
+        {
+          "repository": "Codex2",
+          "path": "computer/donors/recovered/you-n-i-verse-corrected/state-space-engine-v2.ported.mjs"
+        },
+        {
+          "repository": "Codex2",
+          "path": "computer/donors/recovered/you-n-i-verse-corrected/state-space-engine-v2.ts"
+        },
+        {
+          "repository": "Codex2",
+          "path": "computer/donors/recovered/you-n-i-verse-corrected/synthia-bridge.ported.mjs"
+        },
+        {
+          "repository": "Codex2",
+          "path": "computer/donors/recovered/you-n-i-verse-corrected/synthia-bridge.ts"
+        },
+        {
+          "repository": "Simlish",
+          "path": "you-n-i-verse/GENOTYPE-PHENOTYPE-STATE-SPACE.md"
+        },
+        {
+          "repository": "Simlish",
+          "path": "you-n-i-verse/README.md"
+        },
+        {
+          "repository": "Simlish",
+          "path": "you-n-i-verse/UNIFIED-SWARM-GITHUB.md"
+        },
+        {
+          "repository": "Simlish",
+          "path": "you-n-i-verse/adventure-core.mjs"
+        },
+        {
+          "repository": "Simlish",
+          "path": "you-n-i-verse/adventure.css"
+        },
+        {
+          "repository": "Simlish",
+          "path": "you-n-i-verse/adventure.html"
+        },
+        {
+          "repository": "Simlish",
+          "path": "you-n-i-verse/adventure.mjs"
+        },
+        {
+          "repository": "Simlish",
+          "path": "you-n-i-verse/adventure.test.mjs"
+        },
+        {
+          "repository": "Simlish",
+          "path": "you-n-i-verse/alignment.mjs"
+        }
+      ],
+      "matchingPaths": 174,
+      "integration": "existing resident scope only; no indiscriminate merge",
+      "blocker": "Separate behavioral and compatibility qualification required",
+      "reevaluateWhen": "Original source identified and contract/dependencies independently tested"
+    }
+  ]
+}

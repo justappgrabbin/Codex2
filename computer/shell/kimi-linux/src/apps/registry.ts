@@ -1,6 +1,7 @@
 import type { AppDefinition } from '@/types';
 
 export const APP_REGISTRY: AppDefinition[] = [
+  { id: 'computer', name: 'Computer', icon: 'Monitor', category: 'System', description: 'Projects, research, capabilities, plans, activity and verified artifacts', defaultSize: { width: 950, height: 660 }, minSize: { width: 380, height: 300 } },
   { id: 'filemanager', name: 'File Manager', icon: 'Folder', category: 'System', description: 'Browse and manage files', defaultSize: { width: 800, height: 550 }, minSize: { width: 320, height: 240 } },
   { id: 'settings', name: 'System Settings', icon: 'Settings', category: 'System', description: 'System preferences and configuration', defaultSize: { width: 720, height: 520 }, minSize: { width: 480, height: 360 } },
   { id: 'ingest', name: 'Import', icon: 'FileUp', category: 'System', description: 'Import and address files or ZIP archives', defaultSize: { width: 850, height: 580 }, minSize: { width: 380, height: 300 } },
@@ -13,4 +14,4 @@ export const APP_REGISTRY: AppDefinition[] = [
 ];
 export const getAppById = (id: string): AppDefinition | undefined => APP_REGISTRY.find((a) => a.id === id);
 export const getAppsByCategory = (category: string): AppDefinition[] => APP_REGISTRY.filter((a) => a.category === category);
-export const getDefaultDockApps = (): string[] => ['filemanager','settings','ingest','chat','codeeditor','terminal','system-terminal','grovestore','texteditor'];
+export const getDefaultDockApps = (): string[] => ['computer','filemanager','settings','ingest','chat','codeeditor','terminal','system-terminal','grovestore','texteditor'];

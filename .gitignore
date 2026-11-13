@@ -8,3 +8,7 @@ __pycache__/
 computer/shell/monaco-umd/node_modules/
 computer/shell/monaco-umd/tmp/
 computer/shell/monaco-umd/dist/
+local-data/
+/release/
+/core
+/core.[0-9]*

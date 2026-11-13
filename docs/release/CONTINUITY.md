@@ -1,0 +1,30 @@
+# Continuity checkpoint
+
+Latest additive handoff: [TONIGHT-STATUS.md](TONIGHT-STATUS.md) records the resident donor checkpoint connection, optional encrypted persistence/journal, four passing scoped tests and remaining work. The owner paused implementation after requesting the branch update. Existing ZIP qualification is unchanged.
+
+Foundation: Codex2 `1e4892b7b856ce7830a83e982d5145ace79736c6`; Back-up- `1c45318a668de3bb3c54ae488b3d5f4109d1ba6b`; Generative `ce1704d5d53d5729b499463f7eeaf5dcd5091550`; Simlish `239fbbd28194aa72b9f0db5800d685d492468d64`. SOURCE-INVENTORY.json records full Codex3/SynthAi current commits; DONORS.json records each donor branch revision/hash. Local final commit, if present, is recorded by the package FILES.json. Nothing was pushed.
+
+Changed resident contracts: ComputerRuntime mounts contextual state; CapabilityGraph availability, capability registry queries/routes and StateResolver contextual metadata use that state. Existing source-derived addresses and original engine identity stay intact. Host mounts resident research/construction, loopback API operations and persistent activity. Conversation exposes true project/capability/work limitations.
+
+Final boundary review also found the inherited execution spine's `allowHostFallback:true` JavaScript path. `isolated-legacy-sandbox.mjs` now adapts that interface to the same resource-limited Docker runner without editing donor source; no host-eval fallback is permitted. The original pipeline stages, semantic engine and output receipts remain. Wasm is explicitly deferred. A host-only sentinel-file test is included for final requalification; its last combined run was blocked by exhausted disk.
+
+Added services: contextual-capabilities.mjs, project-research.mjs, construction-worker.mjs. Adapted donor functions: integration/fielddesk-evidence.mjs and integration/majiki-inspection.mjs, with complete originals retained under donors/continuity. Desktop changes add the Computer app to the original router/registry/dock/icon and preserve Import, Chat, Code, Files and Text. Tests add contextual/guarded/real execution and actual host interruption scenarios plus an unfinished real-file fixture. Launchers, optional dependency pin and package-local.py make the local distribution reproducible. Package FILES.json is the exact included-file/digest inventory; git diff identifies the development overlay.
+
+Verification: full suite 64 passed with real Docker scenarios enabled; desktop build passed; browser workflow passed; Codex3 separate 22 passed. Details and actual receipts are in VERIFICATION.md and evidence/. No APK/device qualification, public deployment or unrestricted builder claim.
+
+Qualification correction: those successes describe earlier checkpoints. The final combined security and stronger interruption changes hit ENOSPC on the 8 GB overlay. The last full attempt has 33 passes/10 failures; preserve its log. Final core checks are separate. First continuation task is to provision at least 2 GB additional free Docker/workspace storage, prepare the retained pinned Bookworm image and re-run `SYNTHIA_DOCKER_TEST=1 npm run test:computer` plus package/browser execution acceptance. Do not label final execution fully verified until this passes. The test Docker image was removed to recover enough storage to package the core; worker availability correctly reports blocked here.
+
+Durable recovery: StateStore holds source snapshots/revisions, research reports, SHA256 watcher cursors, contextual conditions/history, proposals, approvals, worker jobs/attempt counts, verification receipts, source artifacts and activity. Existing Generative history remains in its original state namespace. Completed/failed jobs never auto-run. RUNNING checkpoints become INTERRUPTED; container cleanup is attempted and the in-container timeout bounds execution even if the host dies. Approvals are bound to immutable plan digests. New proposals require new idempotency keys when inputs change. A single process must own each data directory.
+
+Next executable tasks, in dependency order:
+
+1. Extend import dependency analysis for non-Node languages and package/extension resolution, retaining observed versus inferred facts and verification gates. Implement explicitly approved offline dependencies/images before claiming arbitrary npm projects run.
+2. Add a safely contained compiled-output export and preview contract, preserving source artifacts and actual test scope. Add HTTP/browser acceptance for download and preview origins.
+3. Add incremental host-directory watch with durable cursor and explicit filesystem permissions; current resident project events and boot reconciliation work without polling.
+4. Connect deterministic Majiki repair drafts to reviewable worker proposals; evaluate PR44 template generation using resident tool identities before mounting it. Do not mount its independent job database or treat its template Playwright checks as general project tests.
+5. Qualify Codex3's typed command/event and learned-state schema against the resident engine. Preserve its independent replay/world and paused supervisor until an explicit tested bridge exists.
+6. Obtain the original Neural-Standalone archive, verify integrity and source/weights/dependencies, then test original adapter inference on unseen prompts. The inspected gateway alone is insufficient.
+7. Implement Android foreground-service/permission/isolation architecture and install/test on device. See ANDROID.md. Qualify Windows launcher/Docker Desktop separately.
+8. Resolve source/asset redistribution license gaps; perform public-release review, then request explicit authorization only if the owner asks to publish. No publishing authority was supplied here.
+
+Do not replace this Computer with another project. Unintegrated candidates stay preserved with blockers and reconsideration conditions in the inventory. Optional semantic/research systems remain experimental and must not gate ordinary source import/research.

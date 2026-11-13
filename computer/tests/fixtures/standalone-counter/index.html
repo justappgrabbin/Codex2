@@ -1,0 +1,8 @@
+<!doctype html><html lang="en"><meta charset="utf-8"><title>Retained counter</title>
+<h1>Retained counter</h1><button id="increment">Increment</button><output id="count">0</output><p id="boundary"></p>
+<script>
+let count = 0;
+document.querySelector('#increment').onclick = () => document.querySelector('#count').textContent = String(++count);
+try { parent.document.body; document.querySelector('#boundary').textContent = 'Shared origin'; }
+catch { document.querySelector('#boundary').textContent = 'Isolated origin'; }
+</script></html>

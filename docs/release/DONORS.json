@@ -1,0 +1,53 @@
+{
+  "schema": "synthia.continuity-donors.v1",
+  "sources": [
+    {
+      "file": "computer/donors/continuity/relay-builder.mjs",
+      "repository": "https://github.com/justappgrabbin/SynthAi",
+      "branch": "fix/relay-browser-runtime",
+      "revision": "af7459969537884f099e12b9195ed009484586ec",
+      "source": "computer/runtime/relay-builder.mjs",
+      "sha256": "312d407f5670bd64751ae00b5b1a9e2a3335e9c290cb416bd64e1469c02779ae",
+      "status": "preserved candidate; four-template generator not mounted; worker checkpoint pattern adapted"
+    },
+    {
+      "file": "computer/donors/continuity/majiki-loop.mjs",
+      "repository": "https://github.com/justappgrabbin/SynthAi",
+      "branch": "integration/majiki-success-engine-20261103",
+      "revision": "6b2ca987d485e7064f4abc2c2d4c83cc95df0615",
+      "source": "computer/services/majiki-loop.mjs",
+      "sha256": "3625e8515e086b53edf0d8e4ceba01f51bf6c3b58c11f82c6b6aea2a344d4a1b",
+      "status": "inspection functions reused; resident event-driven cursors replace independent timer/database"
+    },
+    {
+      "file": "computer/donors/continuity/proactive-synthia.mjs",
+      "repository": "https://github.com/justappgrabbin/SynthAi",
+      "branch": "integration/trident-proactive-synthia-20261027",
+      "revision": "7f8fe36f54d886cef2acb47677a52a919bf210d4",
+      "source": "computer/services/proactive-synthia.mjs",
+      "sha256": "5cd233f30b98e58d644d83cbb1b606bcb42ad9d8ab46c9ff5b153a83b0f6d477",
+      "status": "source retained; guarded proposals and approvals adapted; model gateway not substituted"
+    },
+    {
+      "file": "computer/donors/continuity/fielddesk-core.mjs",
+      "repository": "https://github.com/justappgrabbin/SynthAi",
+      "branch": "integration/fielddesk-usable-app-20261027",
+      "revision": "3f5b049aaea21c37e3a22e25e9f024289f5c2024",
+      "source": "public/fielddesk.html#importmap/fd:core",
+      "sha256": "d522ceb00b202e053c4a7b5a240622cd02e34e29d8faacb387052be7015e9ad2",
+      "status": "decoded original core retained; exact search/actions functions reused; existing admission/ZIP boundary retained"
+    }
+  ],
+  "extractions": [
+    {
+      "file": "computer/integration/fielddesk-evidence.mjs",
+      "from": "fielddesk-core.mjs",
+      "scope": "STOP, words, keywords, passages, searchEvidence, suggestedActions; source functions unchanged"
+    },
+    {
+      "file": "computer/integration/majiki-inspection.mjs",
+      "from": "majiki-loop.mjs",
+      "scope": "MAX_FILES, stripTrailingCommas, inspect; original functions unchanged"
+    }
+  ]
+}

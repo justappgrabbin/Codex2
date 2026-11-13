@@ -18,11 +18,13 @@ import { WorldEngineGateway } from './services/world-engine.mjs';
 import { PentaEphemerisService } from './services/penta-ephemeris.mjs';
 import { GenerativeAssemblyService } from './services/generative-assembly.mjs';
 import { ExperimentLoop } from './services/experiment-loop.mjs';
+import { ContextualCapabilities } from './services/contextual-capabilities.mjs';
 
 export class ComputerRuntime {
-  constructor({ persistence = new MemoryPersistence(), namespace = 'synthai-computer', github = null, eventLogPath = null, hostRoot = null } = {}) {
+  constructor({ persistence = new MemoryPersistence(), namespace = 'synthai-computer', github = null, eventLogPath = null, hostRoot = null, eventEmitterFactory = null } = {}) {
     this.eventLogPath = eventLogPath;
     this.hostRoot = hostRoot;
+    this.eventEmitterFactory = eventEmitterFactory;
     this.bus = new EventBus();
     this.state = new StateStore({ bus: this.bus, persistence, namespace });
     const registry = kind => new Registry({ kind, bus: this.bus });
@@ -54,6 +56,7 @@ export class ComputerRuntime {
     this.mutations = new MutationDispatcher({ bus: this.bus, state: this.state, shellManager: this.shellManager, automata: this.automata, tools: this.tools, agents: this.agents, morph: this.morph });
     this.intake = new ArtifactIntake({ bus: this.bus, vfs: this.vfs, artifacts: this.artifacts, mutations: this.mutations });
     this.projects = new ProjectWorkspace({ bus: this.bus, state: this.state, vfs: this.vfs, backends: this.backends });
+    this.contextual = new ContextualCapabilities(this);
 
     if (github) this.configureGitHub(github);
   }
@@ -72,6 +75,7 @@ export class ComputerRuntime {
 
   async boot() {
     await this.state.restore();
+    await this.contextual.boot();
     if (!this.shells.has('workspace')) this.shells.register('workspace', { name: 'Workspace Shell', kind: 'generic' });
     if (!this.shells.has('hover-field')) this.shells.register('hover-field', { name: 'Hover Field Shell', kind: 'morph-field' });
     registerCanonicalMicros(this.micros);
@@ -90,7 +94,8 @@ export class ComputerRuntime {
     // Computer contracts. Services are Computer components; donor modules stay
     // sovereign and are only wrapped (lazy dynamic import, failures surface
     // as 'service:provider-failure' bus events).
-    this.eventEmitter = new EventEmitter({ bus: this.bus, ...(this.eventLogPath ? { logPath: this.eventLogPath } : {}) });
+    const eventOptions = { bus: this.bus, ...(this.eventLogPath ? { logPath: this.eventLogPath } : {}) };
+    this.eventEmitter = this.eventEmitterFactory ? this.eventEmitterFactory(eventOptions) : new EventEmitter(eventOptions);
     this.addressService = new AddressService({ bus: this.bus });
     this.stateResolver = new StateResolver({
       bus: this.bus,
@@ -98,6 +103,8 @@ export class ComputerRuntime {
       eventLog: () => this.eventEmitter.readAll(),
     });
     this.capabilityRegistryService = await new CapabilityRegistryService({ bus: this.bus }).load();
+    this.capabilityRegistryService.contextual = this.contextual;
+    this.stateResolver.contextual = this.contextual;
     this.addressService.capabilityRegistry = this.capabilityRegistryService; // routing_decision recording
     this.services.register('event-emitter', { provider: this.eventEmitter, contract: 'emitEvent' });
     this.services.register('address-service', { provider: this.addressService, contract: 'resolveAddress' });

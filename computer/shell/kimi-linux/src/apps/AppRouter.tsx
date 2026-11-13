@@ -8,9 +8,11 @@ import { Terminal as DonorUserTerminal } from './DonorUserTerminal';
 import SystemTerminal from './SystemTerminal';
 import { GroveStore as DonorGroveStore } from './DonorGroveStore';
 import Settings from './Settings';
+import Computer from './Computer';
 interface AppRouterProps { appId: string; windowId: string; }
 const AppRouter: FC<AppRouterProps> = ({ appId }) => {
   switch (appId) {
+    case 'computer': return <Computer />;
     case 'filemanager': return <FileManager />;
     case 'settings': return <Settings />;
     case 'texteditor': return <TextEditor />;
