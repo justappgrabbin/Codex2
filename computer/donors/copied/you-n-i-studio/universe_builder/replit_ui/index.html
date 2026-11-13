@@ -1,0 +1,42 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>YOU-N-I-VERSE Builder Preview</title>
+    <style>
+        body { font-family: 'Arial', sans-serif; background: linear-gradient(to bottom, #1a1a3d, #2c3e50); color: #e0e0e0; padding: 20px; margin: 0; }
+        h1 { text-align: center; color: #00d4ff; text-shadow: 0 0 10px #00d4ff; }
+        .tree { margin: 20px; background: rgba(255, 255, 255, 0.1); padding: 15px; border-radius: 8px; }
+        .file { cursor: pointer; color: #00d4ff; text-decoration: none; display: block; margin: 5px 0; transition: color 0.2s; }
+        .file:hover { color: #ffffff; text-shadow: 0 0 5px #00d4ff; }
+        #content { background: #ffffff; color: #333; padding: 15px; border-radius: 8px; white-space: pre-wrap; min-height: 200px; margin: 20px; box-shadow: 0 0 10px rgba(0, 212, 255, 0.5); }
+        .no-files { color: #ff6b6b; text-align: center; }
+        .dashboard-link { display: inline-block; padding: 10px 20px; background: #00d4ff; color: #1a1a3d; border-radius: 8px; text-decoration: none; margin: 20px; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <h1>🌌 YOU-N-I-VERSE Builder Preview</h1>
+    <div class="tree" id="fileList"></div>
+    <h2>File Content</h2>
+    <div id="content">Click a file to view its content.</div>
+    <script>
+        const fileList = {{ files|tojson|safe }};
+        const listDiv = document.getElementById('fileList');
+        if (!fileList || fileList.length === 0) {
+            listDiv.innerHTML = '<p class="no-files">No generated files yet. Upload to /uploads/ and trigger a build!</p>';
+        } else {
+            listDiv.innerHTML = fileList.map(p => `<a class="file" onclick="loadFile('${p}')">${p}</a>`).join('');
+        }
+        async function loadFile(path) {
+            try {
+                const resp = await fetch(`/file_content?path=${encodeURIComponent(path)}`);
+                const data = await resp.json();
+                document.getElementById('content').innerText = data.content || 'Error loading file.';
+            } catch (e) {
+                document.getElementById('content').innerText = 'Failed to load file: ' + e.message;
+            }
+        }
+    </script>
+</body>
+</html>

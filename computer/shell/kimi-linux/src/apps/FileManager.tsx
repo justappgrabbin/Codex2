@@ -2,13 +2,14 @@
 // FileManager — Three-pane file manager with breadcrumb nav
 // ============================================================
 
-import { useState, useMemo, useCallback, useRef } from 'react';
+import { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import { useFileSystem } from '@/hooks/useFileSystem';
 import type { FileSystemNode } from '@/types';
 import {
   Folder, FileText, ChevronRight, Home, ArrowUp,
   Grid3x3, List, Search, Trash2, FolderPlus, FilePlus,
 } from 'lucide-react';
+import { fileTypeIcon } from '@/files/fileTypeIcon';
 
 const SIDEBAR_ITEMS = [
   { id: 'home', name: 'Home', icon: 'Home', path: '/home/user' },
@@ -22,25 +23,27 @@ const SIDEBAR_ITEMS = [
 ];
 
 const getFileIcon = (name: string, type: FileSystemNode['type']) => {
-  if (type === 'folder') return Folder;
-  if (name.endsWith('.txt')) return FileText;
-  if (name.endsWith('.json')) return FileText;
-  if (name.endsWith('.js') || name.endsWith('.ts')) return FileText;
-  if (name.endsWith('.md')) return FileText;
-  return FileText;
+  return fileTypeIcon(name, type);
 };
+
+// WIRE: her initializer looked for a root node named "home". In her filesystem
+// the root is "/" and home is its child, so the manager opened an empty id and
+// new files never landed under /home. This finds /home/user. The zip original is unchanged.
+function homeUserId(nodes: Record<string, FileSystemNode>): string {
+  const root = Object.values(nodes).find((node) => node.parentId === null && node.name === '/');
+  const home = root && Object.values(nodes).find((node) => node.parentId === root.id && node.name === 'home');
+  const user = home && Object.values(nodes).find((node) => node.parentId === home.id && node.name === 'user');
+  return user?.id || '';
+}
 
 export default function FileManager() {
   const fs = useFileSystem();
-  const [currentFolderId, setCurrentFolderId] = useState<string>(() => {
-    // Find home/user folder
-    const rootChildren = Object.values(fs.fs.nodes).filter((n) => n.parentId === null);
-    const homeNode = rootChildren.find((n) => n.name === 'home');
-    const userNode = homeNode
-      ? Object.values(fs.fs.nodes).find((n) => n.parentId === homeNode.id && n.name === 'user')
-      : undefined;
-    return userNode?.id || '';
-  });
+  const [currentFolderId, setCurrentFolderId] = useState<string>(() => homeUserId(fs.fs.nodes));
+  useEffect(() => {
+    if (currentFolderId && fs.fs.nodes[currentFolderId]) return;
+    const userId = homeUserId(fs.fs.nodes);
+    if (userId) setCurrentFolderId(userId);
+  }, [fs.fs.nodes, currentFolderId]);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -50,7 +53,7 @@ export default function FileManager() {
   const [newFileName, setNewFileName] = useState('');
   const [renameId, setRenameId] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState('');
-  const [preview, setPreview] = useState<{ name: string; content: string; address: string } | null>(null);
+  const [preview, setPreview] = useState<{ name: string; content: string; address: string; organization?: string } | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const currentNode = fs.getNodeById(currentFolderId);
@@ -96,7 +99,8 @@ export default function FileManager() {
         const active = await response.json();
         if (!response.ok) throw new Error(active.error || 'File activation failed.');
         setPreview({ name: node.name, content: active.meta.encoding === 'base64' ? 'Binary file: open it in Import to inspect the address.' : active.content,
-          address: `${active.meta.address.dimension} · Gate ${active.meta.address.gate}` });
+          address: `${active.meta.address.dimension} · Gate ${active.meta.address.gate}`,
+          organization: active.meta.organization?.collection });
       }).catch((error) => setPreview({ name: node.name, content: String(error), address: 'Unavailable' }));
     },
     [navigateTo, fs]
@@ -390,6 +394,9 @@ export default function FileManager() {
                 ) : (
                   <span className="flex-1 truncate text-[var(--text-primary)]">{node.name}</span>
                 )}
+                {node.organization?.collection && (
+                  <span className="w-40 truncate text-[10px] text-[var(--text-secondary)]" title="Codex2 collection">{node.organization.collection}</span>
+                )}
                 <span className="w-20 text-right text-[var(--text-secondary)] text-[10px]">
                   {node.type === 'file' ? `${node.size || 0} B` : '--'}
                 </span>
@@ -419,7 +426,7 @@ export default function FileManager() {
       </div>
       {preview && <div className="absolute inset-8 z-50 flex flex-col rounded-lg border border-[var(--border-default)] bg-[var(--bg-window)] shadow-xl p-4">
         <div className="flex items-center justify-between"><strong>{preview.name}</strong><button onClick={() => setPreview(null)}>Close</button></div>
-        <p className="text-xs text-[var(--text-secondary)] mt-2">{preview.address}</p>
+        <p className="text-xs text-[var(--text-secondary)] mt-2">{preview.address}{preview.organization ? ` · ${preview.organization}` : ''}</p>
         <pre className="mt-3 overflow-auto whitespace-pre-wrap break-words flex-1 text-xs">{preview.content}</pre>
       </div>}
     </div>

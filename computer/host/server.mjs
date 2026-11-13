@@ -1,12 +1,31 @@
 import { createServer } from 'node:http';
-import { readFile, stat, mkdir } from 'node:fs/promises';
-import { join, resolve, extname, sep } from 'node:path';
+import { readFile, stat, mkdir, readdir } from 'node:fs/promises';
+import { join, resolve, extname, sep, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { ComputerRuntime } from '../ComputerRuntime.mjs';
 import { JsonFilePersistence } from '../runtime/json-file-persistence.mjs';
 import { ConversationExecution } from '../services/conversation-execution.mjs';
 import { FileAdmission } from '../services/file-admission.mjs';
+import { createLocalCoder } from '../services/local-coder.mjs';
+import { LearningWorkspace } from '../services/learning-workspace.mjs';
 import { readZipMembers } from './zip-members.mjs';
+import { createHostShell } from '../services/host-shell.mjs';
+import { findEntry, previewUrl, playProject } from '../services/project-runner.mjs';
+import { createTridentMcp } from '../services/trident-mcp-glue.mjs';
+import { mindsStatus, routeChat } from '../services/resident-minds.mjs';
+import { GroveStore } from '../services/grove-store.mjs';
+import { describePlatforms, detectPlatform } from '../services/platform-runtime.mjs';
+import { PersonalVault } from '../donors/Back-up-/vendor/pure-synthia-v0.4.0/src/synthia/morph-engine/substrate/vault/PersonalVault.mjs';
+import { FileVaultStore } from '../services/vault-file-store.mjs';
+import { openActivityJournal } from '../services/activity-journal.mjs';
+import { saveNamedWorkspace } from '../services/workspace-remember.mjs';
+
+// The Computer ships with its real terminal backend on. Set
+// LINUX_CONTAINER_ENABLED=false to keep both terminals read-only.
+process.env.LINUX_CONTAINER_ENABLED ??= 'true';
+import { ProjectResearch } from '../services/project-research.mjs';
+import { ConstructionWorker } from '../services/construction-worker.mjs';
+import { EncryptedFilePersistence, EncryptedEventEmitter, readStateKey } from '../runtime/encrypted-persistence.mjs';
 
 const root = resolve(fileURLToPath(new URL('../shell/kimi-linux/dist/', import.meta.url)));
 const dataDir = resolve(process.env.SYNTHIA_DATA_DIR ?? fileURLToPath(new URL('../runtime/data/local-computer/', import.meta.url)));
@@ -25,13 +44,48 @@ function isLocalRequest(req) {
     && (fetchSite === undefined || fetchSite === 'same-origin' || fetchSite === 'none');
 }
 await mkdir(dataDir, { recursive: true });
+const filesRoot = join(dataDir, 'files');
+const systemRoot = join(dataDir, 'system');
+await mkdir(filesRoot, { recursive: true });
+await mkdir(systemRoot, { recursive: true });
+const keyPath = process.env.SYNTHIA_STATE_KEY_FILE;
+const stateKey = keyPath ? await readStateKey(keyPath) : null;
+if (!stateKey && ((await stat(join(dataDir, 'state.enc.json')).catch(() => null)) || (await stat(join(dataDir, 'events.enc.jsonl')).catch(() => null))))
+  throw new Error('Encrypted data exists; provide its SYNTHIA_STATE_KEY_FILE. Refusing to create an empty plaintext replacement.');
+if (stateKey && ((await stat(join(dataDir, 'state.json')).catch(() => null)) || (await stat(join(dataDir, 'events.jsonl')).catch(() => null))))
+  throw new Error('Encryption opt-in requires a new data directory. Existing plaintext data is preserved; automatic migration is not implemented.');
 const computer = await new ComputerRuntime({
-  persistence: new JsonFilePersistence(join(dataDir, 'state.json')),
-  eventLogPath: join(dataDir, 'events.jsonl'),
+  persistence: stateKey ? new EncryptedFilePersistence(join(dataDir, 'state.enc.json'), stateKey) : new JsonFilePersistence(join(dataDir, 'state.json')),
+  eventLogPath: join(dataDir, stateKey ? 'events.enc.jsonl' : 'events.jsonl'),
+  ...(stateKey ? { eventEmitterFactory: options => new EncryptedEventEmitter({ ...options, key: stateKey }) } : {}),
+  hostRoot: filesRoot,
 }).boot();
 const conversation = new ConversationExecution(computer);
-const files = new FileAdmission(computer, conversation.execution);
+const vaultStore = new FileVaultStore(join(dataDir, 'codex2-vault.json'));
+await vaultStore.ready;
+const vault = new PersonalVault({ store: vaultStore });
+const files = new FileAdmission(computer, conversation.execution, { vault });
+const journal = openActivityJournal(computer);
+const SETTINGS_KEYS = ['ubuntuos_settings', 'synthia_computer_settings', 'synthia_computer_theme'];
 const generative = computer.generative;
+const shell = createHostShell({ userRoot: join(filesRoot, 'home/user'), systemRoot });
+const mcp = createTridentMcp({ vfs: computer.vfs, shell, computer });
+const grove = new GroveStore({ registryPath: fileURLToPath(new URL('../grove/registry.json', import.meta.url)), installRoot: filesRoot, files: computer.vfs });
+const learning = new LearningWorkspace(computer, { coder: process.env.SYNTHIA_CODER_URL ? createLocalCoder({ url: process.env.SYNTHIA_CODER_URL, model: process.env.SYNTHIA_CODER_MODEL }) : null });
+conversation.learning = learning;
+const research = await new ProjectResearch(computer).boot();
+const worker = await new ConstructionWorker(computer).boot();
+computer.services.register('project-research', { provider: research, contract: 'inspect' });
+computer.services.register('bounded-construction', { provider: worker, contract: 'propose/approve/run' });
+await computer.contextual.updateEnvironment({ 'runtime:node': true });
+let journalPending = Promise.resolve();
+computer.bus.on('*', event => {
+  if (!/^(research:|worker:|contextual:|generative:|project:)/.test(event.type)) return;
+  journalPending = journalPending.then(async () => {
+    const history = computer.state.get('computer.activity', []);
+    await computer.state.set('computer.activity', [...history, event], { source: 'activity-journal' });
+  }).catch(error => console.error('Activity checkpoint failed:', error.message));
+});
 
 // Import names are allocated before the first asynchronous write. This prevents
 // an upload with the same filename from replacing an earlier user's original.
@@ -109,6 +163,68 @@ async function ingestUpload({ name, base64 }) {
   }
 }
 
+// Play: list folders under the user's home that can be run. This mirrors what
+// the IDE explorer shows, but reads the real host-backed workspace so the
+// hidden Linux backend and the preview server see the same files.
+async function listProjects(userRoot, maxDepth = 4) {
+  const found = [];
+  async function walk(dir, depth) {
+    if (depth > maxDepth) return;
+    let entries = [];
+    try { entries = await readdir(dir, { withFileTypes: true }); } catch { return; }
+    for (const entry of entries) {
+      if (entry.name.startsWith('.')) continue;
+      const full = join(dir, entry.name);
+      if (!entry.isDirectory()) continue;
+      const runnable = await findEntry(full);
+      if (runnable) {
+        found.push({
+          name: entry.name,
+          path: '/' + relative(userRoot, full).split(sep).join('/'),
+          entry: runnable.file,
+          mode: runnable.preview ? 'preview' : 'run',
+          url: runnable.preview ? previewUrl(userRoot, full) : null,
+        });
+        continue;
+      }
+      await walk(full, depth + 1);
+    }
+  }
+  await walk(userRoot, 0);
+  return found;
+}
+
+// Preview: serve a static project folder from the user workspace only.
+async function servePreview(res, userRoot, requested) {
+  let cleaned;
+  try {
+    cleaned = decodeURIComponent(requested).replace(/^\/+/, '');
+  } catch {
+    return json(res, 400, { error: 'Invalid preview path.' });
+  }
+  const base = resolve(userRoot);
+  const target = resolve(base, cleaned || '.');
+  if (target !== base && !target.startsWith(base + sep)) return json(res, 403, { error: 'Invalid preview path.' });
+  let info = await stat(target).catch(() => null);
+  let file = target;
+  if (info?.isDirectory()) file = join(target, 'index.html');
+  const fileInfo = await stat(file).catch(() => null);
+  if (!fileInfo?.isFile()) return json(res, 404, { error: 'Preview file not found.' });
+  const bytes = await readFile(file);
+  const types = {
+    ...mime,
+    '.mjs': 'text/javascript; charset=utf-8',
+    '.json': 'application/json; charset=utf-8',
+    '.txt': 'text/plain; charset=utf-8',
+    '.md': 'text/markdown; charset=utf-8',
+    '.wasm': 'application/wasm',
+    '.woff': 'font/woff', '.woff2': 'font/woff2',
+    '.mp3': 'audio/mpeg', '.mp4': 'video/mp4',
+  };
+  res.writeHead(200, { 'Content-Type': types[extname(file).toLowerCase()] ?? 'application/octet-stream', 'X-Content-Type-Options': 'nosniff' });
+  res.end(bytes);
+}
+
 const mime = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.svg': 'image/svg+xml', '.png': 'image/png', '.jpg': 'image/jpeg', '.webp': 'image/webp', '.ico': 'image/x-icon' };
 const json = (res, status, value) => {
   res.writeHead(status, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff' });
@@ -132,9 +248,47 @@ const server = createServer(async (req, res) => {
         const swarm = await computer.automataGateway.snapshot();
         return json(res, 200, { ready: true, computer: 'SynthAI Computer', swarmProcesses: swarm.processCount, files: computer.vfs.list('/').length });
       }
+      if (req.method === 'GET' && url.pathname === '/api/continuity') return json(res, 200, {
+        memory: await computer.automataGateway.memoryStatus(),
+        storage: { encryptedCheckpointAndJournal: Boolean(stateKey), keyRecovery: 'Owner-managed key file; Android Keystore integration pending', localHttpAuthenticated: false },
+        projects: computer.projects.list(), research: research.snapshot(), capabilities: computer.contextual.list(),
+        construction: worker.snapshot(), activity: computer.state.get('computer.activity', []), runner: await worker.runner.available(),
+      });
+      if (req.method === 'GET' && url.pathname === '/api/research/search') return json(res, 200, research.search(url.searchParams.get('q') ?? ''));
+      if (req.method === 'POST' && url.pathname === '/api/projects/import') return json(res, 200, await research.import(await body(req)));
+      if (req.method === 'POST' && url.pathname === '/api/projects/from-import') {
+        const { name, prefix } = await body(req);
+        if (typeof prefix !== 'string' || !prefix.startsWith('/home/user/Imports/') || !prefix.endsWith('/')) throw new TypeError('Choose an admitted import folder prefix');
+        const entries = computer.vfs.list(prefix).filter(file => file.meta?.encoding !== 'base64');
+        return json(res, 200, await research.import({ name, source: prefix, files: entries.map(file => ({ path: file.path.slice(prefix.length), content: file.content, originalPath: file.path })) }));
+      }
+      if (req.method === 'POST' && url.pathname === '/api/projects/inspect') {
+        const { projectId } = await body(req); return json(res, 200, await research.enqueue(() => research.inspect(projectId)));
+      }
+      if (req.method === 'POST' && url.pathname === '/api/construction/propose') return json(res, 200, await worker.propose(await body(req)));
+      if (req.method === 'POST' && url.pathname === '/api/construction/approve') {
+        const request = await body(req); return json(res, 200, await worker.approve(request.id, request));
+      }
+      if (req.method === 'POST' && url.pathname === '/api/construction/run') return json(res, 200, await computer.processes.execute('bounded-construction', await body(req)));
+      if (req.method === 'GET' && url.pathname === '/api/artifact') {
+        const artifact = worker.artifact(url.searchParams.get('id'));
+        if (!artifact) return json(res, 404, { error: 'Verified artifact not found' });
+        res.setHeader('Content-Disposition', `attachment; filename="${artifact.name}"`);
+        return json(res, 200, artifact);
+      }
       if (req.method === 'GET' && url.pathname === '/api/generative/status') return json(res, 200, await generative.status());
       if (req.method === 'GET' && url.pathname === '/api/generative/history') return json(res, 200, generative.history());
       if (req.method === 'POST' && url.pathname === '/api/generative/structure') return json(res, 200, await generative.inspect(await body(req)));
+      if (req.method === 'GET' && url.pathname === '/api/learning') {
+        const state = learning.snapshot();
+        return json(res, 200, { codingAvailable: Boolean(learning.coder), sources: state.sources.map(({ content, ...record }) => record), components: state.components.map(({ files, ...record }) => record), attempts: state.attempts, interactions: state.interactions });
+      }
+      if (req.method === 'POST' && url.pathname === '/api/learning/index') return json(res, 200, await learning.indexFiles());
+      if (req.method === 'POST' && url.pathname === '/api/learning/search') return json(res, 200, learning.search((await body(req)).query));
+      if (req.method === 'POST' && url.pathname === '/api/learning/teach') return json(res, 200, await learning.learn(await body(req)));
+      if (req.method === 'POST' && url.pathname === '/api/learning/github') return json(res, 200, await learning.importGitHub(await body(req)));
+      if (req.method === 'POST' && url.pathname === '/api/learning/build') return json(res, 200, await learning.build(await body(req)));
+      if (req.method === 'POST' && url.pathname === '/api/learning/run') return json(res, 200, await learning.run(await body(req)));
       if (req.method === 'GET' && url.pathname === '/api/history') return json(res, 200, conversation.history());
       if (req.method === 'POST' && url.pathname === '/api/chat') return json(res, 200, await conversation.talk((await body(req)).text));
       if (req.method === 'GET' && url.pathname === '/api/filesystem') return json(res, 200, computer.state.get('computer.desktop.filesystem', null));
@@ -171,12 +325,99 @@ const server = createServer(async (req, res) => {
         if (artifact.meta.encoding === 'base64') throw new TypeError('Binary artifacts cannot be executed as text.');
         return json(res, 200, await conversation.executeArtifact({ name: artifact.path.split('/').at(-1), type: request.type, content: artifact.content }));
       }
+      if (req.method === 'GET' && url.pathname === '/api/container/status') return json(res, 200, await shell.status('user'));
+      if (req.method === 'POST' && url.pathname === '/api/container/exec') {
+        const request = await body(req);
+        const result = await shell.runUser(request.command, { cwd: request.cwd, approve: request.approve === true });
+        return json(res, 200, { success: result.ok, ...result });
+      }
+      if (req.method === 'GET' && url.pathname === '/api/system-container/status') return json(res, 200, await shell.status('system'));
+      if (req.method === 'POST' && url.pathname === '/api/system-container/exec') {
+        const request = await body(req);
+        const result = await shell.runSystem(request.command, { cwd: request.cwd, approve: request.approve === true });
+        return json(res, 200, { success: result.ok, ...result });
+      }
+      // One permission-checked terminal endpoint for both profiles.
+      if (req.method === 'GET' && url.pathname === '/api/terminal/status') {
+        const profile = url.searchParams.get('profile') === 'system' ? 'system' : 'user';
+        return json(res, 200, await shell.status(profile));
+      }
+      if (req.method === 'POST' && url.pathname === '/api/terminal/exec') {
+        const request = await body(req);
+        const profile = request.profile === 'system' ? 'system' : 'user';
+        const result = await shell.run({ command: request.command, cwd: request.cwd, profile, approve: request.approve === true });
+        return json(res, 200, { success: result.ok, ...result });
+      }
+      // Play: list runnable project folders and run the selected one.
+      if (req.method === 'GET' && url.pathname === '/api/projects') {
+        return json(res, 200, { projects: await listProjects(join(filesRoot, 'home/user')) });
+      }
+      if (req.method === 'POST' && url.pathname === '/api/projects/play') {
+        const request = await body(req);
+        return json(res, 200, await playProject({
+          root: join(filesRoot, 'home/user'),
+          projectPath: request.path,
+          shell,
+          approve: request.approve === true,
+        }));
+      }
+      if (req.method === 'GET' && url.pathname === '/api/minds/status') return json(res, 200, mindsStatus());
+      if (req.method === 'POST' && url.pathname === '/api/minds/chat') return json(res, 200, await routeChat({ text: (await body(req)).text, mcp }));
+      if (req.method === 'GET' && url.pathname === '/api/mcp/tools') return json(res, 200, { tools: mcp.listTools() });
+      if (req.method === 'POST' && url.pathname === '/api/mcp/call') {
+        const request = await body(req);
+        return json(res, 200, await mcp.callTool(request.name, request.arguments ?? request.args ?? {}));
+      }
+      if (req.method === 'GET' && url.pathname === '/api/grove') return json(res, 200, await grove.list());
+      if (req.method === 'POST' && url.pathname === '/api/grove/install') {
+        const request = await body(req);
+        return json(res, 200, await grove.install(request.id ?? request.packageId));
+      }
+      if (req.method === 'GET' && url.pathname === '/api/platform') return json(res, 200, { current: detectPlatform(), adapters: describePlatforms() });
+      if (req.method === 'GET' && url.pathname === '/api/settings') return json(res, 200, computer.state.get('computer.settings.local', {}));
+      if (req.method === 'PUT' && url.pathname === '/api/settings') {
+        const incoming = await body(req);
+        if (!incoming || typeof incoming !== 'object' || Array.isArray(incoming)) throw new TypeError('Settings must be an object.');
+        const next = { ...(computer.state.get('computer.settings.local', {})) };
+        for (const key of SETTINGS_KEYS) {
+          if (typeof incoming[key] !== 'string') continue;
+          if (incoming[key].length > 200000) throw new RangeError('Setting is too large.');
+          next[key] = incoming[key];
+        }
+        await computer.state.set('computer.settings.local', next, { source: 'settings-remember' });
+        return json(res, 200, next);
+      }
+      if (req.method === 'GET' && url.pathname === '/api/journal') return json(res, 200, { records: journal.list(), routes: journal.rank() });
+      if (req.method === 'POST' && url.pathname === '/api/journal') return json(res, 200, await journal.write(await body(req)));
+      if (req.method === 'GET' && url.pathname === '/api/workspace') return json(res, 200, computer.projects.list());
+      if (req.method === 'POST' && url.pathname === '/api/workspace') return json(res, 200, await saveNamedWorkspace(computer, await body(req)));
+      if (req.method === 'GET' && url.pathname === '/api/vault') {
+        const items = await vault.list();
+        return json(res, 200, items.map(({ bytes, ...item }) => item));
+      }
       return json(res, 404, { error: 'Unknown computer operation.' });
+
     }
     if (req.method !== 'GET' && req.method !== 'HEAD') return json(res, 405, { error: 'Method not allowed.' });
+    // Play previews: static project folders from the user workspace only.
+    if (url.pathname.startsWith('/preview/')) {
+      return servePreview(res, join(filesRoot, 'home/user'), url.pathname.slice('/preview'.length));
+    }
     const requested = decodeURIComponent(url.pathname === '/' ? '/index.html' : url.pathname);
-    const path = resolve(root, '.' + requested);
-    if (path !== root && !path.startsWith(root + sep)) return json(res, 403, { error: 'Invalid path.' });
+    const moduleRoot = resolve(fileURLToPath(new URL('../modules/r22-linux-guest/', import.meta.url)));
+    const monacoRoot = resolve(fileURLToPath(new URL('../shell/kimi-linux/public/monaco/', import.meta.url)));
+    let path;
+    let allowedRoot = root;
+    if (requested.startsWith('/modules/r22-linux-guest/')) {
+      path = resolve(moduleRoot, '.' + requested.slice('/modules/r22-linux-guest'.length));
+      allowedRoot = moduleRoot;
+    } else if (requested.startsWith('/monaco/')) {
+      path = resolve(monacoRoot, '.' + requested.slice('/monaco'.length));
+      allowedRoot = monacoRoot;
+    } else {
+      path = resolve(root, '.' + requested);
+    }
+    if (path !== allowedRoot && !path.startsWith(allowedRoot + sep)) return json(res, 403, { error: 'Invalid path.' });
     const target = (await stat(path).catch(() => null))?.isFile() ? path : join(root, 'index.html');
     const bytes = await readFile(target);
     res.writeHead(200, { 'Content-Type': mime[extname(target)] ?? 'application/octet-stream', 'X-Content-Type-Options': 'nosniff' });

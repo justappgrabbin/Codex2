@@ -1,0 +1,8 @@
+
+# Generated Python Module
+{% for func in functions %}
+{{ func }}
+{% endfor %}
+# Module for {{ module_name | default("unknown") }}
+def init():
+    pass

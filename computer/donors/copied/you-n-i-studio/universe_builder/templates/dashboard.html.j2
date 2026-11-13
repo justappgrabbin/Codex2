@@ -1,0 +1,27 @@
+
+<!-- Generated Bonding Dashboard -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>{{ dashboard_name }} Dashboard</title>
+    <style>
+        body { font-family: Arial, sans-serif; background: #1a1a3d; color: #e0e0e0; padding: 20px; }
+        h1 { color: #00d4ff; text-shadow: 0 0 10px #00d4ff; }
+        .bonds { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; }
+        .bond { background: rgba(255, 255, 255, 0.1); padding: 10px; border-radius: 8px; }
+    </style>
+</head>
+<body>
+    <h1>{{ dashboard_name }} Bonding Dashboard 🌌</h1>
+    <div class="bonds">
+        {% for bond in bonds %}
+        <div class="bond">
+            <p><strong>{{ bond.user1 }} ↔ {{ bond.user2 }}</strong></p>
+            <p>Strength: {{ bond.strength }}</p>
+        </div>
+        {% endfor %}
+    </div>
+    <script>console.log("Dashboard loaded for {{ dashboard_name }}");</script>
+</body>
+</html>

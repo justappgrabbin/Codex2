@@ -1,0 +1,5 @@
+
+I want a Field Friend bonding system.
+Module: BondingAI
+UserA bonds with UserB at 0.8
+Show chart: UserA-UserB at 0.8

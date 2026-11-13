@@ -1,4 +1,6 @@
 import { SynthiaSystem } from '../engines/unified-execution-spine/src/synthia-system.mjs';
+import { javascriptArtifactName, collectStdout } from './execute-output.mjs';
+import { IsolatedLegacySandbox } from './isolated-legacy-sandbox.mjs';
 const serializable = (value) => JSON.parse(JSON.stringify(value, (_key, item) => typeof item === 'function' ? undefined : item));
 
 /** Connects the existing Computer state to the two original donor engines. */
@@ -17,6 +19,7 @@ export class ConversationExecution {
         },
       },
     });
+    this.execution.execution.sandbox = new IsolatedLegacySandbox();
   }
 
   async talk(input) {
@@ -34,11 +37,31 @@ export class ConversationExecution {
     // loop. Its result is consumed as evidence, not substituted for the answer.
     const learned = await this.execution.chat(text);
     let responseText = donor.text;
+    if (/\b(capabilities|blocked|deferred|available)\b/i.test(text)) {
+      const records = this.computer.contextual.list();
+      responseText = records.length ? records.map(record => `${record.id}: ${record.applicability}${record.reasons.length ? ' — ' + record.reasons.join('; ') : ''}`).join('\n')
+        : 'No project capabilities have been inspected yet. Open Computer → Projects to import existing source.';
+    } else if (/\b(projects|jobs|plans|artifacts|build|repair|construct|publish|deploy)\b/i.test(text)) {
+      const jobs = Object.values(this.computer.state.get('computer.construction.jobs', {}));
+      responseText = `There are ${this.computer.projects.list().length} resident projects and ${jobs.length} construction plans.\n${jobs.map(job => `${job.status}: ${job.spec.goal}`).join('\n')}\nOpen Computer → Planner to inspect source-backed changes and approve one isolated build/test. This chat cannot generate unrestricted applications or publish them. No construction was started by this message.`;
+    } else if (/\b(research|evidence|sources)\b/i.test(text)) {
+      const reports = Object.values(this.computer.state.get('computer.research.reports', {}));
+      responseText = `I have ${reports.length} retained project inspection reports. Open Computer → Research to search exact source excerpts and inspect dependencies and unresolved findings. External web research is not connected in this local release.`;
+    }
     const imported = this.computer.vfs.list('/home/user/Imports/');
     if (/\b(what|which|show|list)\b/i.test(text) && /\b(files?|imports?|uploaded)\b/i.test(text)) {
       responseText = imported.length
         ? `I have ${imported.length} imported file${imported.length === 1 ? '' : 's'} addressed in this computer:\n${imported.slice(-30).map((file) => `• ${file.path.replace('/home/user/Imports/', '')} — ${file.meta.address.dimension}, Gate ${file.meta.address.gate}`).join('\n')}`
         : 'There are no imported files yet. Open Import and choose a file or ZIP.';
+    }
+    let evidence = [];
+    if (this.learning) {
+      await this.learning.indexFiles();
+      evidence = this.learning.search(text, 4);
+      if (evidence.length && /\b(source|code|explain|how|what|where|find|remember)\b/i.test(text)) {
+        responseText = `Here are the relevant source passages. These are retrieved evidence, rather than a verified interpretation:\n\n${evidence.map(hit => `[${hit.path}:${hit.startLine}-${hit.endLine}]\n${hit.text}`).join('\n\n')}`;
+      }
+      await this.learning.learn({ text });
     }
     const item = {
       id: crypto.randomUUID(), at: new Date().toISOString(), input: text,
@@ -48,7 +71,7 @@ export class ConversationExecution {
       dimension: donor.conversation.semantic.dimension,
       linguisticGrounded: true,
       provider: donor.assistant?.provider ?? 'local-morph',
-      learningRecord: learned.recordId,
+      learningRecord: learned.recordId, evidence,
     };
     const history = this.computer.state.get('computer.chat.history', []);
     await this.computer.state.set('computer.chat.history', [...history, item].slice(-120), { source: 'conversation' });
@@ -66,9 +89,11 @@ export class ConversationExecution {
   async executeArtifact({ name, type, content }) {
     if (!name || typeof content !== 'string') throw new TypeError('Artifact name and text content are required.');
     if (content.length > 500000) throw new RangeError('Artifact exceeds 500,000 characters.');
+    name = javascriptArtifactName(name, type);
     const result = await this.execution.executeArtifact({ name, type, content });
+    const stdout = collectStdout(result);
     const receipt = {
-      id: crypto.randomUUID(), at: new Date().toISOString(), name, type,
+      id: crypto.randomUUID(), at: new Date().toISOString(), name, type, stdout, output: stdout.join('\n'),
       ok: Boolean(result.ok), path: result.result?.path ?? result.path ?? null,
       address: result.canonicalAddress ?? null,
       stages: serializable(result.pipeline?.stages ?? result.stages ?? null),

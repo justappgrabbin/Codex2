@@ -1,0 +1,29 @@
+{
+  "ok": true,
+  "scope": "Final packaged core only; Docker execution requalification blocked by environment disk",
+  "launcher": "scripts/start-local.mjs from normally extracted ZIP",
+  "node": "22.16.0",
+  "noNodeModules": true,
+  "noGitMetadata": true,
+  "runtimeFilesMatched": 23,
+  "coreSelection": {
+    "passed": 61,
+    "failed": 0,
+    "skipped": 2,
+    "additionalOmittedDockerDependentTest": "reassembly-ingest-e2e.test.mjs"
+  },
+  "browser": {
+    "ok": true,
+    "checks": [
+      "desktop Computer launch",
+      "real file import",
+      "evidence search",
+      "capability state",
+      "proposal",
+      "explicit denial",
+      "activity journal"
+    ],
+    "pageErrors": []
+  },
+  "finalConstructionQualified": false
+}

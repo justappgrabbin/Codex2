@@ -1,3 +1,4 @@
+import LearningWorkspace from './LearningWorkspace';
 import { useEffect, useState } from 'react';
 import { FileUp, FolderOpen, Play, RefreshCw } from 'lucide-react';
 
@@ -106,6 +107,7 @@ export default function Ingest() {
         {output && <pre className="mt-4 p-3 rounded bg-[var(--bg-titlebar)] whitespace-pre-wrap break-words">{output}</pre>}
         {active.encoding !== 'base64' && <pre className="mt-4 p-3 rounded bg-[var(--bg-titlebar)] whitespace-pre-wrap break-words max-h-72 overflow-auto">{active.content}</pre>}
       </> : <p className="text-[var(--text-secondary)]">Choose a file to inspect its address and content.</p>}
+      <LearningWorkspace />
     </div>
   </div>;
 }

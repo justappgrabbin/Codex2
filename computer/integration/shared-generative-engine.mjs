@@ -1,7 +1,10 @@
+import { existsSync } from 'node:fs';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { resolve } from 'node:path';
 
-const DEFAULT_ROOT = fileURLToPath(new URL('../../sources/Generative-address-system/Synthia-Generative-Address-Morphology-Integrated-v0.2.1-RUNNABLE/', import.meta.url));
+const CHECKOUT_ROOT = fileURLToPath(new URL('../../sources/Generative-address-system/Synthia-Generative-Address-Morphology-Integrated-v0.2.1-RUNNABLE/', import.meta.url));
+const BUNDLED_ROOT = fileURLToPath(new URL('../bundled-sources/generative/', import.meta.url));
+const DEFAULT_ROOT = existsSync(CHECKOUT_ROOT) ? CHECKOUT_ROOT : BUNDLED_ROOT;
 const attached = new WeakMap();
 
 /**

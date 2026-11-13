@@ -1,0 +1,447 @@
+[
+  {
+    "stage": "genuine-missing-source",
+    "capability": {
+      "inputs": [
+        "project source"
+      ],
+      "outputs": [
+        "tested application artifact"
+      ],
+      "dependencies": [],
+      "permissions": [],
+      "environment": [
+        "runtime:node",
+        "file:project-d1f5480d-d5af-48b2-9c21-3a526bae7846:src/budget.mjs",
+        "file:project-d1f5480d-d5af-48b2-9c21-3a526bae7846:src/settings.mjs"
+      ],
+      "related": [],
+      "evidence": [
+        {
+          "type": "todo",
+          "path": "src/budget.mjs",
+          "line": 2,
+          "message": "// TODO: Sum all transactions rather than returning only the first entry.",
+          "digest": "7f1535d340d13e5c7f8b557bce3bec71932e869c80ce1ec78f850376fe6836e0",
+          "observed": true
+        },
+        {
+          "path": "src/budget.mjs",
+          "kind": "missing-source",
+          "required": "src/settings.mjs",
+          "condition": "file:project-d1f5480d-d5af-48b2-9c21-3a526bae7846:src/settings.mjs"
+        },
+        {
+          "kind": "resident-generative-structure",
+          "receiptId": "4af4fb5d-aef7-46f6-9044-e316860b2c85"
+        }
+      ],
+      "meaning": {
+        "source": "project-manifests-and-import-statements",
+        "interpretation": "Candidate project execution; not a semantic address inferred from a digest"
+      },
+      "outstandingWork": [
+        "Review source and bounded plan",
+        "Run actual project build and tests in isolation"
+      ],
+      "lastSuccessfulExecution": null,
+      "factualValidity": "UNVERIFIED",
+      "securityEligibility": "UNVERIFIED",
+      "verification": null,
+      "id": "project:project-d1f5480d-d5af-48b2-9c21-3a526bae7846",
+      "source": {
+        "projectId": "project-d1f5480d-d5af-48b2-9c21-3a526bae7846",
+        "origin": "acceptance-fixture/unfinished-budget",
+        "originalVersion": "07a63cbc63f9834a35baf9a642704c93a8fe7c23a38abaaa5584359242ee25c6"
+      },
+      "digest": "761bb77a089f0af457271daa573575f4a426a19c3b54d82db8b942f72681d28d",
+      "createdAt": 1794542764161,
+      "applicability": "DEFERRED",
+      "reasons": [
+        "Unavailable condition: file:project-d1f5480d-d5af-48b2-9c21-3a526bae7846:src/settings.mjs"
+      ],
+      "reevaluateOn": [
+        "runtime:node",
+        "file:project-d1f5480d-d5af-48b2-9c21-3a526bae7846:src/budget.mjs",
+        "file:project-d1f5480d-d5af-48b2-9c21-3a526bae7846:src/settings.mjs",
+        "source-revision",
+        "security-review",
+        "verification"
+      ]
+    }
+  },
+  {
+    "id": "257891250fc75d50e51cd87425957e5e7ccde586efec43fd3e9ce5eb167c5dbc",
+    "spec": {
+      "projectId": "project-d1f5480d-d5af-48b2-9c21-3a526bae7846",
+      "goal": "Verify genuine missing dependency failure",
+      "changes": [],
+      "sourceDigest": "761bb77a089f0af457271daa573575f4a426a19c3b54d82db8b942f72681d28d"
+    },
+    "files": [
+      {
+        "path": "budget.test.mjs",
+        "content": "import test from 'node:test';\nimport assert from 'node:assert/strict';\nimport { balance } from './dist/budget.mjs';\ntest('built application sums credits and debits and handles empty input', () => {\n  assert.equal(balance([25, -5, 10]), '$30.00');\n  assert.equal(balance([]), '$0.00');\n});\n"
+      },
+      {
+        "path": "build.mjs",
+        "content": "import { mkdir, copyFile } from 'node:fs/promises';\n// A build must load the source first, so missing imports are genuine failures.\nawait import('./src/budget.mjs');\nawait mkdir('dist', { recursive: true });\nfor (const file of ['budget.mjs', 'settings.mjs']) await copyFile(`src/${file}`, `dist/${file}`);\nconsole.log('Built budget module into dist');\n"
+      },
+      {
+        "path": "package.json",
+        "content": "{\"name\":\"unfinished-budget\",\"version\":\"0.1.0\",\"type\":\"module\",\"private\":true,\"scripts\":{\"build\":\"node build.mjs\",\"test\":\"node --test budget.test.mjs\"}}\n"
+      },
+      {
+        "path": "src/budget.mjs",
+        "content": "import { currency } from './settings.mjs';\n// TODO: Sum all transactions rather than returning only the first entry.\nexport function balance(entries) { return `${currency}${(entries[0] ?? 0).toFixed(2)}`; }\n"
+      }
+    ],
+    "evidence": {
+      "reportId": "4eb06cf2-97b5-4841-bbe9-afca2b183d69",
+      "digest": "761bb77a089f0af457271daa573575f4a426a19c3b54d82db8b942f72681d28d",
+      "unresolved": [
+        {
+          "path": "src/budget.mjs",
+          "kind": "missing-source",
+          "required": "src/settings.mjs",
+          "condition": "file:project-d1f5480d-d5af-48b2-9c21-3a526bae7846:src/settings.mjs"
+        }
+      ],
+      "dependencies": [
+        {
+          "name": "dist/budget.mjs",
+          "source": "budget.test.mjs",
+          "kind": "possible-build-output",
+          "present": false,
+          "interpretation": "Conventional output path; production must be demonstrated by actual build and tests"
+        },
+        {
+          "name": "src/budget.mjs",
+          "source": "build.mjs",
+          "kind": "relative-import",
+          "condition": "file:project-d1f5480d-d5af-48b2-9c21-3a526bae7846:src/budget.mjs",
+          "present": true,
+          "interpretation": "Exact-path static import; extension/package resolution is not inferred"
+        },
+        {
+          "name": "src/settings.mjs",
+          "source": "src/budget.mjs",
+          "kind": "relative-import",
+          "condition": "file:project-d1f5480d-d5af-48b2-9c21-3a526bae7846:src/settings.mjs",
+          "present": false,
+          "interpretation": "Exact-path static import; extension/package resolution is not inferred"
+        }
+      ]
+    },
+    "status": "FAILED_VERIFICATION",
+    "attempts": 1,
+    "maxAttempts": 1,
+    "at": 1794542764361,
+    "plan": [
+      "Retain immutable project snapshot",
+      "Apply listed changes in isolated copy",
+      "Execute npm run build and npm test without network",
+      "Export source and actual verification receipt"
+    ],
+    "receipt": {
+      "id": "992640fc-032a-4a16-a535-59bf76e40fe2",
+      "jobId": "257891250fc75d50e51cd87425957e5e7ccde586efec43fd3e9ce5eb167c5dbc",
+      "ok": false,
+      "exitCode": 1,
+      "stdout": "\n> unfinished-budget@0.1.0 build\n> node build.mjs\n\n",
+      "stderr": "node:internal/modules/esm/resolve:275\n    throw new ERR_MODULE_NOT_FOUND(\n          ^\n\nError [ERR_MODULE_NOT_FOUND]: Cannot find module '/work/src/settings.mjs' imported from /work/src/budget.mjs\n    at finalizeResolution (node:internal/modules/esm/resolve:275:11)\n    at moduleResolve (node:internal/modules/esm/resolve:865:10)\n    at defaultResolve (node:internal/modules/esm/resolve:989:11)\n    at #cachedDefaultResolve (node:internal/modules/esm/loader:747:20)\n    at ModuleLoader.resolve (node:internal/modules/esm/loader:724:38)\n    at ModuleLoader.getModuleJobForImport (node:internal/modules/esm/loader:320:38)\n    at ModuleJob._link (node:internal/modules/esm/module_job:182:49) {\n  code: 'ERR_MODULE_NOT_FOUND',\n  url: 'file:///work/src/settings.mjs'\n}\n\nNode.js v22.23.5\n",
+      "error": "Command failed: docker --host=unix:///var/run/docker.sock run --name synthia-257891250fc75d50e51cd87425957e5e7ccde586efec43fd3e9ce5eb167c5dbc --pull=never --network=none --read-only --cap-drop=ALL --security-opt=no-new-privileges --pids-limit=64 --memory=256m --cpus=1 --user=65534:65534 --tmpfs=/work:rw,exec,size=100m,mode=1777 --tmpfs=/tmp:rw,noexec,size=16m,mode=1777 --mount type=bind,src=/tmp/synthia-job-VMPaLP,dst=/input,readonly --workdir=/work node@sha256:e9f565d32859f0cbfb52125eafe8be39390f24dac302dc3cdf566e8ba3ab21ee /usr/bin/timeout -s KILL 60 sh -c cp -R /input/. /work/ && npm run build && npm test\nnode:internal/modules/esm/resolve:275\n    throw new ERR_MODULE_NOT_FOUND(\n          ^\n\nError [ERR_MODULE_NOT_FOUND]: Cannot find module '/work/src/settings.mjs' imported from /work/src/budget.mjs\n    at finalizeResolution (node:internal/modules/esm/resolve:275:11)\n    at moduleResolve (node:internal/modules/esm/resolve:865:10)\n    at defaultResolve (node:internal/modules/esm/resolve:989:11)\n    at #cachedDefaultResolve (node:internal/modules/esm/loader:747:20)\n    at ModuleLoader.resolve (node:internal/modules/esm/loader:724:38)\n    at ModuleLoader.getModuleJobForImport (node:internal/modules/esm/loader:320:38)\n    at ModuleJob._link (node:internal/modules/esm/module_job:182:49) {\n  code: 'ERR_MODULE_NOT_FOUND',\n  url: 'file:///work/src/settings.mjs'\n}\n\nNode.js v22.23.5\n",
+      "timedOut": false,
+      "startedAt": 1794542764510,
+      "finishedAt": 1794542768330,
+      "checks": [
+        "npm run build && npm test"
+      ],
+      "image": "node@sha256:e9f565d32859f0cbfb52125eafe8be39390f24dac302dc3cdf566e8ba3ab21ee",
+      "digest": "761bb77a089f0af457271daa573575f4a426a19c3b54d82db8b942f72681d28d",
+      "at": 1794542768495,
+      "inputDigest": "761bb77a089f0af457271daa573575f4a426a19c3b54d82db8b942f72681d28d",
+      "sourceProjectId": "project-d1f5480d-d5af-48b2-9c21-3a526bae7846",
+      "approval": {
+        "id": "41611331-425e-409c-8efd-28e9b2977f30",
+        "jobId": "257891250fc75d50e51cd87425957e5e7ccde586efec43fd3e9ce5eb167c5dbc",
+        "decision": "approve",
+        "planDigest": "0b70ba3340a9465392b4d87a2a027b0e83380d242d359f9b8ef3ee0588cb365d",
+        "at": 1794542764403,
+        "scope": "One isolated local build/test; no publish, network, spending or source overwrite"
+      }
+    }
+  },
+  {
+    "id": "646d4313d91c24fc219b7701926a0925b051e4d3bdf27cb035311bf4b4712c49",
+    "spec": {
+      "projectId": "project-d1f5480d-d5af-48b2-9c21-3a526bae7846",
+      "goal": "Observe genuine failing application test after dependency restoration",
+      "changes": [],
+      "sourceDigest": "2052dad5b8eb1ffa6ee98be73f1c60cb3d84dac9cee7d1fe470442c558825650"
+    },
+    "files": [
+      {
+        "path": "budget.test.mjs",
+        "content": "import test from 'node:test';\nimport assert from 'node:assert/strict';\nimport { balance } from './dist/budget.mjs';\ntest('built application sums credits and debits and handles empty input', () => {\n  assert.equal(balance([25, -5, 10]), '$30.00');\n  assert.equal(balance([]), '$0.00');\n});\n"
+      },
+      {
+        "path": "build.mjs",
+        "content": "import { mkdir, copyFile } from 'node:fs/promises';\n// A build must load the source first, so missing imports are genuine failures.\nawait import('./src/budget.mjs');\nawait mkdir('dist', { recursive: true });\nfor (const file of ['budget.mjs', 'settings.mjs']) await copyFile(`src/${file}`, `dist/${file}`);\nconsole.log('Built budget module into dist');\n"
+      },
+      {
+        "path": "package.json",
+        "content": "{\"name\":\"unfinished-budget\",\"version\":\"0.1.0\",\"type\":\"module\",\"private\":true,\"scripts\":{\"build\":\"node build.mjs\",\"test\":\"node --test budget.test.mjs\"}}\n"
+      },
+      {
+        "path": "src/budget.mjs",
+        "content": "import { currency } from './settings.mjs';\n// TODO: Sum all transactions rather than returning only the first entry.\nexport function balance(entries) { return `${currency}${(entries[0] ?? 0).toFixed(2)}`; }\n"
+      },
+      {
+        "path": "src/settings.mjs",
+        "content": "export const currency = '$';\n"
+      }
+    ],
+    "evidence": {
+      "reportId": "c1989d7d-e66e-4a30-b18a-2a18bb1ec43a",
+      "digest": "2052dad5b8eb1ffa6ee98be73f1c60cb3d84dac9cee7d1fe470442c558825650",
+      "unresolved": [],
+      "dependencies": [
+        {
+          "name": "dist/budget.mjs",
+          "source": "budget.test.mjs",
+          "kind": "possible-build-output",
+          "present": false,
+          "interpretation": "Conventional output path; production must be demonstrated by actual build and tests"
+        },
+        {
+          "name": "src/budget.mjs",
+          "source": "build.mjs",
+          "kind": "relative-import",
+          "condition": "file:project-d1f5480d-d5af-48b2-9c21-3a526bae7846:src/budget.mjs",
+          "present": true,
+          "interpretation": "Exact-path static import; extension/package resolution is not inferred"
+        },
+        {
+          "name": "src/settings.mjs",
+          "source": "src/budget.mjs",
+          "kind": "relative-import",
+          "condition": "file:project-d1f5480d-d5af-48b2-9c21-3a526bae7846:src/settings.mjs",
+          "present": true,
+          "interpretation": "Exact-path static import; extension/package resolution is not inferred"
+        }
+      ]
+    },
+    "status": "FAILED_VERIFICATION",
+    "attempts": 1,
+    "maxAttempts": 1,
+    "at": 1794542770175,
+    "plan": [
+      "Retain immutable project snapshot",
+      "Apply listed changes in isolated copy",
+      "Execute npm run build and npm test without network",
+      "Export source and actual verification receipt"
+    ],
+    "receipt": {
+      "id": "f622fd1f-3ad6-4de1-9e11-cdc6599b7bdb",
+      "jobId": "646d4313d91c24fc219b7701926a0925b051e4d3bdf27cb035311bf4b4712c49",
+      "ok": false,
+      "exitCode": 1,
+      "stdout": "\n> unfinished-budget@0.1.0 build\n> node build.mjs\n\nBuilt budget module into dist\n\n> unfinished-budget@0.1.0 test\n> node --test budget.test.mjs\n\nTAP version 13\n# Subtest: built application sums credits and debits and handles empty input\nnot ok 1 - built application sums credits and debits and handles empty input\n  ---\n  duration_ms: 1.810428\n  type: 'test'\n  location: '/work/budget.test.mjs:4:1'\n  failureType: 'testCodeFailure'\n  error: |-\n    Expected values to be strictly equal:\n    \n    '$25.00' !== '$30.00'\n    \n  code: 'ERR_ASSERTION'\n  name: 'AssertionError'\n  expected: '$30.00'\n  actual: '$25.00'\n  operator: 'strictEqual'\n  stack: |-\n    TestContext.<anonymous> (file:///work/budget.test.mjs:5:10)\n    Test.runInAsyncScope (node:async_hooks:214:14)\n    Test.run (node:internal/test_runner/test:1047:25)\n    Test.start (node:internal/test_runner/test:944:17)\n    startSubtestAfterBootstrap (node:internal/test_runner/harness:296:17)\n  ...\n1..1\n# tests 1\n# suites 0\n# pass 0\n# fail 1\n# cancelled 0\n# skipped 0\n# todo 0\n# duration_ms 70.037882\n",
+      "stderr": "",
+      "error": "Command failed: docker --host=unix:///var/run/docker.sock run --name synthia-646d4313d91c24fc219b7701926a0925b051e4d3bdf27cb035311bf4b4712c49 --pull=never --network=none --read-only --cap-drop=ALL --security-opt=no-new-privileges --pids-limit=64 --memory=256m --cpus=1 --user=65534:65534 --tmpfs=/work:rw,exec,size=100m,mode=1777 --tmpfs=/tmp:rw,noexec,size=16m,mode=1777 --mount type=bind,src=/tmp/synthia-job-DEgsXO,dst=/input,readonly --workdir=/work node@sha256:e9f565d32859f0cbfb52125eafe8be39390f24dac302dc3cdf566e8ba3ab21ee /usr/bin/timeout -s KILL 60 sh -c cp -R /input/. /work/ && npm run build && npm test\n",
+      "timedOut": false,
+      "startedAt": 1794542770514,
+      "finishedAt": 1794542773742,
+      "checks": [
+        "npm run build && npm test"
+      ],
+      "image": "node@sha256:e9f565d32859f0cbfb52125eafe8be39390f24dac302dc3cdf566e8ba3ab21ee",
+      "digest": "2052dad5b8eb1ffa6ee98be73f1c60cb3d84dac9cee7d1fe470442c558825650",
+      "at": 1794542773906,
+      "inputDigest": "2052dad5b8eb1ffa6ee98be73f1c60cb3d84dac9cee7d1fe470442c558825650",
+      "sourceProjectId": "project-d1f5480d-d5af-48b2-9c21-3a526bae7846",
+      "approval": {
+        "id": "e5a09fe7-be1f-43ca-8c59-be578796f64e",
+        "jobId": "646d4313d91c24fc219b7701926a0925b051e4d3bdf27cb035311bf4b4712c49",
+        "decision": "approve",
+        "planDigest": "abd521ae91714760094cb51b3882cab1363a5baf032114495a4baa908ef1a86d",
+        "at": 1794542770295,
+        "scope": "One isolated local build/test; no publish, network, spending or source overwrite"
+      }
+    }
+  },
+  {
+    "id": "24748ddbc2ff54d571a138b6b1dc50d72e450618c3aabde963b37b5b54d39cb9",
+    "spec": {
+      "projectId": "project-d1f5480d-d5af-48b2-9c21-3a526bae7846",
+      "goal": "Repair evidenced sum defect in isolated copy",
+      "changes": [
+        {
+          "path": "src/budget.mjs",
+          "content": "import { currency } from './settings.mjs';\nexport function balance(entries) { return `${currency}${entries.reduce((sum, value) => sum + value, 0).toFixed(2)}`; }\n"
+        }
+      ],
+      "sourceDigest": "2052dad5b8eb1ffa6ee98be73f1c60cb3d84dac9cee7d1fe470442c558825650"
+    },
+    "files": [
+      {
+        "path": "budget.test.mjs",
+        "content": "import test from 'node:test';\nimport assert from 'node:assert/strict';\nimport { balance } from './dist/budget.mjs';\ntest('built application sums credits and debits and handles empty input', () => {\n  assert.equal(balance([25, -5, 10]), '$30.00');\n  assert.equal(balance([]), '$0.00');\n});\n"
+      },
+      {
+        "path": "build.mjs",
+        "content": "import { mkdir, copyFile } from 'node:fs/promises';\n// A build must load the source first, so missing imports are genuine failures.\nawait import('./src/budget.mjs');\nawait mkdir('dist', { recursive: true });\nfor (const file of ['budget.mjs', 'settings.mjs']) await copyFile(`src/${file}`, `dist/${file}`);\nconsole.log('Built budget module into dist');\n"
+      },
+      {
+        "path": "package.json",
+        "content": "{\"name\":\"unfinished-budget\",\"version\":\"0.1.0\",\"type\":\"module\",\"private\":true,\"scripts\":{\"build\":\"node build.mjs\",\"test\":\"node --test budget.test.mjs\"}}\n"
+      },
+      {
+        "path": "src/budget.mjs",
+        "content": "import { currency } from './settings.mjs';\n// TODO: Sum all transactions rather than returning only the first entry.\nexport function balance(entries) { return `${currency}${(entries[0] ?? 0).toFixed(2)}`; }\n"
+      },
+      {
+        "path": "src/settings.mjs",
+        "content": "export const currency = '$';\n"
+      }
+    ],
+    "evidence": {
+      "reportId": "c1989d7d-e66e-4a30-b18a-2a18bb1ec43a",
+      "digest": "2052dad5b8eb1ffa6ee98be73f1c60cb3d84dac9cee7d1fe470442c558825650",
+      "unresolved": [],
+      "dependencies": [
+        {
+          "name": "dist/budget.mjs",
+          "source": "budget.test.mjs",
+          "kind": "possible-build-output",
+          "present": false,
+          "interpretation": "Conventional output path; production must be demonstrated by actual build and tests"
+        },
+        {
+          "name": "src/budget.mjs",
+          "source": "build.mjs",
+          "kind": "relative-import",
+          "condition": "file:project-d1f5480d-d5af-48b2-9c21-3a526bae7846:src/budget.mjs",
+          "present": true,
+          "interpretation": "Exact-path static import; extension/package resolution is not inferred"
+        },
+        {
+          "name": "src/settings.mjs",
+          "source": "src/budget.mjs",
+          "kind": "relative-import",
+          "condition": "file:project-d1f5480d-d5af-48b2-9c21-3a526bae7846:src/settings.mjs",
+          "present": true,
+          "interpretation": "Exact-path static import; extension/package resolution is not inferred"
+        }
+      ]
+    },
+    "status": "VERIFIED",
+    "attempts": 1,
+    "maxAttempts": 1,
+    "at": 1794542774103,
+    "plan": [
+      "Retain immutable project snapshot",
+      "Apply listed changes in isolated copy",
+      "Execute npm run build and npm test without network",
+      "Export source and actual verification receipt"
+    ],
+    "receipt": {
+      "id": "ab79b32a-820d-4ce6-9a3e-e36b2ac54e9f",
+      "jobId": "24748ddbc2ff54d571a138b6b1dc50d72e450618c3aabde963b37b5b54d39cb9",
+      "ok": true,
+      "exitCode": 0,
+      "stdout": "\n> unfinished-budget@0.1.0 build\n> node build.mjs\n\nBuilt budget module into dist\n\n> unfinished-budget@0.1.0 test\n> node --test budget.test.mjs\n\nTAP version 13\n# Subtest: built application sums credits and debits and handles empty input\nok 1 - built application sums credits and debits and handles empty input\n  ---\n  duration_ms: 0.580555\n  type: 'test'\n  ...\n1..1\n# tests 1\n# suites 0\n# pass 1\n# fail 0\n# cancelled 0\n# skipped 0\n# todo 0\n# duration_ms 45.889389\n",
+      "stderr": "",
+      "startedAt": 1794542774457,
+      "finishedAt": 1794542777838,
+      "checks": [
+        "npm run build",
+        "npm test"
+      ],
+      "image": "node@sha256:e9f565d32859f0cbfb52125eafe8be39390f24dac302dc3cdf566e8ba3ab21ee",
+      "isolation": "network-none/read-only-root/non-root/resource-limited",
+      "scope": "Declared project commands exited zero; not a proof of arbitrary application behavior",
+      "digest": "cf77a3d13120e61538d2435f15f75ecdd1967a83b0dd3d383bfda86ca8e06182",
+      "at": 1794542778002,
+      "inputDigest": "2052dad5b8eb1ffa6ee98be73f1c60cb3d84dac9cee7d1fe470442c558825650",
+      "sourceProjectId": "project-d1f5480d-d5af-48b2-9c21-3a526bae7846",
+      "approval": {
+        "id": "da64f5bf-cb6b-4c89-99ad-30e107d31e82",
+        "jobId": "24748ddbc2ff54d571a138b6b1dc50d72e450618c3aabde963b37b5b54d39cb9",
+        "decision": "approve",
+        "planDigest": "1a3de3e5da50aa57814067d90f35415e2ae6ded44489807548dd0ea3be71153e",
+        "at": 1794542774202,
+        "scope": "One isolated local build/test; no publish, network, spending or source overwrite"
+      }
+    }
+  },
+  {
+    "id": "24748ddbc2ff54d571a138b6b1dc50d72e450618c3aabde963b37b5b54d39cb9",
+    "kind": "verified-source-bundle",
+    "name": "project-d1f5480d-d5af-48b2-9c21-3a526bae7846-verified.json",
+    "files": [
+      {
+        "path": "budget.test.mjs",
+        "content": "import test from 'node:test';\nimport assert from 'node:assert/strict';\nimport { balance } from './dist/budget.mjs';\ntest('built application sums credits and debits and handles empty input', () => {\n  assert.equal(balance([25, -5, 10]), '$30.00');\n  assert.equal(balance([]), '$0.00');\n});\n"
+      },
+      {
+        "path": "build.mjs",
+        "content": "import { mkdir, copyFile } from 'node:fs/promises';\n// A build must load the source first, so missing imports are genuine failures.\nawait import('./src/budget.mjs');\nawait mkdir('dist', { recursive: true });\nfor (const file of ['budget.mjs', 'settings.mjs']) await copyFile(`src/${file}`, `dist/${file}`);\nconsole.log('Built budget module into dist');\n"
+      },
+      {
+        "path": "package.json",
+        "content": "{\"name\":\"unfinished-budget\",\"version\":\"0.1.0\",\"type\":\"module\",\"private\":true,\"scripts\":{\"build\":\"node build.mjs\",\"test\":\"node --test budget.test.mjs\"}}\n"
+      },
+      {
+        "path": "src/budget.mjs",
+        "content": "import { currency } from './settings.mjs';\nexport function balance(entries) { return `${currency}${entries.reduce((sum, value) => sum + value, 0).toFixed(2)}`; }\n"
+      },
+      {
+        "path": "src/settings.mjs",
+        "content": "export const currency = '$';\n"
+      }
+    ],
+    "receipt": {
+      "id": "ab79b32a-820d-4ce6-9a3e-e36b2ac54e9f",
+      "jobId": "24748ddbc2ff54d571a138b6b1dc50d72e450618c3aabde963b37b5b54d39cb9",
+      "ok": true,
+      "exitCode": 0,
+      "stdout": "\n> unfinished-budget@0.1.0 build\n> node build.mjs\n\nBuilt budget module into dist\n\n> unfinished-budget@0.1.0 test\n> node --test budget.test.mjs\n\nTAP version 13\n# Subtest: built application sums credits and debits and handles empty input\nok 1 - built application sums credits and debits and handles empty input\n  ---\n  duration_ms: 0.580555\n  type: 'test'\n  ...\n1..1\n# tests 1\n# suites 0\n# pass 1\n# fail 0\n# cancelled 0\n# skipped 0\n# todo 0\n# duration_ms 45.889389\n",
+      "stderr": "",
+      "startedAt": 1794542774457,
+      "finishedAt": 1794542777838,
+      "checks": [
+        "npm run build",
+        "npm test"
+      ],
+      "image": "node@sha256:e9f565d32859f0cbfb52125eafe8be39390f24dac302dc3cdf566e8ba3ab21ee",
+      "isolation": "network-none/read-only-root/non-root/resource-limited",
+      "scope": "Declared project commands exited zero; not a proof of arbitrary application behavior",
+      "digest": "cf77a3d13120e61538d2435f15f75ecdd1967a83b0dd3d383bfda86ca8e06182",
+      "at": 1794542778002,
+      "inputDigest": "2052dad5b8eb1ffa6ee98be73f1c60cb3d84dac9cee7d1fe470442c558825650",
+      "sourceProjectId": "project-d1f5480d-d5af-48b2-9c21-3a526bae7846",
+      "approval": {
+        "id": "da64f5bf-cb6b-4c89-99ad-30e107d31e82",
+        "jobId": "24748ddbc2ff54d571a138b6b1dc50d72e450618c3aabde963b37b5b54d39cb9",
+        "decision": "approve",
+        "planDigest": "1a3de3e5da50aa57814067d90f35415e2ae6ded44489807548dd0ea3be71153e",
+        "at": 1794542774202,
+        "scope": "One isolated local build/test; no publish, network, spending or source overwrite"
+      }
+    },
+    "limitation": "Source bundle and command evidence; generated build outputs are not exported from the container"
+  },
+  {
+    "stage": "disk-restart-confirmed",
+    "projectId": "project-d1f5480d-d5af-48b2-9c21-3a526bae7846",
+    "receiptId": "ab79b32a-820d-4ce6-9a3e-e36b2ac54e9f",
+    "cursor": {
+      "project-d1f5480d-d5af-48b2-9c21-3a526bae7846": {
+        "digest": "2052dad5b8eb1ffa6ee98be73f1c60cb3d84dac9cee7d1fe470442c558825650",
+        "reportId": "c1989d7d-e66e-4a30-b18a-2a18bb1ec43a"
+      }
+    }
+  }
+]

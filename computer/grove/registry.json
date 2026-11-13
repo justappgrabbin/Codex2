@@ -1,0 +1,56 @@
+{
+  "source": "local-registry",
+  "note": "Grove Store. Local registry always works offline. Optional packages install from this registry or a configured local path. Listing and installing from Alexis's Supabase storage bucket uses existing env names only: SUPABASE_PRIMARY_URL or SUPABASE_URL, plus SUPABASE_ANON_KEY or SUPABASE_PRIMARY_KEY or SUPABASE_SERVICE_ROLE_KEY or SUPABASE_KEY, and optional SUPABASE_APP_BUCKET (defaults to synthia-apps). No credentials are stored here. Once an app is installed under the device install root, it stays usable without Supabase.",
+  "builtin": [
+    {
+      "id": "filemanager",
+      "name": "File Manager",
+      "installed": true
+    },
+    {
+      "id": "ingest",
+      "name": "Import",
+      "installed": true
+    },
+    {
+      "id": "texteditor",
+      "name": "Text Editor",
+      "installed": true
+    },
+    {
+      "id": "codeeditor",
+      "name": "Code Editor",
+      "installed": true
+    },
+    {
+      "id": "chat",
+      "name": "Synthia",
+      "installed": true
+    },
+    {
+      "id": "terminal",
+      "name": "Terminal",
+      "installed": true
+    },
+    {
+      "id": "system-terminal",
+      "name": "System Terminal",
+      "installed": true
+    },
+    {
+      "id": "grovestore",
+      "name": "Grove Store",
+      "installed": true
+    }
+  ],
+  "packages": [
+    {
+      "id": "linux-guest-r22",
+      "name": "r22 Linux Guest (v86)",
+      "version": "22.2",
+      "description": "Alexis's bundled 32-bit x86 Linux ISO in v86. Optional module already present at /modules/r22-linux-guest/.",
+      "location": "modules/r22-linux-guest",
+      "kind": "local-module"
+    }
+  ]
+}

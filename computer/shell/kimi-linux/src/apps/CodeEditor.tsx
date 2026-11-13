@@ -4,10 +4,13 @@
 
 import { useState, useCallback, useMemo, useRef } from 'react';
 import { useFileSystem } from '@/hooks/useFileSystem';
+import { MonacoPane } from '@/editor/MonacoPane';
 import {
   Code2, X, Plus, Search, Save, FolderOpen, FileText,
-  ChevronRight, ChevronDown, Folder,
+  ChevronRight, ChevronDown, Folder, Sparkles, Play,
 } from 'lucide-react';
+import { SelfHelptonPanel } from '@/editor/self-helpton/SelfHelptonPanel';
+import { loadSettings, setSelfHelptonPanelEnabled } from '@/lib/editor-settings.mjs';
 
 interface EditorTab {
   id: string;
@@ -151,6 +154,8 @@ export default function CodeEditor() {
   const [cursorPos, setCursorPos] = useState({ line: 1, col: 1 });
   const [executionOutput, setExecutionOutput] = useState('');
   const [running, setRunning] = useState(false);
+  const [splitView, setSplitView] = useState(false);
+  const [showSelfHelpton, setShowSelfHelpton] = useState(() => loadSettings().selfHelptonPanel);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const lineNumbersRef = useRef<HTMLDivElement>(null);
 
@@ -169,14 +174,54 @@ export default function CodeEditor() {
       if (!response.ok) throw new Error(receipt.error || `Execution failed (${response.status})`);
       const outcome = receipt.result?.result;
       const value = outcome?.returnValue;
+      const stdout = Array.isArray(receipt.stdout) ? receipt.stdout
+        : receipt.output ? [receipt.output]
+        : (outcome?.stdout ?? []);
       setExecutionOutput([
         receipt.ok ? 'Execution complete' : 'Execution failed',
         `Path: ${receipt.path ?? 'unknown'}`,
         `Address: ${receipt.address?.dimension ?? 'unknown'} · Gate ${receipt.address?.gate ?? '?'}`,
-        ...(outcome?.stdout ?? []),
+        ...stdout,
         value === undefined ? '' : typeof value === 'string' ? value : JSON.stringify(value, null, 2),
         outcome?.error ? String(outcome.error) : '',
       ].filter(Boolean).join('\n'));
+    } catch (error) { setExecutionOutput(String(error)); }
+    finally { setRunning(false); }
+  };
+
+  // Play: save the active file, then run its project folder through the hidden
+  // Linux backend. Static folders (index.html) open in the preview window.
+  const playProject = async () => {
+    if (!activeTab || running) return;
+    setRunning(true);
+    setExecutionOutput('Preparing the selected project…');
+    try {
+      const filePath = activeTab.fileNodeId
+        ? fs.getNodePath(activeTab.fileNodeId).replace(/^\/+/, '/')
+        : `/home/user/Documents/${activeTab.name}`;
+      const save = await fetch('/api/files', {
+        method: 'PUT', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ path: filePath, content: activeTab.content }),
+      });
+      if (!save.ok) throw new Error((await save.json()).error || 'Computer file save failed');
+      const projectPath = filePath.includes('/') ? filePath.slice(0, filePath.lastIndexOf('/')) || '/' : '/';
+      window.localStorage.setItem('synthia_active_project', projectPath);
+      const response = await fetch('/api/projects/play', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ path: projectPath }),
+      });
+      const result = await response.json();
+      if (!response.ok || !result.ok) throw new Error(result.error || result.stderr || 'Play failed');
+      if (result.mode === 'preview' && result.url) {
+        window.dispatchEvent(new CustomEvent('synthia:play-project', { detail: { url: result.url, name: projectPath } }));
+        setExecutionOutput(`Playing ${projectPath} (${result.entry}) in the preview window.`);
+      } else {
+        setExecutionOutput([
+          `Played ${result.entry} through the hidden Linux backend`,
+          result.stdout,
+          result.stderr,
+        ].filter(Boolean).join('\n'));
+      }
     } catch (error) { setExecutionOutput(String(error)); }
     finally { setRunning(false); }
   };
@@ -201,6 +246,14 @@ export default function CodeEditor() {
     } catch (error) { setExecutionOutput(String(error)); }
     finally { setRunning(false); }
   };
+
+  const toggleSelfHelpton = useCallback(() => {
+    setShowSelfHelpton((on) => {
+      const next = !on;
+      setSelfHelptonPanelEnabled(next);
+      return next;
+    });
+  }, []);
 
   const userNodeId = useMemo(() => {
     const rootChildren = Object.values(fs.fs.nodes).filter((n) => n.parentId === null);
@@ -236,9 +289,9 @@ export default function CodeEditor() {
   const newFile = useCallback(() => {
     const newTab: EditorTab = {
       id: Date.now().toString() + Math.random().toString(36).slice(2),
-      name: 'untitled.txt',
-      content: '',
-      language: 'plaintext',
+      name: 'untitled.js',
+      content: 'console.log(2+2);\n',
+      language: 'javascript',
       isDirty: false,
     };
     setTabs((prev) => [...prev, newTab]);
@@ -291,7 +344,24 @@ export default function CodeEditor() {
         );
       }
     }
-    setExecutionOutput(`Saved ${activeTab.name} in the Computer workspace.`);
+    // WIRE: her ProjectWorkspace keeps the named project. The file above is already stored.
+    let workspaceNote = '';
+    try {
+      const response = await fetch('/api/workspace', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: 'Computer workspace',
+          files: [{ path: activeTab.name, content: activeTab.content, type: 'text/plain' }],
+        }),
+      });
+      const saved = await response.json();
+      if (!response.ok) throw new Error(saved.error || 'Workspace save failed');
+      workspaceNote = ` Project ${saved.id} kept.`;
+    } catch (error) {
+      workspaceNote = ` Workspace record was not kept: ${error instanceof Error ? error.message : String(error)}`;
+    }
+    setExecutionOutput(`Saved ${activeTab.name} in the Computer workspace.${workspaceNote}`);
   }, [activeTab, fs, userNodeId]);
 
   const updateContent = useCallback(
@@ -385,8 +455,21 @@ export default function CodeEditor() {
         <button onClick={runFile} disabled={!activeTab || running} className="flex items-center gap-1 px-2 py-1 rounded hover:bg-[var(--bg-hover)] disabled:opacity-40" title="Execute current file through Synthia">
           <Code2 size={14} /><span className="text-xs">{running ? 'Running' : 'Run'}</span>
         </button>
+        <button onClick={playProject} disabled={!activeTab || running} className="flex items-center gap-1 px-2 py-1 rounded hover:bg-[var(--bg-hover)] disabled:opacity-40" title="Play the selected project through the hidden Linux backend">
+          <Play size={14} /><span className="text-xs">Play</span>
+        </button>
         <button onClick={analyzeStructure} disabled={!activeTab || !activeTab.content.trim() || running} className="flex items-center gap-1 px-2 py-1 rounded hover:bg-[var(--bg-hover)] disabled:opacity-40" title="Analyze structure through the existing shared Computer engine">
           <Search size={14} /><span className="text-xs">Analyze structure</span>
+        </button>
+        <button
+          onClick={toggleSelfHelpton}
+          aria-pressed={showSelfHelpton}
+          data-testid="self-helpton-toggle"
+          className="flex items-center gap-1 px-2 py-1 rounded hover:bg-[var(--bg-hover)] transition-colors"
+          title="Toggle Self-Helpton panel (optional)"
+          style={showSelfHelpton ? { background: 'var(--bg-hover)' } : undefined}
+        >
+          <Sparkles size={14} /><span className="text-xs">Self-Helpton</span>
         </button>
         <div className="ml-auto flex items-center gap-2">
           {activeTab && (
@@ -462,45 +545,22 @@ export default function CodeEditor() {
           {activeTab ? (
             <>
               <div className="flex-1 flex overflow-hidden relative">
-                {/* Line numbers */}
-                <div
-                  ref={lineNumbersRef}
-                  className="shrink-0 overflow-hidden text-right py-2 select-none"
-                  style={{ width: 48, background: 'var(--bg-window)', color: 'var(--text-disabled)', fontSize: 12, fontFamily: "'JetBrains Mono', monospace", lineHeight: '20px' }}
-                >
-                  {lineNumbers.map((n) => (
-                    <div key={n} className="pr-3" style={{ height: 20 }}>{n}</div>
-                  ))}
-                </div>
-
-                {/* Code area with highlighting */}
-                <div className="flex-1 relative overflow-auto">
-                  {/* Syntax highlight layer */}
-                  <div
-                    className="absolute inset-0 py-2 px-1 pointer-events-none whitespace-pre"
-                    style={{ fontSize: 13, fontFamily: "'JetBrains Mono', monospace", lineHeight: '20px', color: 'var(--text-primary)' }}
-                    dangerouslySetInnerHTML={{ __html: highlightedHtml + '\n' }}
-                  />
-                  {/* Input textarea */}
-                  <textarea
-                    ref={textareaRef}
+                <div className="flex-1 min-w-0">
+                  <MonacoPane
                     value={activeTab.content}
-                    onChange={(e) => updateContent(activeTab.id, e.target.value)}
-                    onKeyDown={handleKeyDown}
-                    onClick={handleCursor}
-                    onKeyUp={handleCursor}
-                    onScroll={handleScroll}
-                    spellCheck={false}
-                    className="absolute inset-0 w-full h-full py-2 px-1 resize-none outline-none bg-transparent whitespace-pre"
-                    style={{
-                      fontSize: 13,
-                      fontFamily: "'JetBrains Mono', monospace",
-                      lineHeight: '20px',
-                      color: 'transparent',
-                      caretColor: 'var(--text-primary)',
-                    }}
+                    language={activeTab.language}
+                    onChange={(value) => updateContent(activeTab.id, value)}
                   />
                 </div>
+                {splitView && (
+                  <div className="flex-1 min-w-0 border-l" style={{ borderColor: 'var(--border-subtle)' }}>
+                    <MonacoPane
+                      value={activeTab.content}
+                      language={activeTab.language}
+                      onChange={(value) => updateContent(activeTab.id, value)}
+                    />
+                  </div>
+                )}
               </div>
 
               {/* Status Bar */}
@@ -527,6 +587,9 @@ export default function CodeEditor() {
             </div>
           )}
         </div>
+        {showSelfHelpton && (
+          <SelfHelptonPanel getContent={() => activeTab?.content ?? ''} />
+        )}
       </div>
     </div>
   );
