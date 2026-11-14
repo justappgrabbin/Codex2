@@ -19,9 +19,10 @@ canvas{position:fixed;inset:0;width:100%;height:100%;touch-action:none}
   </select>
   <label class="b">Your photo<input id="pick" type="file" accept="image/*" hidden></label>
   <button id="zin">Zoom +</button><button id="zout">Zoom −</button>
-  <b id="rung" style="color:#fff;padding:0 4px"></b><button id="sound">Sound off</button><button id="layersBtn">Layers: all</button>
+  <select id="sys"><option value="">System: none</option><option>Dimension</option><option>Gate</option><option>Line</option><option>Color</option><option>Tone</option><option>Base</option><option>Zodiac</option><option>House</option></select><select id="item" style="max-width:190px"></select><b id="rung" style="color:#fff;padding:0 4px"></b><button id="sound">Sound off</button><button id="layersBtn">Layers: all</button>
 </div>
 <canvas id="mosaic"></canvas><canvas id="words"></canvas>
+<div id="info" style="position:fixed;left:6px;right:6px;bottom:96px;z-index:3;font-size:11px;background:#000b;padding:4px 6px;border-radius:6px;display:none"></div><canvas id="sysov" style="image-rendering:pixelated;pointer-events:none"></canvas>
 <div id="ops"></div>
 <script>
 // Five dimension layers. Nobody draws the picture: each layer writes what it is (the photo seen through
@@ -77,6 +78,40 @@ function drawGeom(ctx, li, x, y, r) {
     k ? ctx.lineTo(x + Math.cos(a) * rr, y + Math.sin(a) * rr) : ctx.moveTo(x + Math.cos(a) * rr, y + Math.sin(a) * rr); }
   ctx.closePath(); ctx.fill();
 }
+
+// ---- address vocabulary (from the user's Consciousness Causal Graph spec) ----
+const GATE_INFO = {"1": ["The Creative", "Self-Expression / Originality", "Creation"], "2": ["The Receptive", "Direction / Receptivity", "Landscape"], "3": ["Difficulty at Beginning", "Ordering / Mutation", "Structure"], "4": ["Youthful Folly", "Formulization / Logic", "Memory"], "5": ["Waiting", "Rhythms / Natural Timing", "Rhythm / Timing"], "6": ["Friction", "Friction / Boundaries", "Sex / Survival"], "7": ["The Army", "Direction of the Collective", "Orientation"], "8": ["Holding Together", "Contribution / Expression", "Seeing"], "9": ["Small Taming", "Focus / Detail", "Structure"], "10": ["Treading", "Behavior / Self-Love", "Being"], "11": ["Peace", "Ideas / Harmony", "Illusion / Form"], "12": ["Standstill", "Caution / Articulation", "Hearing / Music"], "13": ["The Listener", "Listening / Memory", "Memory"], "14": ["Possessions in Great Measure", "Power Skills / Resources", "Progress"], "15": ["Modesty", "Extremes / Rhythm", "Rhythm"], "16": ["Enthusiasm", "Selectivity / Skill", "Music / Expression"], "17": ["Following", "Opinions / Future Vision", "Gravity"], "18": ["Work on Spoilt", "Correction / Editing", "Structure / Decay"], "19": ["Approach", "Wanting / Synthesis", "Touch"], "20": ["Contemplation", "Presence / Now", "Environment"], "21": ["Biting Through", "Control / Authority", "Structure"], "22": ["Grace", "Openness / Emotional Art", "Music / Form"], "23": ["Splitting Apart", "Assimilation / Clarity", "Light"], "24": ["Returning", "Rationalization / Memory", "Memory"], "25": ["Innocence", "Spirit / Universal Love", "Love"], "26": ["Taming Power of Great", "Egoist / Trickster", "Life / Art"], "27": ["Nourishment", "Caring / Preservation", "Survival"], "28": ["Great Preponderance", "Struggle / Purpose", "Survival"], "29": ["The Abysmal", "Commitment / Perseverance", "Matter"], "30": ["Clinging Fire", "Passion / Desires", "Fantasy / Form"], "31": ["Leading", "Influence / Voice", "Orientation"], "32": ["Duration", "Continuity / Preservation", "Continuity"], "33": ["Retreat", "Retrospect / Privacy", "Memory"], "34": ["Power of Great", "Power / Pure Force", "Matter / Body"], "35": ["Progress", "Change / Experience", "Progress"], "36": ["Darkening of Light", "Crisis / Humanity", "Illusion"], "37": ["Family", "Friendship / Community", "Touch"], "38": ["Opposition", "Fighter / Integrity", "Survival"], "39": ["Obstruction", "Provocation / Energy", "Energy"], "40": ["Deliverance", "Aloneness / Willingness", "Ego / Structure"], "41": ["Decrease", "Contraction / Fantasy", "Fantasy"], "42": ["Increase", "Growth / Completion", "Growth"], "43": ["Insight", "Breakthrough / Insight", "Light"], "44": ["Coming to Meet", "Alertness / Patterns", "Smell / Structure"], "45": ["Gathering Together", "Gatherer / Dominance", "Manifestation"], "46": ["Pushing Upward", "Determination / Body", "Biology / Body"], "47": ["Oppression", "Realization / Mind", "Memory"], "48": ["The Well", "Depth / Solutions", "Structure"], "49": ["Revolution", "Principles / Rejection", "Survival"], "50": ["The Cauldron", "Values / Responsibility", "Structure"], "51": ["The Arousing", "Shock / Initiation", "Energy"], "52": ["Keeping Still", "Stillness / Concentration", "Structure"], "53": ["Development", "Development / Beginnings", "Progress"], "54": ["Marrying Maiden", "Ambition / Drive", "Manifestation"], "55": ["Abundance", "Spirit / Emotional Wave", "Music / Freedom"], "56": ["The Wanderer", "Stimulation / Storytelling", "Fantasy / Illusion"], "57": ["Gentle", "Intuitive Clarity", "Smell"], "58": ["Joyous", "Vitality / Joy", "Biology"], "59": ["Dispersion", "Intimacy / Sex", "Sex"], "60": ["Limitation", "Acceptance / Limitation", "Limitation"], "61": ["Inner Truth", "Mystery / Truth", "Light"], "62": ["Small Preponderance", "Details / Precision", "Form"], "63": ["After Completion", "Doubt / Inquiry", "Gravity"], "64": ["Before Completion", "Confusion / Abstract", "Memory"]};
+const GATE_WHEEL = [41,19,13,49,30,55,37,63,22,36,25,17,21,51,42,3,27,24,2,23,8,20,16,35,45,12,15,52,39,53,62,56,
+  31,33,7,4,29,59,40,64,47,6,46,18,48,57,32,50,28,44,1,43,14,34,9,5,26,11,10,58,38,54,61,60];
+const WHEEL_START = 302;
+const LINES = ['Foundation','Natural','Experimentation','Externalization','Projection','Transition'];
+const COLORS = ['Fear','Hope','Desire','Need','Guilt','Innocence'];
+const TONES = ['Security','Uncertainty','Action','Meditation','Judgement','Acceptance'];
+const BASES = ['Movement','Evolution','Being','Design','Space'];
+const SIGNS = [['Aries','Initiative, Spark'],['Taurus','Persistence, Substance'],['Gemini','Connectivity, Syntax'],['Cancer','Sanctuary, Memory'],
+  ['Leo','Vitality, Creation'],['Virgo','Order, Craft'],['Libra','Harmony, Mirroring'],['Scorpio','Regeneration, Fusion'],
+  ['Sagittarius','Truth, Trajectory'],['Capricorn','Structure, Integrity'],['Aquarius','Frequency, Collective'],['Pisces','Unity, Resonance']];
+const HOUSES = ['Emergence / Self-Identity','Resources / Material Form','Local Exchange / Duality','Roots / Containment','Radiance / Expression',
+  'Refinement / Synthesis','Equanimity / Mirroring','Transmutation / Depth','Vector / Expansion','Architecture / Mastery','Network / Innovation','Dissolution / Transcendent'];
+// one longitude -> the whole address chain (degree breakdown: gate 5.625, line /6, color /6, tone /6, base /5)
+function addressOf(lon) {
+  const p = ((lon - WHEEL_START) % 360 + 360) % 360 / 5.625, gi = Math.floor(p);
+  let f = p - gi; const line = Math.floor(f * 6); f = f * 6 - line;
+  const color = Math.floor(f * 6); f = f * 6 - color; const tone = Math.floor(f * 6); f = f * 6 - tone; const base = Math.floor(f * 5);
+  const sign = Math.floor(((lon % 360) + 360) % 360 / 30);
+  return { gate: GATE_WHEEL[gi], line, color, tone, base, sign, house: sign, lon };
+}
+const SYSTEMS = {
+  Dimension: { n: 5, of: a => a.base, label: i => BASES[i] },
+  Gate: { n: 64, of: a => a.gate - 1, label: i => `${i + 1} · ${GATE_INFO[i + 1][0]} — ${GATE_INFO[i + 1][1]}` },
+  Line: { n: 6, of: a => a.line, label: i => `Line ${i + 1} · ${LINES[i]}` },
+  Color: { n: 6, of: a => a.color, label: i => `Color ${i + 1} · ${COLORS[i]}` },
+  Tone: { n: 6, of: a => a.tone, label: i => `Tone ${i + 1} · ${TONES[i]}` },
+  Base: { n: 5, of: a => a.base, label: i => `Base ${i + 1} · ${BASES[i]}` },
+  Zodiac: { n: 12, of: a => a.sign, label: i => `${SIGNS[i][0]} — ${SIGNS[i][1]}` },
+  House: { n: 12, of: a => a.house, label: i => `House ${i + 1} · ${HOUSES[i]}` },
+};
+const describe = a => `Gate ${a.gate} ${GATE_INFO[a.gate][0]} (${GATE_INFO[a.gate][1]}) · Line ${a.line + 1} ${LINES[a.line]} · Color ${a.color + 1} ${COLORS[a.color]} · Tone ${a.tone + 1} ${TONES[a.tone]} · Base ${a.base + 1} ${BASES[a.base]} · ${SIGNS[a.sign][0]} · House ${a.house + 1}`;
 const NATO = ['Alfa','Bravo','Charlie','Delta','Echo','Foxtrot','Golf','Hotel','India','Juliett','Kilo','Lima','Mike','November','Oscar','Papa','Quebec','Romeo','Sierra','Tango','Uniform','Victor','Whiskey','X-ray','Yankee','Zulu'];
 
 const BY_DIM = [0, 1, 2, 3, 4].map(d => NATO.map((w, i) => [w, i]).filter(([w]) => firstVowelDim(w) === d).map(([, i]) => i));
@@ -99,7 +134,26 @@ function prepare() {
   src = o.getImageData(0, 0, GW, GH).data;
   mc.width = GW; mc.height = GH; buf = mx.createImageData(GW, GH);
   words = Array.from({ length: 700 }, () => newWord());
+  // every cell gets an address. Placeholder for where it sits on the wheel: its angle around the picture centre
+  // (0 deg at the top, clockwise). The chain below that is real degree math.
+  addr = new Array(GW * GH);
+  for (let y = 0; y < GH; y++) for (let x = 0; x < GW; x++)
+    addr[y * GW + x] = addressOf((Math.atan2(x - GW / 2, -(y - GH / 2)) * 180 / Math.PI + 360) % 360);
+  drawSystem();
 }
+let addr = [], curSys = '', curItem = -1;
+function drawSystem() {
+  const ov = document.getElementById('sysov'); ov.width = GW; ov.height = GH;
+  const c = ov.getContext('2d'); if (!curSys || !addr.length) return;
+  const S = SYSTEMS[curSys], im = c.createImageData(GW, GH);
+  for (let k = 0; k < GW * GH; k++) {
+    const i = S.of(addr[k]), hue = i / S.n * 360, sel = curItem < 0 || curItem === i;
+    const [r, g, b] = hsl(hue, 0.85, sel ? 0.55 : 0.12);
+    im.data[k * 4] = r; im.data[k * 4 + 1] = g; im.data[k * 4 + 2] = b; im.data[k * 4 + 3] = curItem < 0 ? 95 : sel ? 70 : 200;
+  }
+  c.putImageData(im, 0, 0);
+}
+function hsl(h, s, l) { const a = s * Math.min(l, 1 - l), f = n => { const k = (n + h / 30) % 12; return 255 * (l - a * Math.max(-1, Math.min(k - 3, 9 - k, 1))); }; return [f(0) | 0, f(8) | 0, f(4) | 0]; }
 function newWord() {
   const x = Math.random() * GW, y = Math.random() * GH, i = ((y | 0) * GW + (x | 0)) * 4;
   const byte = src ? ((src[i] * 0.3 + src[i + 1] * 0.59 + src[i + 2] * 0.11) | 0) : 0;
@@ -147,7 +201,7 @@ function frame(now) {
   }
   mx.putImageData(buf, 0, 0);
   // zoom: scale both canvases around the centre
-  const tf = `scale(${zoom})`; mc.style.transform = tf; wc.style.transform = tf;
+  const tf = `scale(${zoom})`; mc.style.transform = tf; wc.style.transform = tf; document.getElementById('sysov').style.transform = tf;
   mc.style.opacity = Math.max(0.15, 1.15 - zoom * 0.25);
   // words flow along the gradient of their dimension's figure, toward its nodal lines, colored by what's under them
   wx.clearRect(0, 0, W, H);
@@ -191,6 +245,24 @@ addEventListener('wheel', e => { zoom = Math.max(1, Math.min(6, zoom * (e.deltaY
 // operator slots
 document.getElementById('ops').innerHTML = SLOTS.map((s, i) => `<label>${s.name}<select data-i="${i}">${Object.keys(BANK).map(k => `<option${k === s.op ? ' selected' : ''}>${k}</option>`).join('')}</select></label>`).join('');
 document.getElementById('ops').onchange = e => { SLOTS[e.target.dataset.i].op = e.target.value; };
+document.getElementById('sys').onchange = e => {
+  curSys = e.target.value; curItem = -1; const S = SYSTEMS[curSys], sel = document.getElementById('item');
+  sel.innerHTML = curSys ? `<option value="-1">All ${curSys}s</option>` + Array.from({ length: S.n }, (_, i) => `<option value="${i}">${S.label(i)}</option>`).join('') : '';
+  document.getElementById('info').style.display = curSys ? 'block' : 'none';
+  document.getElementById('info').textContent = curSys ? `${curSys}: ${S.n} — pick one, or tap the picture` : '';
+  drawSystem();
+};
+document.getElementById('item').onchange = e => {
+  curItem = +e.target.value; drawSystem();
+  if (curItem >= 0) document.getElementById('info').textContent = SYSTEMS[curSys].label(curItem);
+};
+wc.addEventListener('pointerdown', e => {
+  if (!addr.length) return;
+  const cx0 = W / 2, cy0 = H / 2, x = (cx0 + (e.clientX - cx0) / zoom) / W * GW | 0, y = (cy0 + (e.clientY - cy0) / zoom) / H * GH | 0;
+  const a = addr[Math.max(0, Math.min(GH - 1, y)) * GW + Math.max(0, Math.min(GW - 1, x))]; if (!a) return;
+  const info = document.getElementById('info'); info.style.display = 'block'; info.textContent = describe(a);
+});
+window.__sys = (s, i) => { const el = document.getElementById('sys'); el.value = s; el.onchange({ target: el }); if (i != null) { const it = document.getElementById('item'); it.value = i; it.onchange({ target: it }); } };
 addEventListener('resize', fit); fit(); load('swarm-assets/celestial.jpg'); requestAnimationFrame(frame);
 window.__set = (k, v) => { if (k === 'zoom') zoom = v; if (k === 'photo') load(v); if (k === 'layer') onlyLayer = v; if (k === 'op') SLOTS[v[0]].op = v[1]; };
 </script></body></html>
