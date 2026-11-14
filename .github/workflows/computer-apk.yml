@@ -25,6 +25,9 @@ jobs:
         with:
           gradle-version: '8.7'
       - run: sdkmanager 'platforms;android-35' 'ndk;27.0.12077973' 'cmake;3.22.1'
+      # The integration tests execute code in the Docker construction worker; GitHub's Ubuntu
+      # runners have Docker, so pull its image first (same as `npm run prepare:worker` locally).
+      - run: node scripts/prepare-worker.mjs
       - run: npm --prefix computer ci && npm --prefix computer/shell/kimi-linux ci && npm --prefix computer run build && npm --prefix computer run test:integration
       - run: python computer/android/prepare-assets.py
       - name: Stage hidden Linux container (PRoot + Alpine)
