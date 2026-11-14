@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#140b22">
+  <title>Synthia · Living Execution Field</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <div class="stars"></div>
+  <header class="topbar">
+    <div class="identity">
+      <div class="sigil">S</div>
+      <div><h1>Synthia</h1><p>Living execution field · cultivation organism</p></div>
+    </div>
+    <div class="system-state"><i id="pulse"></i><span id="state-label">awakening</span></div>
+  </header>
+
+  <nav class="rail" aria-label="Synthia surfaces">
+    <button class="nav active" data-panel="home"><span>⌂</span>Field</button>
+    <button class="nav" data-panel="tray"><span>⌘</span>Execute</button>
+    <button class="nav" data-panel="channels"><span>◇</span>Channels</button>
+    <button class="nav" data-panel="outbox"><span>□</span>Outbox</button>
+  </nav>
+
+  <main>
+    <section class="panel active" id="home">
+      <div class="hero">
+        <p class="eyebrow">ONE ORGANISM · MANY INDEPENDENT HANDS</p>
+        <h2>Talk to the whole field.</h2>
+        <p>Every response crosses the sequential cognitive pipeline, the semantic population, local center and channel meshes, learning, governance, and felt physiology.</p>
+      </div>
+      <div class="metrics" id="metrics"></div>
+      <div class="dimension-strip" id="dimensions"></div>
+      <article class="card chat-card">
+        <div class="card-title"><span>Conversation field</span><small>7-stage trace + mesh coordination</small></div>
+        <div id="chat-log" class="chat-log"><div class="message synthia">I’m here. Give the organism something real to hold.</div></div>
+        <form id="chat-form" class="composer">
+          <textarea id="chat-input" rows="2" placeholder="Speak to Synthia…" required></textarea>
+          <button type="submit">Send through field</button>
+        </form>
+      </article>
+    </section>
+
+    <section class="panel" id="tray">
+      <div class="hero compact"><p class="eyebrow">EXECUTION TRAY</p><h2>Use every hand directly.</h2><p>The tray calls the same live instruments mounted in the organism. Choose one alone, or use chat and execution pipelines for coordinated work.</p></div>
+      <article class="card tray-card">
+        <div class="tray-grid">
+          <label>Surface<select id="tray-kind"></select></label>
+          <label>Instrument<select id="tray-id"></select></label>
+        </div>
+        <div id="instrument-meta" class="instrument-meta"></div>
+        <label>JSON input<textarea id="tray-input" rows="9">{}</textarea></label>
+        <button id="run-instrument">Run instrument</button>
+      </article>
+      <article class="card output-card"><div class="card-title"><span>Live result</span><small id="run-state">ready</small></div><pre id="tray-output">Select an instrument and run it.</pre></article>
+    </section>
+
+    <section class="panel" id="channels">
+      <div class="hero compact"><p class="eyebrow">36 LOCAL CHANNEL MESHES</p><h2>Distinct below. Opposite-equivalent above.</h2><p>Gate primitives remain distinct; their higher-order channel composite carries the opposite-equivalent relation across all five dimensional interpretations.</p></div>
+      <div class="channel-grid" id="channel-grid"></div>
+    </section>
+
+    <section class="panel" id="outbox">
+      <div class="hero compact"><p class="eyebrow">CONSENT + REVERSIBILITY</p><h2>Nothing user-facing changes silently.</h2><p>Self proposals and user proposals share an append-only ledger. Accepted edits retain rollback paths; dismissals remain evidence.</p></div>
+      <div id="proposal-list" class="proposal-list"></div>
+    </section>
+  </main>
+  <script type="module" src="/app.mjs"></script>
+</body>
+</html>

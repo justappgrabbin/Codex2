@@ -1,0 +1,16 @@
+{
+  "name": "synthia-integrated-automata",
+  "version": "0.5.0",
+  "description": "An authority-preserving Synthia cultivation organism with primitive execution, five-level state space, nine center meshes, 36 channel meshes, four neural organs, and consumed relational context.",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "start": "node src/ui/server.mjs",
+    "test": "node --test --test-concurrency=1 test/*.test.mjs",
+    "verify": "node scripts/verify.mjs",
+    "demo": "node scripts/demo.mjs"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
