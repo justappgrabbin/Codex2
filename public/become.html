@@ -115,15 +115,16 @@ function live(f){
       if(C&&${/\.(tsx|jsx)$/i.test(f.file)}){const{createElement}=await import('${packages.react||'react'}');const{createRoot}=await import('${packages['react-dom/client']||'react-dom/client'}');createRoot(document.getElementById('root')).render(createElement(C));}`;
     html=`<!doctype html><meta charset=utf-8><body><div id="root"></div><pre id="log"></pre><script>const L=document.getElementById('log');['log','error','warn'].forEach(k=>{const o=console[k];console[k]=(...a)=>{L.textContent+=a.join(' ')+'\\n';o(...a)}});window.onerror=(m)=>{L.textContent+='error: '+m+'\\n'};<\/script><script type="module">${mount}<\/script></body>`;
   }
-  html=/<head[^>]*>/i.test(html)?html.replace(/<head[^>]*>/i,m=>m+AGENT):AGENT+html;
+  html=html.replace(/<\/body>/i,m=>SWARMBODY+m);if(!/<\/body>/i.test(html))html+=SWARMBODY;
   // Function side: the real app runs in the frame, laid out at the swarm's size but not shown.
-  const W=cv.clientWidth,H=cv.clientHeight;const L=$('live');L.style.display='block';L.style.opacity='0';L.style.pointerEvents='none';L.style.width=W+'px';L.style.height=H+'px';
-  $('frame').srcdoc=html;$('side').style.display='block';$('side').textContent='Show real app';
-  face={file:f.file,bg:'#0b0b12',targets:[],letters:[],started:performance.now(),order:buildOrder(f.file),errors:[]};$('stat').textContent='becoming '+f.file.split('/').pop()+' — tap the swarm to use it';
+  const L=$('live');L.style.display='block';L.style.opacity='1';L.style.pointerEvents='auto';L.style.width='';L.style.height='';
+  $('frame').srcdoc=html;$('side').style.display='block';$('side').textContent='Snap into place';
+  face=null;swarmState={file:f.file,bg:'#0b0b12',targets:[],letters:[],started:performance.now(),order:buildOrder(f.file),errors:[]};$('stat').textContent='becoming '+f.file.split('/').pop()+' — tap the swarm to use it';
 }
 // Interface side: the swarm IS the screen. Each snapshot of the real app becomes particle targets
 // (boxes -> colored particles, text -> letters). Taps and keys go back to the real app.
-let face=null,parts=[];
+let face=null,parts=[],swarmState=null;
+addEventListener('message',e=>{const d=e.data||{};if(!swarmState)return;if(d.swarm==='units')$('stat').textContent=`${d.units} pieces of ${swarmState.file.split('/').pop()} are dancing — Snap into place`;if(d.swarm==='snapped'){$('stat').textContent=`${swarmState.file.split('/').pop()} snapped together — it's live, use it`;$('side').textContent='Dance again';}});
 function buildOrder(file){const g=result&&result.files;if(!g)return[];return g.filter(x=>x.file===file||(x.stages.analyze?.relationships?.collaborators||[]).includes(file)).map(x=>x.file);}
 addEventListener('message',e=>{const d=e.data||{};if(!face)return;
   if(d.swarm==='error'){face.errors.push(d.msg);return;}
@@ -143,10 +144,21 @@ function drawFace(t){const W=cv.clientWidth,H=cv.clientHeight;cx.fillStyle=face.
     if(i<all){cx.fillStyle=tg.c;cx.fillRect(p.x-1.6,p.y-1.6,3.2,3.2);}else{cx.fillStyle=tg.c;cx.font=`${tg.size}px system-ui`;cx.fillText(tg.ch,p.x,p.y);}}
   if(!face.targets.length&&!face.letters.length){cx.fillStyle='#8a86a0';cx.font='14px system-ui';cx.fillText('assembling '+face.file.split('/').pop()+'…',20,30);}
   if(face.errors.length){cx.fillStyle='#ff6b6b';cx.font='12px system-ui';cx.fillText('needs: '+face.errors[face.errors.length-1].slice(0,90),12,H-12);}}
+const SWARMBODY=`<style>.sw-u{transition:transform 1.1s cubic-bezier(.2,.9,.2,1.15),opacity .6s;will-change:transform}</style><script>(function(){
+var units=[],ready=false;
+function pick(){units=[];var all=document.body.querySelectorAll('*');for(var i=0;i<all.length;i++){var el=all[i];if(/^(SCRIPT|STYLE|LINK|META|HTML|BODY|HEAD)$/.test(el.tagName))continue;var r=el.getBoundingClientRect();if(r.width<2||r.height<2)continue;
+  var leaf=!el.querySelector('*')||/^(BUTTON|INPUT|A|IMG|SVG|CANVAS|SELECT|TEXTAREA|H1|H2|H3|P|LI|LABEL)$/.test(el.tagName);if(leaf)units.push(el);}}
+function scatter(spread){var W=innerWidth,H=innerHeight;units.forEach(function(el,i){el.classList.add('sw-u');var a=i*2.39996,r=spread*Math.sqrt((i+1)/units.length);el.style.transitionDelay=(i%40)*12+'ms';el.style.transform='translate('+(Math.cos(a)*r)+'px,'+(Math.sin(a)*r)+'px) rotate('+((i%7)-3)*8+'deg) scale(.6)';el.style.opacity='.55';});}
+function dance(t){if(!ready){units.forEach(function(el,i){var a=t/700+i;el.style.transitionDelay='0ms';el.style.transform='translate('+Math.cos(a)*40*Math.sin(i)+'px,'+Math.sin(a*1.3)*40*Math.cos(i)+'px) rotate('+Math.sin(a)*12+'deg) scale(.7)';});requestAnimationFrame(dance);}}
+function snap(){ready=true;units.forEach(function(el,i){el.style.transitionDelay=(i%60)*15+'ms';el.style.transform='none';el.style.opacity='1';});parent.postMessage({swarm:'snapped',units:units.length},'*');}
+function begin(){pick();scatter(Math.max(innerWidth,innerHeight)*0.6);setTimeout(function(){requestAnimationFrame(dance);},900);parent.postMessage({swarm:'units',units:units.length},'*');}
+addEventListener('message',function(e){var d=e.data||{};if(d.swarm==='snap')snap();if(d.swarm==='dance'){ready=false;pick();requestAnimationFrame(dance);}
+  if(d.swarm==='move'){var el=document.querySelector(d.selector)||document.elementFromPoint(d.x||0,d.y||0);if(!el)return;el.classList.add('sw-u');el.style.opacity='0';setTimeout(function(){el.style.transform='translate('+(d.dx||0)+'px,'+(d.dy||0)+'px)';el.style.opacity='1';},600);}});
+if(document.readyState==='complete')setTimeout(begin,50);else addEventListener('load',function(){setTimeout(begin,50);});})();<\/script>`;
 const AGENT=`<script>(function(){var send=function(){var out=[],els=document.body?document.body.querySelectorAll('*'):[];for(var i=0;i<els.length&&out.length<700;i++){var el=els[i],r=el.getBoundingClientRect();if(r.width<2||r.height<2||r.bottom<0||r.top>innerHeight*2)continue;var cs=getComputedStyle(el);if(cs.visibility==='hidden'||cs.display==='none'||+cs.opacity===0)continue;var bg=cs.backgroundColor,own='';for(var n=el.firstChild;n;n=n.nextSibling)if(n.nodeType===3)own+=n.textContent;own=own.replace(/\\s+/g,' ').trim().slice(0,90);if(!own&&el.tagName==='INPUT')own=el.value||el.placeholder||'';out.push({x:r.left,y:r.top,w:r.width,h:r.height,bg:(bg&&bg!=='rgba(0, 0, 0, 0)'&&bg!=='transparent')?bg:null,fg:cs.color,text:own,tag:el.tagName,act:!!(el.onclick||/^(BUTTON|A|INPUT|SELECT|TEXTAREA|LABEL)$/.test(el.tagName)||cs.cursor==='pointer')});}parent.postMessage({swarm:'snapshot',w:innerWidth,h:innerHeight,bg:document.body?getComputedStyle(document.body).backgroundColor:'',els:out},'*');};var t;var q=function(){clearTimeout(t);t=setTimeout(send,50);};new MutationObserver(q).observe(document.documentElement,{subtree:true,childList:true,attributes:true,characterData:true});addEventListener('load',q);addEventListener('error',function(e){parent.postMessage({swarm:'error',msg:String(e.message||e)},'*');});setInterval(send,1500);addEventListener('message',function(e){var d=e.data||{};if(d.swarm==='tap'){var el=document.elementFromPoint(d.x,d.y);if(el){if(el.focus)el.focus();el.dispatchEvent(new MouseEvent('pointerdown',{bubbles:true,clientX:d.x,clientY:d.y}));el.click();}q();}if(d.swarm==='key'){var a=document.activeElement;if(a&&'value' in a){a.value=d.key==='Backspace'?a.value.slice(0,-1):a.value+(d.key.length===1?d.key:'');a.dispatchEvent(new Event('input',{bubbles:true}));if(d.key==='Enter'&&a.form)a.form.requestSubmit&&a.form.requestSubmit();}q();}});q();})();<\/script>`;
 const b64=t=>btoa(unescape(encodeURIComponent(t)));
-$('side').onclick=()=>{const L=$('live');if(L.style.opacity==='0'){L.style.opacity='1';L.style.pointerEvents='auto';$('side').textContent='Swarm';}else{L.style.opacity='0';L.style.pointerEvents='none';$('side').textContent='Show real app';}};
-const exitFace=()=>{face=null;parts=[];$('live').style.display='none';$('side').style.display='none';};
+$('side').onclick=()=>{const w=$('frame').contentWindow;if($('side').textContent==='Snap into place')w.postMessage({swarm:'snap'},'*');else{w.postMessage({swarm:'dance'},'*');$('side').textContent='Snap into place';}};
+const exitFace=()=>{face=null;parts=[];swarmState=null;$('live').style.display='none';$('side').style.display='none';};
 function size(){const r=cv.getBoundingClientRect(),d=devicePixelRatio||1;cv.width=r.width*d;cv.height=r.height*d;cx.setTransform(d,0,0,d,0,0);}
 function tick(t){const W=cv.clientWidth,H=cv.clientHeight;cx.clearRect(0,0,W,H);if(face){drawFace(t);requestAnimationFrame(tick);return;}
   for(const n of nodes){const h=hubs.get(n.file);if(!h)continue;let tx=h.x,ty=h.y;
