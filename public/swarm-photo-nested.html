@@ -1,0 +1,157 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Five-Dimension Swarm Photo — nested levels</title>
+<style>
+html,body{margin:0;height:100%;background:#05060a;color:#cfd3e0;font:13px system-ui,sans-serif;overflow:hidden}
+#bar{position:fixed;top:0;left:0;right:0;display:flex;gap:6px;flex-wrap:wrap;align-items:center;padding:8px;background:#05060ad0;z-index:2}
+button,label.b{background:#161a26;color:#cfd3e0;border:1px solid #2a3044;border-radius:6px;padding:6px 10px;font:inherit}
+#lvl{font-weight:600;color:#fff;min-width:110px;text-align:center}
+#key{position:fixed;bottom:8px;left:8px;right:8px;display:flex;gap:10px;flex-wrap:wrap;font-size:12px;z-index:2}
+#key span{display:flex;align-items:center;gap:4px}#key i{width:10px;height:10px;border-radius:50%;display:inline-block}
+canvas{position:fixed;inset:0;width:100%;height:100%;touch-action:none}
+</style></head><body>
+<div id="bar">
+  <label class="b">Photo<input id="pick" type="file" accept="image/*" hidden></label>
+  <button id="down">− Down</button><span id="lvl"></span><button id="up">Up +</button>
+  <button id="again">Re-form</button>
+</div>
+<div id="key"></div>
+<canvas id="cv"></canvas>
+<script>
+// Nested levels. The pixel grid is fixed; each level is built FROM the level below:
+//  0 Binary   : every pixel is 8 bit-units (its luminance byte), drawn as a 4x2 dot cell
+//  1 ASCII    : the 8 bits of a pixel merge into one character
+//  2 NATO     : 4 characters (a 4x1 run of pixels) merge into one NATO word
+//  3 Translit : the same word, transliterated (Cyrillic)
+//  4 Unicode  : an 8-pixel block (2 wide x 4 tall) becomes one Braille character whose 8 dots are those pixels
+// When the level changes, each new unit starts at the centroid of the old units that made it, then settles.
+// Placeholder: dimension = byte % 5 (to be replaced by address-derived dimension).
+const DIMS = [
+  { name: 'Space', col: [80, 160, 255] }, { name: 'Evolution', col: [80, 230, 140] },
+  { name: 'Being', col: [255, 190, 70] }, { name: 'Movement', col: [255, 90, 110] },
+  { name: 'Design', col: [190, 120, 255] },
+];
+const LEVELS = ['Binary', 'ASCII', 'NATO', 'Transliteration', 'Unicode'];
+const NATO = ['Alfa','Bravo','Charlie','Delta','Echo','Foxtrot','Golf','Hotel','India','Juliett','Kilo','Lima','Mike','November','Oscar','Papa','Quebec','Romeo','Sierra','Tango','Uniform','Victor','Whiskey','X-ray','Yankee','Zulu'];
+const TR = { a:'а',b:'б',c:'ц',d:'д',e:'е',f:'ф',g:'г',h:'х',i:'и',j:'й',k:'к',l:'л',m:'м',n:'н',o:'о',p:'п',q:'к',r:'р',s:'с',t:'т',u:'у',v:'в',w:'в',x:'кс',y:'й',z:'з','-':'-' };
+const translit = w => [...w.toLowerCase()].map(c => TR[c] ?? c).join('');
+const RAMP = ' .:-=+*#%@';
+const C = 7; // pixel cell size (px)
+
+const cv = document.getElementById('cv'), cx = cv.getContext('2d');
+let W = 0, H = 0, img = null, level = 1, units = [], px = null, cols = 0, rows = 0, ox = 0, oy = 0, t0 = 0;
+
+function readPixels() {
+  cols = Math.floor(W / C); rows = Math.floor((H - 80) / C);
+  cols -= cols % 4; rows -= rows % 4;
+  const oc = document.createElement('canvas'); oc.width = cols; oc.height = rows;
+  const o = oc.getContext('2d'); const s = Math.min(cols / img.width, rows / img.height);
+  o.drawImage(img, (cols - img.width * s) / 2, (rows - img.height * s) / 2, img.width * s, img.height * s);
+  const d = o.getImageData(0, 0, cols, rows).data;
+  px = [];
+  for (let i = 0; i < cols * rows; i++) {
+    const r = d[i * 4], g = d[i * 4 + 1], b = d[i * 4 + 2], a = d[i * 4 + 3];
+    const lum = a < 10 ? 0 : (0.3 * r + 0.59 * g + 0.11 * b) / 255;
+    px.push({ c: [r, g, b], lum, byte: (lum * 255) | 0, a });
+  }
+  ox = (W - cols * C) / 2; oy = 50;
+}
+const P = (x, y) => px[y * cols + x];
+const avg = list => { const n = list.length, c = [0, 0, 0]; let l = 0; for (const p of list) { c[0] += p.c[0]; c[1] += p.c[1]; c[2] += p.c[2]; l += p.lum; } return { c: c.map(v => v / n), lum: l / n }; };
+
+// build units for a level; each unit lists the pixels it is made of
+function build(L) {
+  const out = [];
+  if (L === 0) for (let y = 0; y < rows; y++) for (let x = 0; x < cols; x++) {
+    const p = P(x, y); if (p.a < 10) continue;
+    for (let k = 0; k < 8; k++) out.push({ kind: 'bit', on: (p.byte >> (7 - k)) & 1, pix: [[x, y]], c: p.c, lum: p.lum, byte: p.byte,
+      tx: ox + x * C + 1 + (k % 4) * 1.6, ty: oy + y * C + 1.5 + ((k / 4) | 0) * 3.5 });
+  }
+  else if (L === 1) for (let y = 0; y < rows; y++) for (let x = 0; x < cols; x++) {
+    const p = P(x, y); if (p.a < 10) continue;
+    out.push({ kind: 'text', s: RAMP[Math.min(9, (p.lum * 10) | 0)], size: 9, pix: [[x, y]], c: p.c, lum: p.lum, byte: p.byte, tx: ox + x * C + C / 2, ty: oy + y * C + C / 2 });
+  }
+  else if (L === 2 || L === 3) for (let y = 0; y < rows; y++) for (let x = 0; x < cols; x += 4) {
+    const ps = [0, 1, 2, 3].map(i => P(x + i, y)); if (ps.every(p => p.a < 10)) continue;
+    const a = avg(ps), byte = (a.lum * 255) | 0, w = NATO[byte % 26];
+    out.push({ kind: 'text', s: L === 2 ? w : translit(w), size: 6.5, pix: [0, 1, 2, 3].map(i => [x + i, y]), c: a.c, lum: a.lum, byte, tx: ox + x * C + 2 * C, ty: oy + y * C + C / 2 });
+  }
+  else for (let y = 0; y < rows; y += 4) for (let x = 0; x < cols; x += 2) {
+    // Braille: dots 1-2-3-7 left column, 4-5-6-8 right column
+    const order = [[0, 0, 0], [0, 1, 1], [0, 2, 2], [1, 0, 3], [1, 1, 4], [1, 2, 5], [0, 3, 6], [1, 3, 7]];
+    const ps = [], cells = []; for (let j = 0; j < 4; j++) for (let i = 0; i < 2; i++) { ps.push(P(x + i, y + j)); cells.push([x + i, y + j]); }
+    if (ps.every(p => p.a < 10)) continue;
+    const a = avg(ps); let bits = 0;
+    for (const [i, j, b] of order) if (P(x + i, y + j).lum > 0.18) bits |= 1 << b;
+    out.push({ kind: 'text', s: String.fromCharCode(0x2800 + bits), size: 4 * C * 0.95, pix: cells, c: a.c, lum: a.lum, byte: (a.lum * 255) | 0, tx: ox + x * C + C, ty: oy + y * C + 2 * C });
+  }
+  for (const u of out) { u.d = u.byte % 5; u.ph = Math.random() * 6.283; }
+  return out;
+}
+
+function setLevel(L, scatter) {
+  // centroid of previous units per pixel -> where new units are born
+  const prev = new Map();
+  for (const u of units) for (const [x, y] of u.pix) { const k = y * cols + x, e = prev.get(k) || [0, 0, 0]; e[0] += u.x; e[1] += u.y; e[2]++; prev.set(k, e); }
+  level = L; units = build(L);
+  for (const u of units) {
+    let sx = 0, sy = 0, n = 0;
+    for (const [x, y] of u.pix) { const e = prev.get(y * cols + x); if (e) { sx += e[0] / e[2]; sy += e[1] / e[2]; n++; } }
+    if (n && !scatter) { u.x = sx / n; u.y = sy / n; } else { u.x = Math.random() * W; u.y = Math.random() * H; }
+  }
+  t0 = performance.now();
+  document.getElementById('lvl').textContent = LEVELS[L];
+}
+
+// five motions: Movement up, Being inward, Evolution outward, Design around, Space toward the meeting point
+function flow(u, k) {
+  const a = u.ph + k * 2.2, dx = u.tx - W / 2, dy = u.ty - H / 2, r = Math.hypot(dx, dy) || 1;
+  switch (DIMS[u.d].name) {
+    case 'Movement': return [Math.sin(a) * 0.6, -Math.abs(Math.sin(a)) * 2.5];
+    case 'Being': return [-dx / r * 2 * Math.sin(a), -dy / r * 2 * Math.sin(a)];
+    case 'Evolution': return [dx / r * 2 * Math.sin(a), dy / r * 2 * Math.sin(a)];
+    case 'Design': return [Math.cos(a) * 2, Math.sin(a) * 2];
+    default: return [-dx / r * 1.5 * Math.cos(a * 0.7), -dy / r * 1.5 * Math.cos(a * 0.7)];
+  }
+}
+
+function frame(now) {
+  cx.fillStyle = '#05060a'; cx.fillRect(0, 0, W, H);
+  const age = (now - t0) / 1000, k = now / 1000;
+  const settle = Math.min(1, age / 3), dance = 1 + (1 - settle) * 6; // big dance first, then a living shimmer
+  cx.textAlign = 'center'; cx.textBaseline = 'middle';
+  let font = 0;
+  for (const u of units) {
+    const f = flow(u, k), gx = u.tx + f[0] * dance, gy = u.ty + f[1] * dance;
+    u.x += (gx - u.x) * 0.1; u.y += (gy - u.y) * 0.1;
+    const dc = DIMS[u.d].col, m = 0.35 + 0.25 * (1 - settle), Lm = 0.3 + 0.7 * u.lum;
+    const col = `rgb(${u.c[0] * (1 - m) + dc[0] * Lm * m | 0},${u.c[1] * (1 - m) + dc[1] * Lm * m | 0},${u.c[2] * (1 - m) + dc[2] * Lm * m | 0})`;
+    if (u.kind === 'bit') {
+      cx.fillStyle = col; const s = u.on ? 1.5 : 0.6; cx.globalAlpha = u.on ? 1 : 0.35;
+      cx.fillRect(u.x - s / 2, u.y - s / 2, s, s); cx.globalAlpha = 1;
+    } else {
+      if (font !== u.size) { font = u.size; cx.font = u.size + 'px ui-monospace,Menlo,monospace'; }
+      cx.fillStyle = col; cx.fillText(u.s, u.x, u.y);
+    }
+  }
+  requestAnimationFrame(frame);
+}
+
+function defaultImage() {
+  const c = document.createElement('canvas'); c.width = 400; c.height = 400; const g = c.getContext('2d');
+  const gr = g.createRadialGradient(200, 170, 20, 200, 200, 260); gr.addColorStop(0, '#ffe2a8'); gr.addColorStop(.5, '#d0507a'); gr.addColorStop(1, '#101a40');
+  g.fillStyle = gr; g.fillRect(0, 0, 400, 400);
+  g.fillStyle = '#0b1028'; g.beginPath(); g.arc(200, 150, 55, 0, 7); g.fill(); g.fillRect(130, 210, 140, 190);
+  return c;
+}
+function useImage(src) { img = src; readPixels(); units = []; setLevel(level, true); }
+function size() { const d = devicePixelRatio || 1; W = innerWidth; H = innerHeight; cv.width = W * d; cv.height = H * d; cx.setTransform(d, 0, 0, d, 0, 0); if (img) useImage(img); }
+document.getElementById('pick').onchange = e => { const f = e.target.files[0]; if (!f) return; const im = new Image(); im.onload = () => useImage(im); im.src = URL.createObjectURL(f); };
+document.getElementById('up').onclick = () => level < 4 && setLevel(level + 1);
+document.getElementById('down').onclick = () => level > 0 && setLevel(level - 1);
+document.getElementById('again').onclick = () => setLevel(level, true);
+addEventListener('wheel', e => { const n = Math.max(0, Math.min(4, level + (e.deltaY < 0 ? 1 : -1))); if (n !== level) setLevel(n); });
+document.getElementById('key').innerHTML = DIMS.map(d => `<span><i style="background:rgb(${d.col})"></i>${d.name}</span>`).join('');
+W = innerWidth; H = innerHeight; size(); useImage(defaultImage()); addEventListener('resize', size); requestAnimationFrame(frame);
+window.__level = l => setLevel(l); window.__units = () => units.length;
+</script></body></html>
