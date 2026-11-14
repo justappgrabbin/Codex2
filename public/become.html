@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Synthia · Become</title>
+<script type="importmap">{"imports":{
+  "node:url":"/node-shims/url.mjs","node:path":"/node-shims/path.mjs","node:fs":"/node-shims/fs.mjs",
+  "node:fs/promises":"/node-shims/fs-promises.mjs","node:crypto":"/node-shims/crypto.mjs",
+  "node:child_process":"/node-shims/child_process.mjs","node:util":"/node-shims/util.mjs","node:os":"/node-shims/os.mjs","node:buffer":"/node-shims/buffer.mjs"}}</script>
+<script type="module" src="/node-shims/globals.mjs"></script>
+<style>
+:root{--bg:#0b0b12;--fg:#e8e6f0;--mut:#8a86a0;--line:#2a2838}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);font:14px system-ui,sans-serif;height:100vh;display:flex;flex-direction:column}
+header{display:flex;gap:8px;align-items:center;padding:8px 10px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+button,label.btn{background:#15141f;color:var(--fg);border:1px solid var(--line);border-radius:6px;padding:6px 10px;font:inherit;cursor:pointer}
+input[type=file]{display:none}.mut{color:var(--mut)}
+main{flex:1;display:flex;min-height:0;position:relative}canvas{flex:1;min-width:0;touch-action:none}
+aside{width:340px;max-width:46vw;border-left:1px solid var(--line);padding:10px;overflow:auto;font-size:13px}
+#drop{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;text-align:center;color:var(--mut);pointer-events:none;font-size:16px;padding:20px}
+#live{position:absolute;inset:0;background:#fff;display:none}#live iframe{width:100%;height:100%;border:0}
+#side{position:absolute;right:0;top:50%;transform:translateY(-50%);z-index:5;display:none;writing-mode:vertical-rl;padding:12px 6px;background:#b9a6ff;color:#000;border:0;border-radius:8px 0 0 8px;font-weight:600}
+.k{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:6px}
+.st{display:inline-block;padding:1px 6px;border-radius:9px;margin:1px;font-size:11px;background:#1d1c2a}
+.ok{background:#06d6a033}.bad{background:#ff6b6b33}.f{border-top:1px solid var(--line);padding:6px 0}
+pre{white-space:pre-wrap;background:#15141f;padding:6px;border-radius:6px;max-height:34vh;overflow:auto;font-size:11px}
+h3{margin:8px 0 4px;font-size:14px}
+@media(max-width:700px){main{flex-direction:column}aside{width:auto;max-width:none;height:42vh;border-left:0;border-top:1px solid var(--line)}}
+</style></head><body>
+<header>
+ <label class="btn">Add files<input id="pick" type="file" multiple></label>
+ <label class="btn">Add folder<input id="pickdir" type="file" webkitdirectory multiple></label>
+ <label class="mut"><input id="online" type="checkbox" checked> fetch outside packages (esm.sh) when live</label>
+ <a class="btn" href="apps/morphing-swarm-5d/index.html" target="_blank" style="text-decoration:none">Swarm world ↗</a>
+ <span id="stat" class="mut"></span>
+</header>
+<main>
+ <canvas id="c"></canvas>
+ <div id="drop">Drop files, a folder or a .zip.<br>Ingest → five pieces → analyze → execute → address → morph the backend → become.</div>
+ <div id="live"><iframe id="frame" sandbox="allow-scripts allow-forms allow-modals allow-popups"></iframe></div>
+ <button id="side">Layers</button>
+ <aside id="info"><p class="mut">Nothing in yet.</p></aside>
+</main>
+<script type="module">
+import { BecomePipeline, STAGES } from './computer-runtime/become/pipeline.mjs';
+import { linkModules } from './computer-runtime/become/module-runtime.mjs';
+import { unzipSync, strFromU8 } from './vendor/fflate.js';
+const COLOR={Movement:'#ff6b6b',Evolution:'#ffd166',Being:'#06d6a0',Design:'#4cc9f0',Space:'#b9a6ff'};
+const OUT={native:'#06d6a0','morphed-backend':'#ffd166',became:'#b9a6ff','live-frame':'#4cc9f0','understood-only':'#8a86a0','held-as-data':'#444'};
+const TEXT=/\.(m?[jt]sx?|cjs|py|html?|css|json|md|txt|ya?ml|toml|csv|svg|rs|go|java|kt|rb|php|lua|c|cc|cpp|h|hpp|cs|swift|sh)$/i;
+const $=id=>document.getElementById(id),cv=$('c'),cx=cv.getContext('2d');
+let files=[],result=null,nodes=[],hubs=new Map(),sel=null,progress=new Map();
+
+async function add(list){
+  for(const f of list){const path=f.webkitRelativePath||f.name;
+    if(/(^|\/)(node_modules|\.git|__MACOSX)\//.test(path))continue;
+    if(/\.zip$/i.test(path)){const z=unzipSync(new Uint8Array(await f.arrayBuffer()));
+      for(const[p,b]of Object.entries(z)){if(p.endsWith('/')||/(^|\/)(node_modules|\.git|__MACOSX)\//.test(p))continue;
+        files.push(TEXT.test(p)?{path:p,text:strFromU8(b)}:{path:p,text:'',bytes:b});}}
+    else files.push(TEXT.test(path)?{path,text:await f.text()}:{path,text:'',bytes:new Uint8Array(await f.arrayBuffer())});}
+  run();
+}
+async function run(){
+  $('drop').style.display='none';progress=new Map();sel=null;
+  const W=cv.clientWidth,H=cv.clientHeight;hubs=new Map(files.map((f,i)=>{const a=i*2.39996,r=Math.sqrt((i+.5)/files.length)*Math.min(W,H)*.44;return[f.path,{x:W/2+Math.cos(a)*r,y:H/2+Math.sin(a)*r,vx:0,vy:0}]}));
+  nodes=[];
+  const pipe=new BecomePipeline({liveScreen:false,onStage:({file,stage,data})=>{progress.set(file,stage);
+    if(stage==='five'&&data?.fields){const h=hubs.get(file);const total=Object.values(data.fields).reduce((a,b)=>a+b,0);
+      const n=Math.min(40,Math.max(4,Math.round(Math.sqrt(total)*2)));for(let i=0;i<n;i++)nodes.push({file,x:h.x,y:h.y,vx:(Math.random()-.5)*3,vy:(Math.random()-.5)*3,dim:null});}
+    if(stage==='analyze'){const d=data?.dimensions?.weights;if(d){const ks=Object.keys(d).filter(k=>d[k]>0),tot=ks.reduce((a,k)=>a+d[k],0);
+      const mine=nodes.filter(n=>n.file===file);let i=0;for(const k of ks){const c=Math.round(mine.length*d[k]/tot);for(let j=0;j<c&&i<mine.length;j++)mine[i++].dim=k;}}}
+    $('stat').textContent=`${progress.size}/${files.length} · ${file.split('/').pop()} → ${stage}`;}});
+  // let the page paint between files
+  const out=[];const t0=performance.now();
+  const graphRun=await pipe.run(files,{execute:true,become:true});
+  result=graphRun;$('stat').textContent=`${files.length} files · ${Math.round(performance.now()-t0)} ms`;
+  for(const f of result.files){const h=hubs.get(f.file);if(h)h.outcome=f.outcome;}
+  panel();
+}
+function panel(){
+  if(!result)return;const i=$('info');
+  if(sel){const f=sel;i.innerHTML=`<h3>${f.file}</h3><p>${STAGES.map(s=>f.stages[s]?`<span class="st ${s==='execute'?(f.stages.execute.ok?'ok':'bad'):''}">${s}</span>`:'').join('')}</p>`+
+    `<p><b>${f.outcome}</b> · ${f.kind}</p>`+(f.stages.analyze?.purpose?`<p>${esc(f.stages.analyze.purpose)}</p>`:'')+
+    (f.stages.analyze?.dimensions?.leading?`<p><span class="k" style="background:${COLOR[f.stages.analyze.dimensions.leading]}"></span>leads with ${f.stages.analyze.dimensions.leading} <span class="mut">(provisional)</span></p>`:'')+
+    `<p class="mut">five: ${Object.entries(f.stages.five?.fields||{}).map(([k,v])=>k+' '+v).join(' · ')}</p>`+
+    `<p class="mut">address: ${f.stages.address?.canonical ? (f.stages.address.canonical.dimension+' '+f.stages.address.canonical.gate+'.'+f.stages.address.canonical.line) : ''} · ${f.stages.address?.ontological||''}</p>`+
+    (f.stages.execute?`<p>execute: ${f.stages.execute.path}${f.stages.execute.requirements?.length?' · needs '+esc(f.stages.execute.requirements.join(', ')):''}</p>`:'')+
+    (f.stages.execute?.stdout?.length?`<pre>${esc(f.stages.execute.stdout.join('\n'))}</pre>`:'')+
+    (f.stages['morph-backend']?`<p>morph backend: ${f.stages['morph-backend'].path}</p>`:'')+
+    (f.stages.become?`<p>become: ${f.stages.become.strategy||f.stages.become.error} ${f.stages.become.confidence?('· confidence '+f.stages.become.confidence.toFixed(2)):''} ${f.stages.become.runs?('· rebuilt runs: '+f.stages.become.runs.ok):''}</p>`:'')+
+    (canLive(f)?`<button id="live-go">▶ Become live</button> `:'')+(f.stages.become?.code?`<button id="show-code">rebuilt code</button>`:'')+` <button id="back">Back</button><pre id="code" style="display:none"></pre>`;
+    $('back').onclick=()=>{sel=null;panel();};if($('live-go'))$('live-go').onclick=()=>live(f);
+    if($('show-code'))$('show-code').onclick=()=>{const p=$('code');p.textContent=f.stages.become.code;p.style.display='block';};return;}
+  const s=result.summary;
+  i.innerHTML=`<h3>What happened</h3>`+Object.entries({native:'ran as-is','morphed-backend':'ran after morphing the backend',became:'became (rebuilt & running)','live-frame':'needs a screen — become live','understood-only':'understood, waiting on requirements','held-as-data':'data / markup / assets'})
+    .map(([k,t])=>`<div><span class="k" style="background:${OUT[k]}"></span>${t}: ${s[{native:'native','morphed-backend':'morphedBackend',became:'became','live-frame':'liveFrame','understood-only':'understoodOnly','held-as-data':'data'}[k]]}</div>`).join('')+
+    `<h3>Leading dimension (provisional)</h3>`+Object.entries(s.leadingDimension).map(([d,n])=>`<div><span class="k" style="background:${COLOR[d]}"></span>${d} ${n}</div>`).join('')+
+    `<h3>Can become live</h3>`+(result.files.filter(canLive).slice(0,40).map(f=>`<div><button data-l="${esc(f.file)}">▶ ${esc(f.file.split('/').pop())}</button></div>`).join('')||'<p class="mut">none</p>')+
+    `<p class="mut">Tap a cluster to see every stage for that file.</p>`;
+  i.querySelectorAll('[data-l]').forEach(b=>b.onclick=()=>live(result.files.find(f=>f.file===b.dataset.l)));
+}
+const esc=s=>String(s).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+const canLive=f=>/\.html?$/i.test(f.file)||f.outcome==='live-frame'||f.outcome==='native'||f.outcome==='became';
+// Become live: html entries load their local files; components/scripts mount in a page.
+function live(f){
+  const byName=new Map(files.filter(x=>x.text).map(x=>[x.path,x.text]));
+  const packages=$('online').checked?new Proxy({}, {get:(_, k)=>typeof k==='string'?`https://esm.sh/${k}`:undefined}):{};
+  let html;
+  if(/\.html?$/i.test(f.file)){
+    html=byName.get(f.file).replace(/(<script[^>]*\bsrc=|<link[^>]*\bhref=)(["'])([^"']+)\2/gi,(m,pre,q,spec)=>{
+      const dir=f.file.split('/').slice(0,-1).join('/');const p=(dir?dir+'/':'')+spec.replace(/^\.\//,'');
+      if(!byName.has(p))return m;if(/\.css$/i.test(p))return pre+q+'data:text/css;base64,'+b64(byName.get(p))+q;
+      try{return pre+q+linkModules(p,byName,{packages}).url+q;}catch{return m;}});
+  } else {
+    const code=f.outcome==='became'?f.stages.become.code:byName.get(f.file);const name=f.outcome==='became'?f.file.replace(/\.\w+$/,'.rebuilt.mjs'):f.file;
+    byName.set(name,code);let g;try{g=linkModules(name,byName,{packages});}catch(e){alert(e.message);return;}
+    const mount=`import*as M from '${g.url}';const C=M.default||Object.values(M).find(v=>typeof v==='function'&&/^[A-Z]/.test(v.name||''));
+      if(C&&${/\.(tsx|jsx)$/i.test(f.file)}){const{createElement}=await import('${packages.react||'react'}');const{createRoot}=await import('${packages['react-dom/client']||'react-dom/client'}');createRoot(document.getElementById('root')).render(createElement(C));}`;
+    html=`<!doctype html><meta charset=utf-8><body><div id="root"></div><pre id="log"></pre><script>const L=document.getElementById('log');['log','error','warn'].forEach(k=>{const o=console[k];console[k]=(...a)=>{L.textContent+=a.join(' ')+'\\n';o(...a)}});window.onerror=(m)=>{L.textContent+='error: '+m+'\\n'};<\/script><script type="module">${mount}<\/script></body>`;
+  }
+  $('frame').srcdoc=html;$('live').style.display='block';$('side').style.display='block';
+}
+const b64=t=>btoa(unescape(encodeURIComponent(t)));
+$('side').onclick=()=>{$('live').style.display='none';$('side').style.display='none';};
+function size(){const r=cv.getBoundingClientRect(),d=devicePixelRatio||1;cv.width=r.width*d;cv.height=r.height*d;cx.setTransform(d,0,0,d,0,0);}
+function tick(t){const W=cv.clientWidth,H=cv.clientHeight;cx.clearRect(0,0,W,H);
+  for(const n of nodes){const h=hubs.get(n.file);if(!h)continue;let tx=h.x,ty=h.y;
+    if(n.dim){const k=['Movement','Evolution','Being','Design','Space'].indexOf(n.dim);tx+=Math.cos(k*1.2566+t*.0004)*14;ty+=Math.sin(k*1.2566+t*.0004)*14;}
+    if(n.dim==='Movement')ty-=6;n.vx=(n.vx+(tx-n.x)*.04+(Math.random()-.5)*.6)*.86;n.vy=(n.vy+(ty-n.y)*.04+(Math.random()-.5)*.6)*.86;n.x+=n.vx;n.y+=n.vy;
+    cx.fillStyle=n.dim?COLOR[n.dim]:'#666';cx.beginPath();cx.arc(n.x,n.y,2.2,0,7);cx.fill();}
+  for(const[p,h]of hubs){const st=progress.get(p);cx.strokeStyle=h.outcome?OUT[h.outcome]:st?'#e8e6f0':'#333';cx.lineWidth=h.outcome==='native'||h.outcome==='became'?2.5:1.2;cx.beginPath();cx.arc(h.x,h.y,9,0,7);cx.stroke();
+    if(hubs.size<80){cx.fillStyle='#bbb';cx.font='10px system-ui';cx.fillText(p.split('/').pop().slice(0,18),h.x+11,h.y+3);}}
+  requestAnimationFrame(tick);}
+cv.addEventListener('pointerdown',e=>{if(!result)return;const r=cv.getBoundingClientRect(),x=e.clientX-r.left,y=e.clientY-r.top;let b=null,bd=16;
+  for(const[p,h]of hubs){const d=Math.hypot(h.x-x,h.y-y);if(d<bd){bd=d;b=p;}}sel=b?result.files.find(f=>f.file===b):null;panel();});
+$('pick').onchange=e=>add([...e.target.files]);$('pickdir').onchange=e=>add([...e.target.files]);
+const m=document.querySelector('main');m.addEventListener('dragover',e=>e.preventDefault());m.addEventListener('drop',e=>{e.preventDefault();add([...e.dataTransfer.files]);});
+addEventListener('resize',size);size();requestAnimationFrame(tick);
+</script></body></html>

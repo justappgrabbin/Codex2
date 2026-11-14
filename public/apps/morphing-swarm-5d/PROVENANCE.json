@@ -1,0 +1,14 @@
+{
+  "core/swarm-reality-engine.js": {
+    "sha256": "7ce581b55401e93f97540192b63decae792ffc544d052695044bf0cf31723ca2",
+    "unmodified": true
+  },
+  "core/morph-engine.js": {
+    "sha256": "083fcde156e30386c55e48deae06f4525572ddc538eafefd66d098c84105f0f9",
+    "unmodified": true
+  },
+  "core/sprite-runtime.classic.js": {
+    "sha256": "0b4050ed903d8877259181ce3431d6d2fb9b713bf03e7d332747fe1415a6b570",
+    "unmodified": true
+  }
+}

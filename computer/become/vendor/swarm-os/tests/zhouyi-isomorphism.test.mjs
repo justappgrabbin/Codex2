@@ -1,0 +1,11 @@
+import test from 'node:test';import assert from 'node:assert/strict';
+import {perspective,IDENTITY,applyPerspective,inversePerspective,composePerspective,verifyPerspective,compareStates,verifyTrigramIdentity,mappedLine} from '../source/zhouyi-structural-isomorphism.mjs';
+import {RecursivePrimitiveKernel} from '../source/recursive-primitive-kernel.mjs';
+import {ZhouyiExecutionAdapter} from '../source/zhouyi-execution-adapter.mjs';
+const reverse=perspective([5,4,3,2,1,0]);const shifted=perspective([1,2,3,4,5,0],0b101010);
+test('identity and nontrivial perspectives pass exhaustive 64-state transformation invariants',()=>{for(const p of [IDENTITY,reverse,shifted,perspective([2,0,5,1,4,3],63)]){const r=verifyPerspective(p);assert.deepEqual(r.issues,[]);assert.equal(r.masksChecked,4096);}});
+test('perspective inverse and composition hold on all 64 states',()=>{const composed=composePerspective(reverse,shifted);for(let x=0;x<64;x++){assert.equal(applyPerspective(inversePerspective(shifted),applyPerspective(shifted,x)),x);assert.equal(applyPerspective(composed,x),applyPerspective(reverse,applyPerspective(shifted,x)));}});
+test('line positions are remapped rather than naively retained',()=>{assert.equal(mappedLine(reverse,1),6);assert.equal(mappedLine(reverse,6),1);assert.equal(compareStates(reverse,0,1).target.edge,true);});
+test('trigram labels are not generally invariant under perspective change',()=>{assert.equal(verifyTrigramIdentity(reverse).allPreserved,false);assert.equal(verifyTrigramIdentity(IDENTITY).allPreserved,true);});
+test('invalid and lossy coordinate mappings rejected',()=>{assert.throws(()=>perspective([0,0,1,2,3,4]),/permutation/);assert.throws(()=>perspective([0,1,2,3,4,6]),/permutation/);});
+test('execution formation identity survives read-only perspective view',async()=>{const k=new RecursivePrimitiveKernel();k.form({name:'sum',inputs:['x','y'],steps:[{id:'s',op:'add',args:['x','y']}],output:'s'});const a=new ZhouyiExecutionAdapter(k);a.bind('sum',11);const before=a.state('sum');const projected=applyPerspective(shifted,before.six);const out=await a.execute('sum',{x:7,y:8});assert.equal(out.result.value,15);assert.equal(a.state('sum').six,11);assert.equal(a.state('sum').formationId,before.formationId);assert.equal(applyPerspective(inversePerspective(shifted),projected),11);});
