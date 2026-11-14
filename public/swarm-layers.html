@@ -1,0 +1,164 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Swarm Layers — the image comes out of the overlap</title>
+<style>
+html,body{margin:0;height:100%;background:#000;color:#cfd3e0;font:12px system-ui,sans-serif;overflow:hidden}
+#bar{position:fixed;top:0;left:0;right:0;display:flex;gap:5px;flex-wrap:wrap;align-items:center;padding:6px;background:#000c;z-index:3}
+button,select,label.b{background:#161a26;color:#cfd3e0;border:1px solid #2a3044;border-radius:6px;padding:5px 8px;font:inherit}
+#ops{position:fixed;bottom:0;left:0;right:0;display:flex;gap:5px;flex-wrap:wrap;padding:6px;background:#000c;z-index:3}
+#ops label{display:flex;flex-direction:column;gap:2px;font-size:11px}
+canvas{position:fixed;inset:0;width:100%;height:100%;touch-action:none}
+#mosaic{image-rendering:pixelated}
+</style></head><body>
+<div id="bar">
+  <select id="photo">
+    <option value="swarm-assets/celestial.jpg">Celestial</option>
+    <option value="swarm-assets/variants.jpg">Variants</option>
+    <option value="swarm-assets/ynthoriuy.jpg">Ynthoriuy</option>
+    <option value="swarm-assets/resonance.jpg">Resonance</option>
+  </select>
+  <label class="b">Your photo<input id="pick" type="file" accept="image/*" hidden></label>
+  <button id="zin">Zoom +</button><button id="zout">Zoom −</button>
+  <button id="sound">Sound off</button><button id="layersBtn">Layers: all</button>
+</div>
+<canvas id="mosaic"></canvas><canvas id="words"></canvas>
+<div id="ops"></div>
+<script>
+// Five dimension layers. Nobody draws the picture: each layer writes what it is (the photo seen through
+// its own motion and its own sound-shape), and the layers are folded together with Boolean operators
+// from the 16-function bank, bit by bit on each color channel, with opacity. The image is the overlap.
+// Layer 1-2 shapes come from frequencies (Chladni plate figures): the same numbers drive the audio.
+
+// ---- the 16 binary Boolean functions, applied bitwise to 8-bit channels
+const BANK = {
+  false: (a, b) => 0, and: (a, b) => a & b, a_and_not_b: (a, b) => a & ~b & 255, a: (a, b) => a,
+  not_a_and_b: (a, b) => ~a & b & 255, b: (a, b) => b, xor: (a, b) => a ^ b, or: (a, b) => a | b,
+  nor: (a, b) => ~(a | b) & 255, xnor: (a, b) => ~(a ^ b) & 255, not_b: (a, b) => ~b & 255,
+  b_implies_a: (a, b) => (a | ~b) & 255, not_a: (a, b) => ~a & 255, a_implies_b: (a, b) => (~a | b) & 255,
+  nand: (a, b) => ~(a & b) & 255, true: (a, b) => 255,
+};
+const DIMS = [
+  { name: 'Movement', n: 2, m: 5, f: 196, motion: 'up' },
+  { name: 'Evolution', n: 3, m: 7, f: 247, motion: 'outward' },
+  { name: 'Being', n: 1, m: 4, f: 147, motion: 'inward' },
+  { name: 'Design', n: 4, m: 6, f: 294, motion: 'around' },
+  { name: 'Space', n: 5, m: 8, f: 330, motion: 'meet' },
+];
+// operator slots between layers (swappable while running)
+const SLOTS = [
+  { name: 'Color', op: 'or', alpha: 0.85 }, { name: 'Tone', op: 'and', alpha: 0.6 },
+  { name: 'Base', op: 'xor', alpha: 0.35 }, { name: 'Axon', op: 'or', alpha: 0.5 },
+];
+const NATO = ['Alfa','Bravo','Charlie','Delta','Echo','Foxtrot','Golf','Hotel','India','Juliett','Kilo','Lima','Mike','November','Oscar','Papa','Quebec','Romeo','Sierra','Tango','Uniform','Victor','Whiskey','X-ray','Yankee','Zulu'];
+
+const mc = document.getElementById('mosaic'), mx = mc.getContext('2d');
+const wc = document.getElementById('words'), wx = wc.getContext('2d');
+let W, H, GW = 0, GH = 0, src = null, buf = null, img = null, zoom = 1, onlyLayer = -1, words = [], audio = null;
+
+function fit() {
+  const d = devicePixelRatio || 1; W = innerWidth; H = innerHeight;
+  wc.width = W * d; wc.height = H * d; wx.setTransform(d, 0, 0, d, 0, 0);
+  if (img) prepare();
+}
+// sample the photo to a grid; nothing is dropped, dark areas keep their deep color
+function prepare() {
+  GW = 150; GH = Math.round(GW * H / W);
+  const oc = document.createElement('canvas'); oc.width = GW; oc.height = GH; const o = oc.getContext('2d');
+  o.fillStyle = '#000'; o.fillRect(0, 0, GW, GH);
+  const s = Math.max(GW / img.width, GH / img.height) * 0.98;
+  o.drawImage(img, (GW - img.width * s) / 2, (GH - img.height * s) / 2, img.width * s, img.height * s);
+  src = o.getImageData(0, 0, GW, GH).data;
+  mc.width = GW; mc.height = GH; buf = mx.createImageData(GW, GH);
+  words = Array.from({ length: 700 }, () => newWord());
+}
+function newWord() {
+  const d = (Math.random() * 5) | 0;
+  return { x: Math.random() * GW, y: Math.random() * GH, d, w: NATO[(Math.random() * 26) | 0], life: 200 + Math.random() * 300 };
+}
+// Chladni plate figure for a dimension: nodal lines are where sand (words/energy) collects
+const chladni = (D, u, v, t) => {
+  const p = Math.PI, ph = t * 0.15;
+  return Math.cos(D.n * p * u + ph) * Math.cos(D.m * p * v) - Math.cos(D.m * p * u) * Math.cos(D.n * p * v - ph);
+};
+// where a layer looks into the photo: its own motion
+function look(D, x, y, t) {
+  const cx = GW / 2, cy = GH / 2, dx = x - cx, dy = y - cy;
+  switch (D.motion) {
+    case 'up': return [x, (y + t * 6) % GH];
+    case 'outward': { const k = 1 / (1 + 0.15 * (Math.sin(t * 0.6) + 1)); return [cx + dx * k, cy + dy * k]; }
+    case 'inward': { const k = 1 + 0.15 * (Math.sin(t * 0.5) + 1); return [cx + dx * k, cy + dy * k]; }
+    case 'around': { const a = Math.sin(t * 0.3) * 0.25, c = Math.cos(a), s = Math.sin(a); return [cx + dx * c - dy * s, cy + dx * s + dy * c]; }
+    default: { const k = 1 - 0.12 * Math.sin(t * 0.7) * Math.exp(-(dx * dx + dy * dy) / (GW * GW * 0.1)); return [cx + dx * k, cy + dy * k]; }
+  }
+}
+function pix(x, y) {
+  x = Math.max(0, Math.min(GW - 1, x | 0)); y = ((y | 0) % GH + GH) % GH;
+  return (y * GW + x) * 4;
+}
+
+function frame(now) {
+  if (!src) return requestAnimationFrame(frame);
+  const t = now / 1000, out = buf.data, ops = SLOTS.map(s => BANK[s.op]);
+  for (let y = 0; y < GH; y++) for (let x = 0; x < GW; x++) {
+    const u = x / GW, v = y / GH; let r = 0, g = 0, b = 0;
+    for (let L = 0; L < 5; L++) {
+      if (onlyLayer >= 0 && L !== onlyLayer) continue;
+      const D = DIMS[L], [sx, sy] = look(D, x, y, t), i = pix(sx, sy);
+      // the layer's sound-shape gates how much of its view comes through (layers 1 and 2 strongest)
+      const c = Math.abs(chladni(D, u, v, t)), shape = L < 2 ? Math.min(1, 0.25 + c) : Math.min(1, 0.55 + c * 0.6);
+      const lr = src[i] * shape | 0, lg = src[i + 1] * shape | 0, lb = src[i + 2] * shape | 0;
+      if (L === 0 || onlyLayer >= 0) { r = lr; g = lg; b = lb; continue; }
+      const op = ops[L - 1], a = SLOTS[L - 1].alpha;
+      r = r + (op(r, lr) - r) * a; g = g + (op(g, lg) - g) * a; b = b + (op(b, lb) - b) * a;
+      r |= 0; g |= 0; b |= 0;
+    }
+    const o = (y * GW + x) * 4; out[o] = r; out[o + 1] = g; out[o + 2] = b; out[o + 3] = 255;
+  }
+  mx.putImageData(buf, 0, 0);
+  // zoom: scale both canvases around the centre
+  const tf = `scale(${zoom})`; mc.style.transform = tf; wc.style.transform = tf;
+  mc.style.opacity = Math.max(0.15, 1.15 - zoom * 0.25);
+  // words flow along the gradient of their dimension's figure, toward its nodal lines, colored by what's under them
+  wx.clearRect(0, 0, W, H);
+  const sxp = W / GW, syp = H / GH, fs = 7;
+  wx.font = fs + 'px ui-monospace,Menlo,monospace'; wx.textAlign = 'center'; wx.textBaseline = 'middle';
+  wx.globalAlpha = Math.min(1, 0.35 + zoom * 0.2);
+  for (const w of words) {
+    const D = DIMS[w.d], e = 0.01, u = w.x / GW, v = w.y / GH, f0 = chladni(D, u, v, t);
+    const gx = (chladni(D, u + e, v, t) - f0) / e, gy = (chladni(D, u, v + e, t) - f0) / e;
+    w.x -= Math.sign(f0) * gx * 0.04 + Math.sin(t + w.y * 0.1) * 0.05; w.y -= Math.sign(f0) * gy * 0.04;
+    if (D.motion === 'up') w.y -= 0.08;
+    if (--w.life < 0 || w.x < 0 || w.x > GW || w.y < 0 || w.y > GH) Object.assign(w, newWord());
+    const o = pix(w.x, w.y);
+    wx.fillStyle = `rgb(${Math.min(255, out[o] + 40)},${Math.min(255, out[o + 1] + 40)},${Math.min(255, out[o + 2] + 40)})`;
+    wx.fillText(w.w, w.x * sxp, w.y * syp);
+  }
+  wx.globalAlpha = 1;
+  if (audio) audio.gains.forEach((g, i) => g.gain.setTargetAtTime(onlyLayer < 0 || onlyLayer === i ? 0.03 : 0, audio.ctx.currentTime, 0.1));
+  requestAnimationFrame(frame);
+}
+
+function load(url) { const im = new Image(); im.onload = () => { img = im; prepare(); }; im.src = url; }
+document.getElementById('photo').onchange = e => load(e.target.value);
+document.getElementById('pick').onchange = e => { const f = e.target.files[0]; if (f) load(URL.createObjectURL(f)); };
+document.getElementById('zin').onclick = () => { zoom = Math.min(6, zoom * 1.5); };
+document.getElementById('zout').onclick = () => { zoom = Math.max(1, zoom / 1.5); };
+document.getElementById('layersBtn').onclick = e => {
+  onlyLayer = onlyLayer >= 4 ? -1 : onlyLayer + 1;
+  e.target.textContent = 'Layers: ' + (onlyLayer < 0 ? 'all' : DIMS[onlyLayer].name);
+};
+document.getElementById('sound').onclick = e => {
+  if (audio) { audio.ctx.close(); audio = null; e.target.textContent = 'Sound off'; return; }
+  const ctx = new AudioContext(), gains = DIMS.map(D => {
+    const o = ctx.createOscillator(), g = ctx.createGain(); o.frequency.value = D.f * (D.m / D.n) / 2; o.type = 'sine';
+    g.gain.value = 0; o.connect(g).connect(ctx.destination); o.start(); return g;
+  });
+  audio = { ctx, gains }; e.target.textContent = 'Sound on';
+};
+addEventListener('wheel', e => { zoom = Math.max(1, Math.min(6, zoom * (e.deltaY < 0 ? 1.15 : 1 / 1.15))); });
+// operator slots
+document.getElementById('ops').innerHTML = SLOTS.map((s, i) => `<label>${s.name}<select data-i="${i}">${Object.keys(BANK).map(k => `<option${k === s.op ? ' selected' : ''}>${k}</option>`).join('')}</select></label>`).join('');
+document.getElementById('ops').onchange = e => { SLOTS[e.target.dataset.i].op = e.target.value; };
+addEventListener('resize', fit); fit(); load('swarm-assets/celestial.jpg'); requestAnimationFrame(frame);
+window.__set = (k, v) => { if (k === 'zoom') zoom = v; if (k === 'photo') load(v); if (k === 'layer') onlyLayer = v; if (k === 'op') SLOTS[v[0]].op = v[1]; };
+</script></body></html>
