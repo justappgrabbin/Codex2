@@ -4,7 +4,7 @@ import { LocalStoragePersistence } from '/computer-runtime/core/kernel.mjs';
 const $ = selector => document.querySelector(selector);
 const $$ = selector => [...document.querySelectorAll(selector)];
 const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, char => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;' }[char]));
-const titleFor = id => ({ home:'Computer Home', build:'Build', files:'Files', github:'GitHub', systems:'Systems', activity:'Activity' }[id] || 'SynthAI Computer');
+const titleFor = id => ({ home:'Computer Home', build:'Build', files:'Files', github:'GitHub', systems:'Systems', activity:'Activity', synthia:'Synthia' }[id] || 'SynthAI Computer');
 
 const computer = await new ComputerRuntime({
   persistence: new LocalStoragePersistence(),

@@ -13,5 +13,8 @@
   },
   "dependencies": {
     "quickjs-emscripten": "0.31.0"
+  },
+  "devDependencies": {
+    "esbuild": "^0.25.12"
   }
 }

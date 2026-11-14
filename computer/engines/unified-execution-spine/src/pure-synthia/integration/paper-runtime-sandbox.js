@@ -117,7 +117,7 @@ function workerSource() {
           const payload=e.data.payload??{};
           const source=String(e.data.source||'');
           const AsyncFunction=Object.getPrototypeOf(async function(){}).constructor;
-          const fn=new AsyncFunction('payload','vfs','console','context',\`"use strict";\\n\${source}\\n\`);
+          const fn=new AsyncFunction('payload','vfs','console','context','"use strict";\n'+source+'\n');
           const returnValue=await fn(payload,api,cap.console,e.data.context||{});
           self.postMessage({id,ok:true,result:{ok:true,engine:'pure-js-worker',stdout:cap.stdout,returnValue}}); return;
         }

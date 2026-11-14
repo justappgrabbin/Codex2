@@ -6,6 +6,11 @@
   <meta name="theme-color" content="#12091f">
   <title>SynthAI Computer</title>
   <link rel="stylesheet" href="/computer.css">
+  <script type="importmap">{"imports":{
+    "node:url":"/node-shims/url.mjs","node:path":"/node-shims/path.mjs","node:fs":"/node-shims/fs.mjs",
+    "node:fs/promises":"/node-shims/fs-promises.mjs","node:crypto":"/node-shims/crypto.mjs",
+    "node:child_process":"/node-shims/child_process.mjs","node:util":"/node-shims/util.mjs","node:os":"/node-shims/os.mjs","node:buffer":"/node-shims/buffer.mjs"}}</script>
+
 </head>
 <body>
   <div class="computer">
@@ -21,6 +26,7 @@
         <button class="nav" data-view="github">⌁ <span>GitHub</span></button>
         <button class="nav" data-view="systems">◫ <span>Systems</span></button>
         <button class="nav" data-view="activity">↯ <span>Activity</span></button>
+        <button class="nav" data-view="synthia">✧ <span>Synthia</span></button>
       </nav>
       <a class="diagnostic" href="/computer.html">Diagnostic</a>
     </aside>
@@ -138,8 +144,24 @@
           <div id="activityList" class="activity-list"></div>
         </article>
       </section>
+
+      <section class="view" id="synthia">
+        <article class="panel">
+          <div class="panel-head"><div><small>ON-DEVICE MODELS · NO SERVER</small><h3>Models</h3></div></div>
+          <div id="modelSlots"></div>
+          <p class="hint">Weights download once from Hugging Face, then load from this device. Runs on WebGPU when available, otherwise on the CPU.</p>
+        </article>
+        <article class="panel">
+          <div class="panel-head"><div><small>TALK</small><h3>Synthia</h3></div>
+            <select id="chatRole"><option value="talker">Talker</option><option value="coder">Coder</option></select></div>
+          <div id="chatLog" class="chatlog"></div>
+          <form id="chatForm" class="chatform"><textarea id="chatInput" rows="2" placeholder="Ask Synthia…"></textarea><button class="primary" id="chatSend">Send</button></form>
+        </article>
+      </section>
     </main>
   </div>
+  <script type="module" src="/node-shims/globals.mjs"></script>
   <script type="module" src="/computer-app.mjs"></script>
+  <script type="module" src="/synthia-chat.mjs"></script>
 </body>
 </html>
