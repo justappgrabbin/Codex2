@@ -1,0 +1,11 @@
+{
+  "name": "pure-synthia",
+  "version": "0.1.0",
+  "description": "Phase-1 implementation of the Pure Synthia recursive generative state calculus (Appendix I).",
+  "type": "module",
+  "main": "src/index.js",
+  "scripts": {
+    "test": "node --test test/*.test.js"
+  },
+  "license": "UNLICENSED"
+}

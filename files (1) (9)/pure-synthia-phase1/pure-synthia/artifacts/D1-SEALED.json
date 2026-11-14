@@ -1,0 +1,203 @@
+{
+  "tier": "D1",
+  "sealedAt": "phase1-increment3",
+  "datasetHash": "e8812abae97c016e2719f75692a871dfa674a026b76f141995812a63bba7e126",
+  "grammarHash": "c34a335882449443cb142a9cf3e610a12e5d56f0e4cb6cfd0146424c672c5d59",
+  "reconstruction": {
+    "hypothesis": "H-D1-01",
+    "discoverySplit": [
+      "p",
+      "b",
+      "t",
+      "d",
+      "k",
+      "m",
+      "n",
+      "f"
+    ],
+    "testSplit": [
+      "g",
+      "v"
+    ],
+    "metrics": {
+      "generationAccuracy": 1,
+      "novelCompositionRate": 1
+    },
+    "discoveryDerivations": [
+      {
+        "id": "p",
+        "derivationId": "derivation:81e39ba7dfb2b89c53e4d659e6716c9af94995bc27a319c68cd41b74cea1442d"
+      },
+      {
+        "id": "b",
+        "derivationId": "derivation:4583e90764521775fbbfa5925a94d315e4f2a136c3881820227a03219afdedda"
+      },
+      {
+        "id": "t",
+        "derivationId": "derivation:8a344adcf7c5e12bc7bc9d4deb241e66ee9e02de0b99532946d039fec77be934"
+      },
+      {
+        "id": "d",
+        "derivationId": "derivation:9b6039526f5d38d56046b480c5df437faef1d739f2607c7608a15aa2182ef62d"
+      },
+      {
+        "id": "k",
+        "derivationId": "derivation:e521720115dbc93a1596c97c4b16f2d208c58d2b1781eb3e53872e296becabad"
+      },
+      {
+        "id": "m",
+        "derivationId": "derivation:253a315ae73a53aa99b2ab5c3037f6f6367e6e71c50543ebf5160666c28a18dd"
+      },
+      {
+        "id": "n",
+        "derivationId": "derivation:fb0d8fbcbb058f0bbda5ddc2f7893f631efec33febf27449342b7792b3860552"
+      },
+      {
+        "id": "f",
+        "derivationId": "derivation:088a3dae085b8c0a2bf9172766a55f195f45bd83ea784922687756ac16ce220b"
+      }
+    ],
+    "results": [
+      {
+        "id": "g",
+        "derivationId": "derivation:57d5fa4ab9e70acd851964ce99296ef7f2f568f5ddefd0ba240617045b6628cc",
+        "structurallyCorrect": true,
+        "wasStored": false,
+        "genuinelyUnseen": true
+      },
+      {
+        "id": "v",
+        "derivationId": "derivation:6ac3ca02421b05fc38bf5df86e2d7217d4e5a93629650f0279ebe18b98a0b3c5",
+        "structurallyCorrect": true,
+        "wasStored": false,
+        "genuinelyUnseen": true
+      }
+    ]
+  },
+  "compression": {
+    "scheme": {
+      "X_size": 10,
+      "numFeatures": 8,
+      "kArity": 3,
+      "numRegisteredOperators": 1,
+      "directAlphabetSize": 10,
+      "directBitsPerSymbol": 4,
+      "operatorIdentityBits": 0,
+      "arityFieldBits": 4,
+      "combinations": 56,
+      "bitsPerItemGivenG": 6
+    },
+    "raw": {
+      "L_direct": 40,
+      "L_G": 4,
+      "L_X_given_G": 60,
+      "L_grammar_total": 64
+    },
+    "compressionGain": -0.6000000000000001
+  },
+  "ablation": {
+    "performanceMetric": "generationAccuracy (held-out reconstruction, D1)",
+    "performanceBaseline": 1,
+    "results": [
+      {
+        "component": "operator:o_bundle3",
+        "description": "Remove o_bundle3 (the only registered operator).",
+        "performanceAblated": 0,
+        "ablationImpact": 1
+      },
+      {
+        "component": "primitive:f.place.lab",
+        "description": "Remove feature primitive f.place.lab.",
+        "performanceAblated": 0.5,
+        "ablationImpact": 0.5
+      },
+      {
+        "component": "primitive:f.place.alv",
+        "description": "Remove feature primitive f.place.alv.",
+        "performanceAblated": 1,
+        "ablationImpact": 0
+      },
+      {
+        "component": "primitive:f.place.vel",
+        "description": "Remove feature primitive f.place.vel.",
+        "performanceAblated": 0.5,
+        "ablationImpact": 0.5
+      },
+      {
+        "component": "primitive:f.manner.stop",
+        "description": "Remove feature primitive f.manner.stop.",
+        "performanceAblated": 0.5,
+        "ablationImpact": 0.5
+      },
+      {
+        "component": "primitive:f.manner.nas",
+        "description": "Remove feature primitive f.manner.nas.",
+        "performanceAblated": 1,
+        "ablationImpact": 0
+      },
+      {
+        "component": "primitive:f.manner.fric",
+        "description": "Remove feature primitive f.manner.fric.",
+        "performanceAblated": 0.5,
+        "ablationImpact": 0.5
+      },
+      {
+        "component": "primitive:f.voice",
+        "description": "Remove feature primitive f.voice.",
+        "performanceAblated": 0,
+        "ablationImpact": 1
+      },
+      {
+        "component": "primitive:f.voiceless",
+        "description": "Remove feature primitive f.voiceless.",
+        "performanceAblated": 1,
+        "ablationImpact": 0
+      },
+      {
+        "component": "mechanism:o_bundle-canonicalization",
+        "description": "Remove the sort/canonicalization step from o_bundle (substitute for a genuine position-information ablation — D1 has no sequence-based task; see A-D1-05). Metric here is order-invariance, not generationAccuracy, because generationAccuracy's own scoring already sorts both sides before comparing and so would not detect this change.",
+        "metric": "orderInvariance",
+        "performanceBaseline": 1,
+        "performanceAblated": 0,
+        "ablationImpact": 1
+      }
+    ]
+  },
+  "assumptions": [
+    {
+      "id": "A-D1-01",
+      "kind": "assumed",
+      "claim": "D1 benchmark tier uses a 10-phoneme English consonant subset (§H.3.2's tier), each represented as exactly 3 features: place, manner, voicing.",
+      "rationale": "Appendix A only worked 5 illustrative features/phonemes. A slightly larger, fixed-arity set is the minimum needed to run a real discovery/test split (H.4) rather than an illustrative one. Fixed arity 3 was chosen so a single o_bundle3 operator instance suffices — this is an implementation convenience, not a claim that all phonemes are 3-feature.",
+      "scope": "D1 dataset only; does not extend to D2+ tiers.",
+      "evidenceState": "assumed"
+    },
+    {
+      "id": "A-D1-02",
+      "kind": "assumed",
+      "claim": "Voicing is represented as two mutually exclusive primitives, f.voice and f.voiceless, rather than a single binary-valued feature.",
+      "rationale": "Keeps every phoneme at fixed arity 3 (§A-D1-01) instead of variable arity 2-or-3. This is a data-modeling choice, not a phonological claim — a later phase may replace it with a true binary-valued contrast on a single primitive without invalidating discovery-set results, since it does not change which feature *distinctions* are represented, only how the voicing distinction is encoded as records.",
+      "scope": "D1 dataset only.",
+      "evidenceState": "assumed"
+    },
+    {
+      "id": "A-D1-03",
+      "kind": "assumed",
+      "claim": "The discovery/test split for the held-out reconstruction experiment (H.16 item 5, H.5) is: discovery = {p,b,t,d,k,m,n,f}, test = {g,v}. All of g and v's individual features (velar place, fricative manner, voice) appear somewhere in the discovery set's bundles, but the specific triples for g and v do not.",
+      "rationale": "This is the minimum split satisfying H.5's requirement (A,B,C in discovery, o(A,o(B,C)) not in discovery) with this 10-item dataset. A different split would also satisfy H.5; this one was picked, not derived, and is disclosed as such rather than presented as the only valid choice.",
+      "scope": "This experiment run only; re-randomizing the split is expected to happen once real dataset infrastructure (H.3, H.4) exists.",
+      "evidenceState": "assumed"
+    },
+    {
+      "id": "H-D1-01",
+      "kind": "hypothesized",
+      "claim": "Bundling the held-out phonemes' known component features via o_bundle produces the correct gold structure, and the resulting derivation's content hash does not match any derivation produced during discovery — i.e. genuine unseen composition (§15's emergence definition), not lookup.",
+      "rationale": "This is the actual empirical claim under test in reconstruction.test.js — it is falsifiable: if either the structure is wrong, or (impossibly, given the engine's design, but checked anyway) the held-out hash collides with a discovery hash, the test fails and this hypothesis is logged as rejected, not silently passed.",
+      "scope": "D1 tier, this engine version only.",
+      "evidenceState": "tested"
+    }
+  ],
+  "assumptionsManifestHash": "bf78eac404838806f451a2cd3fb3ff1f7b36d762ede048192c03a65855b8fc7d",
+  "testCountAtSealTime": 47,
+  "manifestHash": "7714d633d691145e239e37e7dbbcde0da165b73e90552405e5a459c77f3bafcf"
+}
