@@ -19,7 +19,7 @@ canvas{position:fixed;inset:0;width:100%;height:100%;touch-action:none}
   </select>
   <label class="b">Your photo<input id="pick" type="file" accept="image/*" hidden></label>
   <button id="zin">Zoom +</button><button id="zout">Zoom −</button>
-  <button id="sound">Sound off</button><button id="layersBtn">Layers: all</button>
+  <b id="rung" style="color:#fff;padding:0 4px"></b><button id="sound">Sound off</button><button id="layersBtn">Layers: all</button>
 </div>
 <canvas id="mosaic"></canvas><canvas id="words"></canvas>
 <div id="ops"></div>
@@ -49,6 +49,16 @@ const SLOTS = [
   { name: 'Color', op: 'or', alpha: 0.85 }, { name: 'Tone', op: 'and', alpha: 0.6 },
   { name: 'Base', op: 'xor', alpha: 0.35 }, { name: 'Axon', op: 'or', alpha: 0.5 },
 ];
+const TR = { a:'а',b:'б',c:'ц',d:'д',e:'е',f:'ф',g:'г',h:'х',i:'и',j:'й',k:'к',l:'л',m:'м',n:'н',o:'о',p:'п',q:'к',r:'р',s:'с',t:'т',u:'у',v:'в',w:'в',x:'кс',y:'й',z:'з','-':'-' };
+// letter ladder: zooming in moves Unicode -> Transliteration -> NATO -> ASCII -> Binary; each is the same letter
+const LADDER = ['Unicode', 'Transliteration', 'NATO', 'ASCII', 'Binary'];
+const rung = z => z < 1.6 ? 0 : z < 2.4 ? 1 : z < 3.4 ? 2 : z < 4.6 ? 3 : 4;
+function spell(li, R) {
+  const L = String.fromCharCode(65 + li), w = NATO[li];
+  return R === 0 ? String.fromCharCode(0x2800 + L.charCodeAt(0))   // Braille cell whose 8 dots are the letter's ASCII bits
+       : R === 1 ? [...w.toLowerCase()].map(c => TR[c] ?? c).join('')
+       : R === 2 ? w : R === 3 ? L : L.charCodeAt(0).toString(2).padStart(8, '0');
+}
 const NATO = ['Alfa','Bravo','Charlie','Delta','Echo','Foxtrot','Golf','Hotel','India','Juliett','Kilo','Lima','Mike','November','Oscar','Papa','Quebec','Romeo','Sierra','Tango','Uniform','Victor','Whiskey','X-ray','Yankee','Zulu'];
 
 const mc = document.getElementById('mosaic'), mx = mc.getContext('2d');
@@ -73,7 +83,7 @@ function prepare() {
 }
 function newWord() {
   const d = (Math.random() * 5) | 0;
-  return { x: Math.random() * GW, y: Math.random() * GH, d, w: NATO[(Math.random() * 26) | 0], life: 200 + Math.random() * 300 };
+  return { x: Math.random() * GW, y: Math.random() * GH, d, li: (Math.random() * 26) | 0, life: 200 + Math.random() * 300 };
 }
 // Chladni plate figure for a dimension: nodal lines are where sand (words/energy) collects
 const chladni = (D, u, v, t) => {
@@ -121,7 +131,8 @@ function frame(now) {
   // words flow along the gradient of their dimension's figure, toward its nodal lines, colored by what's under them
   wx.clearRect(0, 0, W, H);
   const sxp = W / GW, syp = H / GH, fs = 7;
-  wx.font = fs + 'px ui-monospace,Menlo,monospace'; wx.textAlign = 'center'; wx.textBaseline = 'middle';
+  const R = rung(zoom); document.getElementById('rung').textContent = LADDER[R];
+  wx.font = (R === 0 ? 10 : R === 3 ? 9 : fs) + 'px ui-monospace,Menlo,monospace'; wx.textAlign = 'center'; wx.textBaseline = 'middle';
   wx.globalAlpha = Math.min(1, 0.35 + zoom * 0.2);
   for (const w of words) {
     const D = DIMS[w.d], e = 0.01, u = w.x / GW, v = w.y / GH, f0 = chladni(D, u, v, t);
@@ -131,7 +142,7 @@ function frame(now) {
     if (--w.life < 0 || w.x < 0 || w.x > GW || w.y < 0 || w.y > GH) Object.assign(w, newWord());
     const o = pix(w.x, w.y);
     wx.fillStyle = `rgb(${Math.min(255, out[o] + 40)},${Math.min(255, out[o + 1] + 40)},${Math.min(255, out[o + 2] + 40)})`;
-    wx.fillText(w.w, w.x * sxp, w.y * syp);
+    wx.fillText(spell(w.li, R), w.x * sxp, w.y * syp);
   }
   wx.globalAlpha = 1;
   if (audio) audio.gains.forEach((g, i) => g.gain.setTargetAtTime(onlyLayer < 0 || onlyLayer === i ? 0.03 : 0, audio.ctx.currentTime, 0.1));
