@@ -1,0 +1,1072 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pure Synthia — Phase 2 Laboratory</title>
+  <style>
+    :root {
+      --bg: #0a0a0f;
+      --bg-panel: #111118;
+      --bg-card: #1a1a24;
+      --border: #2a2a3a;
+      --text: #e0e0e8;
+      --text-dim: #8888a0;
+      --accent: #6b8cff;
+      --accent2: #ff6b9d;
+      --accent3: #6bffb8;
+      --accent4: #ffb86b;
+      --success: #4ade80;
+      --warn: #fbbf24;
+      --error: #f87171;
+      --mono: "SF Mono", "Fira Code", "Consolas", monospace;
+      --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--sans);
+      line-height: 1.6;
+      min-height: 100vh;
+    }
+
+    header {
+      background: var(--bg-panel);
+      border-bottom: 1px solid var(--border);
+      padding: 1.5rem 2rem;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    header h1 {
+      font-size: 1.5rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    header h1 .badge {
+      font-size: 0.65rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      background: var(--accent3);
+      color: var(--bg);
+      padding: 0.2rem 0.5rem;
+      border-radius: 4px;
+      font-weight: 800;
+    }
+
+    header .subtitle {
+      color: var(--text-dim);
+      font-size: 0.875rem;
+      margin-top: 0.25rem;
+    }
+
+    .container {
+      max-width: 1600px;
+      margin: 0 auto;
+      padding: 2rem;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 300px 1fr;
+      gap: 1.5rem;
+    }
+
+    @media (max-width: 1100px) {
+      .grid { grid-template-columns: 1fr; }
+    }
+
+    .sidebar {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    .panel {
+      background: var(--bg-panel);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+    }
+
+    .panel-header {
+      background: var(--bg-card);
+      padding: 0.875rem 1.25rem;
+      font-size: 0.8rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-dim);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .panel-body {
+      padding: 1.25rem;
+    }
+
+    .main-content {
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+    }
+
+    /* Tabs */
+    .tabs {
+      display: flex;
+      gap: 0.25rem;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 1rem;
+      flex-wrap: wrap;
+    }
+
+    .tab {
+      padding: 0.6rem 1rem;
+      font-size: 0.8rem;
+      font-weight: 500;
+      color: var(--text-dim);
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      transition: all 0.2s;
+      white-space: nowrap;
+    }
+
+    .tab:hover { color: var(--text); }
+    .tab.active {
+      color: var(--accent3);
+      border-bottom-color: var(--accent3);
+    }
+
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+
+    /* Input */
+    .input-section {
+      background: var(--bg-panel);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.5rem;
+    }
+
+    .input-section h2 {
+      font-size: 1.1rem;
+      margin-bottom: 1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .input-group {
+      display: flex;
+      gap: 0.75rem;
+      margin-bottom: 1rem;
+    }
+
+    input[type="text"], textarea, select {
+      flex: 1;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 0.75rem 1rem;
+      color: var(--text);
+      font-family: var(--mono);
+      font-size: 0.9rem;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    input[type="text"]:focus, textarea:focus, select:focus {
+      border-color: var(--accent3);
+    }
+
+    textarea {
+      min-height: 80px;
+      resize: vertical;
+    }
+
+    button {
+      background: var(--accent3);
+      color: var(--bg);
+      border: none;
+      border-radius: 8px;
+      padding: 0.75rem 1.5rem;
+      font-weight: 600;
+      font-size: 0.9rem;
+      cursor: pointer;
+      transition: opacity 0.2s, transform 0.1s;
+      white-space: nowrap;
+    }
+
+    button:hover { opacity: 0.9; }
+    button:active { transform: scale(0.98); }
+    button.secondary {
+      background: var(--bg-card);
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+    button.secondary:hover { background: var(--border); }
+    button.warn {
+      background: var(--accent4);
+      color: var(--bg);
+    }
+    button.danger {
+      background: var(--error);
+      color: white;
+    }
+
+    .quick-actions {
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+
+    .quick-actions button {
+      padding: 0.4rem 0.75rem;
+      font-size: 0.8rem;
+    }
+
+    /* Results */
+    .results-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+      gap: 1.5rem;
+    }
+
+    .result-card {
+      background: var(--bg-panel);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+    }
+
+    .result-card .card-title {
+      padding: 1rem 1.25rem;
+      font-size: 0.85rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--text-dim);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .result-card .card-body {
+      padding: 1.25rem;
+      font-family: var(--mono);
+      font-size: 0.82rem;
+      line-height: 1.7;
+      max-height: 500px;
+      overflow-y: auto;
+    }
+
+    .result-card .card-body pre {
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    /* Ledger */
+    .ledger-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 0.75rem;
+    }
+
+    .ledger-item {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 0.875rem;
+      text-align: center;
+    }
+
+    .ledger-item .value {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: var(--accent3);
+      font-family: var(--mono);
+    }
+
+    .ledger-item .label {
+      font-size: 0.7rem;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-top: 0.25rem;
+    }
+
+    /* Graph metrics */
+    .graph-metric {
+      display: flex;
+      justify-content: space-between;
+      padding: 0.5rem 0;
+      border-bottom: 1px solid var(--border);
+      font-family: var(--mono);
+      font-size: 0.8rem;
+    }
+
+    .graph-metric:last-child { border-bottom: none; }
+    .graph-metric .name { color: var(--accent); }
+    .graph-metric .stats { color: var(--text-dim); }
+
+    /* Mesh list */
+    .mesh-item {
+      padding: 0.6rem;
+      background: var(--bg);
+      border-radius: 6px;
+      margin-bottom: 0.4rem;
+      font-family: var(--mono);
+      font-size: 0.78rem;
+    }
+
+    .mesh-item .mesh-name { color: var(--accent2); font-weight: 600; }
+    .mesh-item .mesh-type {
+      font-size: 0.7rem;
+      color: var(--text-dim);
+      text-transform: uppercase;
+    }
+
+    /* Hypothesis status */
+    .hypothesis-item {
+      padding: 0.75rem;
+      background: var(--bg);
+      border-radius: 8px;
+      margin-bottom: 0.5rem;
+      border-left: 3px solid var(--border);
+    }
+
+    .hypothesis-item.supported { border-left-color: var(--success); }
+    .hypothesis-item.rejected { border-left-color: var(--error); }
+    .hypothesis-item.hypothesized { border-left-color: var(--warn); }
+
+    .hypothesis-item .h-id {
+      font-family: var(--mono);
+      font-size: 0.75rem;
+      color: var(--accent);
+      font-weight: 600;
+    }
+
+    .hypothesis-item .h-claim {
+      font-size: 0.8rem;
+      color: var(--text-dim);
+      margin-top: 0.25rem;
+      line-height: 1.4;
+    }
+
+    .hypothesis-item .h-status {
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin-top: 0.5rem;
+      font-weight: 600;
+    }
+
+    /* Table */
+    .data-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-family: var(--mono);
+      font-size: 0.8rem;
+    }
+
+    .data-table th {
+      text-align: left;
+      padding: 0.6rem;
+      color: var(--text-dim);
+      border-bottom: 1px solid var(--border);
+      font-weight: 600;
+      text-transform: uppercase;
+      font-size: 0.7rem;
+      letter-spacing: 0.06em;
+    }
+
+    .data-table td {
+      padding: 0.6rem;
+      border-bottom: 1px solid var(--border);
+      color: var(--text);
+    }
+
+    .data-table tr:hover td {
+      background: var(--bg-card);
+    }
+
+    /* Animations */
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .animate-in {
+      animation: fadeIn 0.3s ease-out;
+    }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: var(--bg); }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: var(--text-dim); }
+
+    /* Phase badge */
+    .phase-badge {
+      display: inline-block;
+      padding: 0.15rem 0.5rem;
+      border-radius: 4px;
+      font-size: 0.7rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+    .phase-badge.p1 { background: var(--accent); color: var(--bg); }
+    .phase-badge.p2 { background: var(--accent3); color: var(--bg); }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>
+      <span style="color: var(--accent3);">◈</span>
+      Pure Synthia
+      <span class="badge">Phase 2</span>
+    </h1>
+    <div class="subtitle">
+      Graphs → Addresses → Dimensions → Meshes → Cross-Scale Automata
+    </div>
+  </header>
+
+  <div class="container">
+    <div class="grid">
+      <!-- Sidebar -->
+      <div class="sidebar">
+        <div class="panel">
+          <div class="panel-header">
+            <span>System Status</span>
+            <span id="engine-status" style="color: var(--success); font-size: 0.75rem;">● Ready</span>
+          </div>
+          <div class="panel-body">
+            <div class="ledger-grid" id="system-ledger">
+              <div class="ledger-item">
+                <div class="value" id="stat-primitives">0</div>
+                <div class="label">Primitives</div>
+              </div>
+              <div class="ledger-item">
+                <div class="value" id="stat-operators">0</div>
+                <div class="label">Operators</div>
+              </div>
+              <div class="ledger-item">
+                <div class="value" id="stat-derivations">0</div>
+                <div class="label">Derivations</div>
+              </div>
+              <div class="ledger-item">
+                <div class="value" id="stat-states">0</div>
+                <div class="label">States</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-header">
+            <span>Graph Metrics</span>
+            <span style="font-size: 0.75rem; color: var(--text-dim);">5 Projections</span>
+          </div>
+          <div class="panel-body" id="graph-metrics">
+            <div style="color: var(--text-dim); font-size: 0.8rem;">No graph data yet...</div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-header">
+            <span>Active Meshes</span>
+            <span id="mesh-count" style="font-size: 0.75rem; color: var(--text-dim);">0</span>
+          </div>
+          <div class="panel-body" id="mesh-list">
+            <div style="color: var(--text-dim); font-size: 0.8rem;">No meshes active...</div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-header">
+            <span>Hypotheses</span>
+            <span style="font-size: 0.75rem; color: var(--text-dim);">Registry</span>
+          </div>
+          <div class="panel-body" id="hypothesis-list"></div>
+        </div>
+      </div>
+
+      <!-- Main Content -->
+      <div class="main-content">
+        <!-- Tabs -->
+        <div class="tabs">
+          <div class="tab active" data-tab="execute">⚡ Execute</div>
+          <div class="tab" data-tab="graphs">◈ Graph Topology</div>
+          <div class="tab" data-tab="addresses">⌖ Address Eval</div>
+          <div class="tab" data-tab="dimensions">◐ Dimensions</div>
+          <div class="tab" data-tab="crossscale">↻ Cross-Scale</div>
+          <div class="tab" data-tab="datasets">📊 Datasets</div>
+          <div class="tab" data-tab="experiments">🔬 Experiments</div>
+        </div>
+
+        <!-- Execute Tab -->
+        <div class="tab-content active" id="tab-execute">
+          <div class="input-section">
+            <h2>
+              <span style="color: var(--accent2);">⚡</span>
+              Execute <span class="phase-badge p1">Phase 1</span>
+            </h2>
+            <div class="input-group">
+              <input type="text" id="execute-input" placeholder="Enter input: string, primitive IDs, or composite..." value="pat">
+              <button id="btn-execute">Execute</button>
+              <button class="secondary" id="btn-clear">Clear</button>
+            </div>
+            <div class="quick-actions">
+              <button class="secondary" data-demo="bundle">Test o_bundle</button>
+              <button class="secondary" data-demo="sequence">Test o_sequence</button>
+              <button class="secondary" data-demo="project">Test o_project</button>
+              <button class="secondary" data-demo="transform">Test o_transform</button>
+              <button class="secondary" data-demo="recurse">Test o_recurse</button>
+              <button class="secondary" data-demo="decompose">Decompose "bat"</button>
+              <button class="secondary" data-demo="phoneme">Phoneme /p/</button>
+            </div>
+          </div>
+
+          <div class="results-grid">
+            <div class="result-card">
+              <div class="card-title"><span style="color: var(--accent);">→</span> Latest Derivation</div>
+              <div class="card-body" id="latest-derivation">
+                <pre style="color: var(--text-dim);">Execute an input to see the derivation trace...</pre>
+              </div>
+            </div>
+            <div class="result-card">
+              <div class="card-title"><span style="color: var(--accent3);">◈</span> Composition Result</div>
+              <div class="card-body" id="composition-result">
+                <pre style="color: var(--text-dim);">No composition executed yet...</pre>
+              </div>
+            </div>
+            <div class="result-card">
+              <div class="card-title"><span style="color: var(--warn);">⚡</span> Complexity Ledger</div>
+              <div class="card-body">
+                <div class="ledger-grid" id="execution-ledger">
+                  <div class="ledger-item"><div class="value" id="ledger-primitives">0</div><div class="label">Primitives</div></div>
+                  <div class="ledger-item"><div class="value" id="ledger-states">0</div><div class="label">States</div></div>
+                  <div class="ledger-item"><div class="value" id="ledger-edges">0</div><div class="label">Edges</div></div>
+                  <div class="ledger-item"><div class="value" id="ledger-ops">0</div><div class="label">Operations</div></div>
+                </div>
+              </div>
+            </div>
+            <div class="result-card">
+              <div class="card-title"><span style="color: var(--accent2);">↻</span> Replay</div>
+              <div class="card-body" id="replay-result">
+                <pre style="color: var(--text-dim);">No replay recorded yet...</pre>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Graph Topology Tab -->
+        <div class="tab-content" id="tab-graphs">
+          <div class="input-section">
+            <h2><span style="color: var(--accent3);">◈</span> Graph Topology <span class="phase-badge p2">Phase 2</span></h2>
+            <p style="color: var(--text-dim); font-size: 0.85rem; margin-bottom: 1rem;">
+              Five projections: Knowledge, Causal, Phase, Temporal, Dependency.
+              Execute inputs to populate graphs, then inspect topology.
+            </p>
+            <div class="quick-actions">
+              <button class="secondary" id="btn-graph-metrics">Refresh Metrics</button>
+              <button class="secondary" id="btn-graph-neighbors">Show Neighborhood</button>
+              <button class="secondary" id="btn-graph-export">Export Graph JSON</button>
+            </div>
+          </div>
+          <div class="results-grid">
+            <div class="result-card">
+              <div class="card-title"><span style="color: var(--accent);">K</span> Knowledge Graph</div>
+              <div class="card-body" id="graph-knowledge"><pre style="color: var(--text-dim);">No data...</pre></div>
+            </div>
+            <div class="result-card">
+              <div class="card-title"><span style="color: var(--accent2);">C</span> Causal Graph</div>
+              <div class="card-body" id="graph-causal"><pre style="color: var(--text-dim);">No data...</pre></div>
+            </div>
+            <div class="result-card">
+              <div class="card-title"><span style="color: var(--accent3);">P</span> Phase Graph</div>
+              <div class="card-body" id="graph-phase"><pre style="color: var(--text-dim);">No data...</pre></div>
+            </div>
+            <div class="result-card">
+              <div class="card-title"><span style="color: var(--accent4);">T</span> Temporal Graph</div>
+              <div class="card-body" id="graph-temporal"><pre style="color: var(--text-dim);">No data...</pre></div>
+            </div>
+            <div class="result-card">
+              <div class="card-title"><span style="color: var(--warn);">D</span> Dependency Graph</div>
+              <div class="card-body" id="graph-dependency"><pre style="color: var(--text-dim);">No data...</pre></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Address Eval Tab -->
+        <div class="tab-content" id="tab-addresses">
+          <div class="input-section">
+            <h2><span style="color: var(--accent);">⌖</span> Address Evaluation <span class="phase-badge p2">Phase 2</span></h2>
+            <p style="color: var(--text-dim); font-size: 0.85rem; margin-bottom: 1rem;">
+              Test whether canonical addresses provide measurable advantages over controls (H3).
+            </p>
+            <div class="quick-actions">
+              <button class="secondary" id="btn-eval-addresses">Run H3 Evaluation</button>
+              <button class="secondary" id="btn-assign-addresses">Assign Test Addresses</button>
+            </div>
+          </div>
+          <div class="results-grid">
+            <div class="result-card">
+              <div class="card-title"><span style="color: var(--accent);">⌖</span> Candidate vs Controls</div>
+              <div class="card-body" id="address-results"><pre style="color: var(--text-dim);">Run evaluation to see results...</pre></div>
+            </div>
+            <div class="result-card">
+              <div class="card-title"><span style="color: var(--accent3);">Δ</span> Performance Deltas</div>
+              <div class="card-body" id="address-deltas"><pre style="color: var(--text-dim);">No deltas computed...</pre></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Dimensions Tab -->
+        <div class="tab-content" id="tab-dimensions">
+          <div class="input-section">
+            <h2><span style="color: var(--accent2);">◐</span> Dimensional Evaluation <span class="phase-badge p2">Phase 2</span></h2>
+            <p style="color: var(--text-dim); font-size: 0.85rem; margin-bottom: 1rem;">
+              Test whether 5-dimensional mappings explain structure better than alternatives (H4).
+            </p>
+            <div class="quick-actions">
+              <button class="secondary" id="btn-eval-dimensions">Run H4 Evaluation</button>
+              <button class="secondary" id="btn-show-dimensions">Show Dimensions</button>
+            </div>
+          </div>
+          <div class="results-grid">
+            <div class="result-card">
+              <div class="card-title"><span style="color: var(--accent);">◐</span> Candidate Mapping</div>
+              <div class="card-body" id="dimension-candidate"><pre style="color: var(--text-dim);">Run evaluation...</pre></div>
+            </div>
+            <div class="result-card">
+              <div class="card-title"><span style="color: var(--accent3);">⚖</span> Alternative Mappings</div>
+              <div class="card-body" id="dimension-alternatives"><pre style="color: var(--text-dim);">No alternatives tested...</pre></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Cross-Scale Tab -->
+        <div class="tab-content" id="tab-crossscale">
+          <div class="input-section">
+            <h2><span style="color: var(--accent4);">↻</span> Cross-Scale Transfer <span class="phase-badge p2">Phase 2</span></h2>
+            <p style="color: var(--text-dim); font-size: 0.85rem; margin-bottom: 1rem;">
+              Test whether operators discovered at one scale transfer to another (H2).
+            </p>
+            <div class="input-group">
+              <select id="crossscale-operator">
+                <option value="o_bundle">o_bundle</option>
+                <option value="o_sequence">o_sequence</option>
+                <option value="o_project">o_project</option>
+                <option value="o_transform">o_transform</option>
+                <option value="o_recurse">o_recurse</option>
+              </select>
+              <select id="crossscale-source">
+                <option value="sub-phonemic">sub-phonemic</option>
+                <option value="phonemic">phonemic</option>
+                <option value="morphemic">morphemic</option>
+                <option value="lexical">lexical</option>
+              </select>
+              <span style="color: var(--text-dim); padding: 0.75rem;">→</span>
+              <select id="crossscale-target">
+                <option value="phonemic">phonemic</option>
+                <option value="morphemic">morphemic</option>
+                <option value="lexical">lexical</option>
+                <option value="automaton">automaton</option>
+              </select>
+              <button id="btn-crossscale">Test Transfer</button>
+            </div>
+            <div class="quick-actions">
+              <button class="secondary" id="btn-crossscale-battery">Run Full Battery</button>
+            </div>
+          </div>
+          <div class="results-grid">
+            <div class="result-card">
+              <div class="card-title"><span style="color: var(--accent);">↻</span> Transfer Results</div>
+              <div class="card-body" id="crossscale-results"><pre style="color: var(--text-dim);">Run a transfer test...</pre></div>
+            </div>
+            <div class="result-card">
+              <div class="card-title"><span style="color: var(--accent3);">📈</span> Summary Statistics</div>
+              <div class="card-body" id="crossscale-summary"><pre style="color: var(--text-dim);">No data...</pre></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Datasets Tab -->
+        <div class="tab-content" id="tab-datasets">
+          <div class="input-section">
+            <h2><span style="color: var(--accent3);">📊</span> Datasets <span class="phase-badge p2">Phase 2</span></h2>
+            <p style="color: var(--text-dim); font-size: 0.85rem; margin-bottom: 1rem;">
+              Generate and inspect synthetic formal, linguistic, and computational datasets.
+            </p>
+            <div class="quick-actions">
+              <button class="secondary" id="btn-gen-synthetic">Generate Synthetic</button>
+              <button class="secondary" id="btn-gen-linguistic">Generate Linguistic</button>
+              <button class="secondary" id="btn-gen-computational">Generate Computational</button>
+              <button class="secondary" id="btn-run-experiment">Run Experiment</button>
+            </div>
+          </div>
+          <div class="results-grid">
+            <div class="result-card">
+              <div class="card-title"><span style="color: var(--accent);">🎲</span> Synthetic Formal</div>
+              <div class="card-body" id="dataset-synthetic"><pre style="color: var(--text-dim);">No dataset generated...</pre></div>
+            </div>
+            <div class="result-card">
+              <div class="card-title"><span style="color: var(--accent2);">📝</span> Linguistic</div>
+              <div class="card-body" id="dataset-linguistic"><pre style="color: var(--text-dim);">No dataset generated...</pre></div>
+            </div>
+            <div class="result-card">
+              <div class="card-title"><span style="color: var(--accent3);">⚙️</span> Computational</div>
+              <div class="card-body" id="dataset-computational"><pre style="color: var(--text-dim);">No dataset generated...</pre></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Experiments Tab -->
+        <div class="tab-content" id="tab-experiments">
+          <div class="input-section">
+            <h2><span style="color: var(--accent2);">🔬</span> Experiment Manifest <span class="phase-badge p2">Phase 2</span></h2>
+            <p style="color: var(--text-dim); font-size: 0.85rem; margin-bottom: 1rem;">
+              Full experimental protocol with discovery/validation/test splits.
+            </p>
+            <div class="quick-actions">
+              <button class="secondary" id="btn-run-phase1-gate">Run Phase 1 Gate</button>
+              <button class="secondary" id="btn-ablation">Run Ablation</button>
+              <button class="secondary" id="btn-export-manifest">Export Manifest</button>
+            </div>
+          </div>
+          <div class="results-grid">
+            <div class="result-card">
+              <div class="card-title"><span style="color: var(--accent);">✓</span> Phase 1 Gate Results</div>
+              <div class="card-body" id="gate-results"><pre style="color: var(--text-dim);">Run gate to see results...</pre></div>
+            </div>
+            <div class="result-card">
+              <div class="card-title"><span style="color: var(--warn);">✂</span> Ablation Results</div>
+              <div class="card-body" id="ablation-results"><pre style="color: var(--text-dim);">Run ablation to see results...</pre></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    import initPureSynthia, {
+      createPhase2Engine,
+      bootstrapPhonologicalPrimitives,
+      bootstrapDimensions,
+      HypothesisRegistry,
+      AddressEvaluator,
+      DimensionalEvaluator,
+      CrossScaleExperiment,
+      SyntheticDataset,
+      LinguisticDataset,
+      ComputationalDataset,
+      Experiment,
+      ExperimentRunner,
+      AblationStudy,
+    } from "./src/main.js";
+
+    // Initialize
+    const engine = initPureSynthia();
+    const hypotheses = new HypothesisRegistry();
+    const addressEvaluator = new AddressEvaluator();
+    const dimensionalEvaluator = new DimensionalEvaluator();
+    bootstrapDimensions(dimensionalEvaluator);
+    const crossScaleExp = new CrossScaleExperiment(engine);
+
+    // UI refs
+    const $ = id => document.getElementById(id);
+
+    // Tab switching
+    document.querySelectorAll(".tab").forEach(tab => {
+      tab.addEventListener("click", () => {
+        document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
+        document.querySelectorAll(".tab-content").forEach(c => c.classList.remove("active"));
+        tab.classList.add("active");
+        $(`tab-${tab.dataset.tab}`).classList.add("active");
+      });
+    });
+
+    function updateStats() {
+      $("stat-primitives").textContent = engine.primitives.size;
+      $("stat-operators").textContent = engine.operators.list().length;
+      $("stat-derivations").textContent = engine.derivations.size;
+      $("stat-states").textContent = engine.runtimeStates.size;
+    }
+
+    function renderHypotheses() {
+      const list = $("hypothesis-list");
+      list.innerHTML = "";
+      for (const h of hypotheses.list()) {
+        const div = document.createElement("div");
+        div.className = `hypothesis-item ${h.status}`;
+        div.innerHTML = `
+          <div class="h-id">${h.id}</div>
+          <div class="h-claim">${h.claim.substring(0, 100)}...</div>
+          <div class="h-status" style="color: var(--${h.status === 'supported' ? 'success' : h.status === 'rejected' ? 'error' : 'warn'})">${h.status}</div>
+        `;
+        list.appendChild(div);
+      }
+    }
+
+    function renderGraphMetrics() {
+      const metrics = engine.topologyBuilder.metrics();
+      const container = $("graph-metrics");
+      container.innerHTML = "";
+      for (const [name, data] of Object.entries(metrics)) {
+        const div = document.createElement("div");
+        div.className = "graph-metric";
+        div.innerHTML = `<span class="name">${name}</span><span class="stats">${data.nodes} nodes, ${data.edges} edges, avg° ${data.avgDegree}</span>`;
+        container.appendChild(div);
+      }
+      if (container.innerHTML === "") {
+        container.innerHTML = `<div style="color: var(--text-dim); font-size: 0.8rem;">Execute inputs to build graph topology...</div>`;
+      }
+    }
+
+    function renderMeshes() {
+      const meshes = engine.meshRegistry.toJSON();
+      const container = $("mesh-list");
+      $("mesh-count").textContent = meshes.length;
+      container.innerHTML = "";
+      for (const mesh of meshes.slice(0, 20)) {
+        const div = document.createElement("div");
+        div.className = "mesh-item";
+        div.innerHTML = `<span class="mesh-name">${mesh.name}</span> <span class="mesh-type">${mesh.meshType}</span> <span style="color: var(--text-dim);">(${mesh.members?.length || 0} members)</span>`;
+        container.appendChild(div);
+      }
+      if (container.innerHTML === "") {
+        container.innerHTML = `<div style="color: var(--text-dim); font-size: 0.8rem;">No meshes active...</div>`;
+      }
+    }
+
+    // Execute
+    function executeInput() {
+      const raw = $("execute-input").value.trim();
+      if (!raw) return;
+      let input = raw;
+      try { const parsed = JSON.parse(raw); if (Array.isArray(parsed)) input = parsed; } catch (e) {}
+
+      try {
+        const derivation = engine.execute(input, { source: "laboratory" });
+        $("latest-derivation").innerHTML = `<pre class="animate-in">${JSON.stringify(derivation.toJSON(), null, 2)}</pre>`;
+        $("composition-result").innerHTML = `<pre class="animate-in">${JSON.stringify(derivation.result, null, 2)}</pre>`;
+        const ledger = engine.ledger.snapshot();
+        $("ledger-primitives").textContent = ledger.primitivesActivated;
+        $("ledger-states").textContent = ledger.statesGenerated;
+        $("ledger-edges").textContent = ledger.edgesTraversed;
+        $("ledger-ops").textContent = ledger.operationsExecuted;
+        const replay = engine.replayEngine.createReplayRecord(input, { source: "laboratory" }, derivation);
+        $("replay-result").innerHTML = `<pre class="animate-in">Replay: ${derivation.id}\nHash: ${engine.replayEngine.hashDerivation(derivation)}</pre>`;
+        updateStats();
+        renderGraphMetrics();
+        renderMeshes();
+      } catch (err) {
+        $("latest-derivation").innerHTML = `<pre style="color: var(--error)">Error: ${err.message}</pre>`;
+      }
+    }
+
+    $("btn-execute").addEventListener("click", executeInput);
+    $("execute-input").addEventListener("keydown", e => { if (e.key === "Enter") executeInput(); });
+    $("btn-clear").addEventListener("click", () => {
+      $("execute-input").value = "";
+      $("latest-derivation").innerHTML = `<pre style="color: var(--text-dim);">Execute an input to see the derivation trace...</pre>`;
+      $("composition-result").innerHTML = `<pre style="color: var(--text-dim);">No composition executed yet...</pre>`;
+      engine.ledger.reset();
+      ["ledger-primitives", "ledger-states", "ledger-edges", "ledger-ops"].forEach(id => $(id).textContent = "0");
+    });
+
+    // Demo buttons
+    document.querySelectorAll("[data-demo]").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const demo = btn.dataset.demo;
+        switch(demo) {
+          case "bundle": $("execute-input").value = JSON.stringify(["f.place.lab", "f.manner.stop", "f.voiceless"]); break;
+          case "sequence": $("execute-input").value = JSON.stringify(["phoneme.p", "phoneme.t"]); break;
+          case "project": $("execute-input").value = JSON.stringify(["phoneme.p", "Movement"]); break;
+          case "transform": $("execute-input").value = JSON.stringify(["phoneme.p", { rule: "voice", transform: x => x }]); break;
+          case "recurse": $("execute-input").value = JSON.stringify(["o_bundle", ["f.voice", "f.place.lab", "f.manner.stop"]]); break;
+          case "decompose": $("execute-input").value = "bat"; break;
+          case "phoneme": $("execute-input").value = JSON.stringify(["phoneme.p"]); break;
+        }
+        executeInput();
+      });
+    });
+
+    // Graph Topology
+    $("btn-graph-metrics").addEventListener("click", renderGraphMetrics);
+    $("btn-graph-neighbors").addEventListener("click", () => {
+      const neighbors = engine.topologyBuilder.neighborhoodSummary("phoneme.p");
+      $("graph-knowledge").innerHTML = `<pre class="animate-in">${JSON.stringify(neighbors, null, 2)}</pre>`;
+    });
+    $("btn-graph-export").addEventListener("click", () => {
+      const data = engine.graphs.toJSON();
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "pure-synthia-graphs.json";
+      a.click();
+    });
+
+    // Address Evaluation
+    $("btn-eval-addresses").addEventListener("click", () => {
+      const primitives = Array.from(engine.primitives.values());
+      const addressFn = (p) => p.candidateAddress || { gate: p.id.charCodeAt(0) % 64, line: 1 };
+      const results = addressEvaluator.evaluateH3(primitives, addressFn, [], []);
+      $("address-results").innerHTML = `<pre class="animate-in">${JSON.stringify(results.candidate, null, 2)}</pre>`;
+      $("address-deltas").innerHTML = `<pre class="animate-in">${JSON.stringify(results.deltas, null, 2)}</pre>`;
+    });
+
+    $("btn-assign-addresses").addEventListener("click", () => {
+      // Assign test addresses to primitives
+      let gate = 1;
+      for (const p of engine.primitives.values()) {
+        if (!p.candidateAddress) {
+          p.candidateAddress = { gate: gate++, line: 1, color: 1 };
+        }
+      }
+      $("address-results").innerHTML = `<pre class="animate-in">Assigned addresses to ${engine.primitives.size} primitives</pre>`;
+    });
+
+    // Dimensional Evaluation
+    $("btn-eval-dimensions").addEventListener("click", () => {
+      const results = dimensionalEvaluator.evaluateH4([], [], []);
+      $("dimension-candidate").innerHTML = `<pre class="animate-in">${JSON.stringify(results.candidate, null, 2)}</pre>`;
+      $("dimension-alternatives").innerHTML = `<pre class="animate-in">${JSON.stringify(results.alternatives, null, 2)}</pre>`;
+    });
+
+    $("btn-show-dimensions").addEventListener("click", () => {
+      const dims = Array.from(dimensionalEvaluator.candidateDimensions.values());
+      $("dimension-candidate").innerHTML = `<pre class="animate-in">${JSON.stringify(dims, null, 2)}</pre>`;
+    });
+
+    // Cross-Scale
+    $("btn-crossscale").addEventListener("click", async () => {
+      const opId = $("crossscale-operator").value;
+      const source = $("crossscale-source").value;
+      const target = $("crossscale-target").value;
+      const testCases = [
+        { id: "test1", operands: [{ id: "a", scale: target }, { id: "b", scale: target }], expected: { operator: opId }, context: {} },
+      ];
+      const result = await crossScaleExp.testTransfer(opId, source, target, testCases);
+      $("crossscale-results").innerHTML = `<pre class="animate-in">${JSON.stringify(result, null, 2)}</pre>`;
+      $("crossscale-summary").innerHTML = `<pre class="animate-in">${JSON.stringify(crossScaleExp.summary(), null, 2)}</pre>`;
+    });
+
+    $("btn-crossscale-battery").addEventListener("click", async () => {
+      const pairs = [["sub-phonemic", "phonemic"], ["phonemic", "morphemic"], ["morphemic", "lexical"]];
+      const testMap = {
+        "o_bundle:phonemic": [{ id: "t1", operands: [{ id: "f1" }, { id: "f2" }], expected: { operator: "o_bundle" } }],
+        "o_sequence:morphemic": [{ id: "t1", operands: [{ id: "p1" }, { id: "p2" }], expected: { operator: "o_sequence" } }],
+      };
+      const battery = await crossScaleExp.runFullBattery(pairs, testMap);
+      $("crossscale-results").innerHTML = `<pre class="animate-in">${JSON.stringify(battery, null, 2)}</pre>`;
+      $("crossscale-summary").innerHTML = `<pre class="animate-in">${JSON.stringify(crossScaleExp.summary(), null, 2)}</pre>`;
+    });
+
+    // Datasets
+    $("btn-gen-synthetic").addEventListener("click", () => {
+      const ds = new SyntheticDataset("synthetic-test");
+      ds.generateBalancedDelimiters(20, 4);
+      ds.generateNestedExpressions(20, 3);
+      ds.generateDependencyChains(10, 4);
+      const split = ds.split();
+      $("dataset-synthetic").innerHTML = `<pre class="animate-in">Generated ${ds.items.length} items
+Discovery: ${split.discovery.length}
+Validation: ${split.validation.length}
+Test: ${split.test.length}
+
+Sample: ${JSON.stringify(split.discovery[0], null, 2)}</pre>`;
+    });
+
+    $("btn-gen-linguistic").addEventListener("click", () => {
+      const ds = new LinguisticDataset();
+      ds.minimalPairs();
+      ds.wordFamilies();
+      ds.controlledSentences();
+      const split = ds.split();
+      $("dataset-linguistic").innerHTML = `<pre class="animate-in">Generated ${ds.items.length} items
+Discovery: ${split.discovery.length}
+Validation: ${split.validation.length}
+Test: ${split.test.length}</pre>`;
+    });
+
+    $("btn-gen-computational").addEventListener("click", () => {
+      const ds = new ComputationalDataset();
+      ds.finiteStateMachines();
+      ds.expressionTrees();
+      ds.automataCompositions();
+      const split = ds.split();
+      $("dataset-computational").innerHTML = `<pre class="animate-in">Generated ${ds.items.length} items
+Discovery: ${split.discovery.length}
+Validation: ${split.validation.length}
+Test: ${split.test.length}</pre>`;
+    });
+
+    $("btn-run-experiment").addEventListener("click", async () => {
+      const ds = new SyntheticDataset("exp-test");
+      ds.generateBalancedDelimiters(30, 4);
+      const split = ds.split();
+      const exp = new Experiment({
+        id: "phase2-synthetic-001",
+        hypothesis: "H1",
+        dataset: split,
+        configuration: { operators: engine.operators.list().map(o => o.id) },
+      });
+      const runner = new ExperimentRunner();
+      runner.register(exp);
+      const result = await runner.run("phase2-synthetic-001", engine);
+      $("dataset-synthetic").innerHTML = `<pre class="animate-in">Experiment Complete!
+${JSON.stringify(result, null, 2)}</pre>`;
+    });
+
+    // Experiments
+    $("btn-run-phase1-gate").addEventListener("click", async () => {
+      const { default: Phase1Gate } = await import("./tests/phase1-gate.js");
+      const gate = new Phase1Gate();
+      const result = await gate.run();
+      $("gate-results").innerHTML = `<pre class="animate-in">${JSON.stringify(result, null, 2)}</pre>`;
+    });
+
+    $("btn-ablation").addEventListener("click", () => {
+      const study = new AblationStudy(engine);
+      const result = study.runAblation(
+        "operator:o_bundle",
+        (eng) => eng.execute("pat", {}),
+        (derivation) => derivation.result?.type === "composite" ? 1 : 0
+      );
+      $("ablation-results").innerHTML = `<pre class="animate-in">${JSON.stringify(result, null, 2)}</pre>`;
+    });
+
+    $("btn-export-manifest").addEventListener("click", () => {
+      const manifest = engine.toJSON();
+      const blob = new Blob([JSON.stringify(manifest, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `pure-synthia-manifest-${Date.now()}.json`;
+      a.click();
+    });
+
+    // Initial render
+    updateStats();
+    renderHypotheses();
+    renderGraphMetrics();
+    renderMeshes();
+  </script>
+</body>
+</html>
