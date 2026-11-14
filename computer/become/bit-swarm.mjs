@@ -11,11 +11,16 @@
 // A relation forms where one unit's outward half completes another's inward half.
 // A pair that co-expresses COMPOSE_AFTER times composes into a new unit (relational-mesh rule).
 // Every change is recorded with which bits changed and which were preserved.
-// PROVISIONAL (marked, replaceable): the operator each relation kind uses, the thresholds.
+// SOURCED (Schöter, "Boolean Algebra and the Yijing", 1998 — owner's annotated copy, p.6 highlights):
+//   AND = "the intersection of the yang energy in x with the yang energy in y"  -> channel completion (gate)
+//   OR  = union                                                                -> several relations accumulate
+//   XOR = "a difference operation"; Definition 9: change χ(G,R) = G xor R      -> contrast / change records
+//   p.4: one unary operation (not) and three binary ones that form a third gua from two -> composition
+// PROVISIONAL (marked, replaceable): 'influence' as a_implies_b for directed relations, the thresholds.
 import { applyBinary, not, toBitString } from '../donors/recovered/synthai-r21.22-self-cultivation-graph-integrated/UPGRADES/shared/boolean-operator-bank.mjs';
 
 export const COMPOSE_AFTER = 3;
-export const RELATION_OPERATOR = Object.freeze({   // PROVISIONAL
+export const RELATION_OPERATOR = Object.freeze({   // gate/contrast sourced (Schöter p.6); influence provisional
   complete: 'or',          // a completed channel: both halves contribute
   gate: 'and',             // context switches capability on only where both agree
   influence: 'a_implies_b',// directed: the viewer (left) conditions the other; A·B ≠ B·A
