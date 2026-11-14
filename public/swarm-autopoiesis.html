@@ -1,0 +1,256 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Autopoietic swarm — the swarm writes its own rules</title>
+<style>
+html,body{margin:0;height:100%;background:#05060a;color:#cfd3e0;font:12px system-ui,sans-serif;overflow:hidden}
+#bar{position:fixed;top:0;left:0;right:0;display:flex;gap:5px;flex-wrap:wrap;align-items:center;padding:6px;background:#05060ae0;z-index:3}
+button{background:#161a26;color:#cfd3e0;border:1px solid #2a3044;border-radius:6px;padding:5px 9px;font:inherit}
+#world{position:fixed;left:0;right:0;top:40px;height:52vh;width:100%;touch-action:none}
+#panel{position:fixed;left:0;right:0;bottom:0;top:calc(52vh + 40px);overflow:auto;padding:6px 8px;border-top:1px solid #222838}
+h3{margin:6px 0 3px;font-size:12px;color:#fff}
+.lv{display:grid;grid-template-columns:78px 1fr 46px 46px;gap:4px;align-items:center;font-size:11px}
+.bar{height:6px;background:#1c2232;border-radius:3px;overflow:hidden}.bar i{display:block;height:100%}
+#rules{display:flex;flex-wrap:wrap;gap:6px}
+.rule{width:96px;background:#0d1018;border:1px solid #222838;border-radius:6px;padding:3px;font-size:10px;line-height:1.25}
+.rule canvas{width:88px;height:56px;display:block}
+#stats{font-size:11px;color:#9aa3b8}
+</style></head><body>
+<div id="bar">
+  <button id="run">Pause</button><button id="sound">Sound off</button><button id="reset">New world</button>
+  <span id="stats"></span>
+</div>
+<canvas id="world"></canvas>
+<div id="panel">
+  <h3>Levels (one Klein tool each; three most active act each round)</h3><div id="levels"></div>
+  <h3>Rule space — written by the swarm, each rule shown as its shape</h3><div id="rules"></div>
+</div>
+<script>
+// AUTOPOIETIC SWARM. Nothing here is a picture. There are beings (6-bit identities), and a rule space that starts EMPTY.
+// Five Klein tools, one per level, write, revise, compose and prune rules from what the beings actually do.
+// The rules then change the beings (bonds, identity changes, movement), which changes what the tools see next.
+// Level map (as given): Being=DISEMINER, Evolution=AUTOLING, Movement=Monte Carlo, Design=grammar coder, Space=generator+monitor.
+// Selection follows klein_agent.py: bid = weight x clock activation, three most active levels act, reward shared with the team.
+// Colors as scorers (from klein_colors.py): Fear = closeness to team, Desire = margin over own baseline, Need = accuracy + slope.
+
+// ---- the 16 Boolean functions on 6-bit identities
+const M6 = 63;
+const BANK = [
+  ['false', (a, b) => 0], ['and', (a, b) => a & b], ['a_and_not_b', (a, b) => a & ~b & M6], ['a', (a, b) => a],
+  ['not_a_and_b', (a, b) => ~a & b & M6], ['b', (a, b) => b], ['xor', (a, b) => a ^ b], ['or', (a, b) => a | b],
+  ['nor', (a, b) => ~(a | b) & M6], ['xnor', (a, b) => ~(a ^ b) & M6], ['not_b', (a, b) => ~b & M6], ['b_implies_a', (a, b) => (a | ~b) & M6],
+  ['not_a', (a, b) => ~a & M6], ['a_implies_b', (a, b) => (~a | b) & M6], ['nand', (a, b) => ~(a & b) & M6], ['true', (a, b) => M6],
+];
+const ham = (a, b) => { let x = a ^ b, n = 0; while (x) { n += x & 1; x >>= 1; } return n; };
+const LEVELS = ['Movement', 'Evolution', 'Being', 'Design', 'Space'];
+const TOOL = { Movement: 'Monte Carlo', Evolution: 'AUTOLING', Being: 'DISEMINER', Design: 'Grammar coder', Space: 'Generator+monitor' };
+const LCOL = { Movement: '#ff5a6e', Evolution: '#50e68c', Being: '#ffbe46', Design: '#be78ff', Space: '#50a0ff' };
+
+// ---- seeded random
+let seed = 7; const rnd = () => (seed = (seed * 1664525 + 1013904223) >>> 0) / 4294967296;
+const pick = a => a[(rnd() * a.length) | 0];
+
+// ---- clocks: Sun longitude in four frames (low-precision formulas; Space derived from the other four)
+function sunLon(jd) { const n = jd - 2451545, L = (280.46 + 0.9856474 * n) % 360, g = (357.528 + 0.9856003 * n) * Math.PI / 180; return (L + 1.915 * Math.sin(g) + 0.02 * Math.sin(2 * g) + 360) % 360; }
+function meanNode(jd) { const T = (jd - 2451545) / 36525; return ((125.0445 - 1934.1363 * T) % 360 + 360) % 360; }
+function activation(level, jd) {
+  const s = sunLon(jd), ph = level === 'Being' ? s : level === 'Evolution' ? s - (24.0 + (jd - 2451545) / 365.25 * 0.01397) // sidereal (Fagan-Bradley approx)
+    : (s - meanNode(jd) + (level === 'Movement' ? 1.5 * Math.sin(jd / 13.6) : 0)); // draconic; Movement uses a true-node wobble (approx)
+  if (level === 'Space') { const o = ['Movement', 'Evolution', 'Being', 'Design'].map(l => activation(l, jd)); return o.reduce((a, b) => a + b) / 4; }
+  return (1 + Math.cos(2 * Math.PI * (((ph % 360) + 360) % 360) / 360)) / 2;
+}
+
+// ---- world
+const W0 = 420; let W, H, beings, rules, contacts, ruleId, tick, jd, nextId;
+const N = 160, R = 26;
+function reset() {
+  seed = 7 + (Math.random() * 1e6 | 0); tick = 0; jd = 2461358.5; ruleId = 0; nextId = 0;
+  beings = Array.from({ length: N }, () => ({ id: nextId++, bits: (rnd() * 64) | 0, x: rnd() * W, y: rnd() * H, vx: 0, vy: 0, rel: new Map(), fired: 0 }));
+  rules = []; contacts = [];
+  for (const L of LEVELS) { lv[L] = { weight: 1, base: 0.5, hist: [], wrote: 0, last: 0, colors: {} }; }
+}
+const lv = {};
+
+// a rule: when (self & sm) == sb and (other & om) == ob, act with operator op
+// acts: bond (form/strengthen a relation), turn (self.bits = op(self, other): identity change), drift (move by op parity)
+function makeRule(level, cond, act, op, parent) {
+  return { id: ++ruleId, level, cond, act, op, w: 0.6, fires: 0, gain: 0, born: tick, parent: parent || null, seq: null };
+}
+const matches = (r, a, b) => (a.bits & r.cond.sm) === r.cond.sb && (b.bits & r.cond.om) === r.cond.ob;
+const coherence = a => { let s = 0, n = 0; for (const [id, st] of a.rel) { const b = beings[id]; s += st * (6 - ham(a.bits, b.bits)) / 6; n += st; } return n ? s / n * Math.min(1, n / 3) : 0; };
+
+function applyRule(r, a, b) {
+  const before = coherence(a) + coherence(b);
+  const acts = r.seq || [[r.act, r.op]];
+  for (const [act, op] of acts) {
+    if (act === 'bond') { a.rel.set(b.id, Math.min(1, (a.rel.get(b.id) || 0) + 0.25)); b.rel.set(a.id, Math.min(1, (b.rel.get(a.id) || 0) + 0.25)); }
+    else if (act === 'turn') { const nb = BANK[op][1](a.bits, b.bits); if (nb !== a.bits) { a.bits = nb; } }
+    else { const s = (BANK[op][1](a.bits, b.bits) & 1) ? 1 : -1; a.vx += (b.x - a.x) * 0.01 * s; a.vy += (b.y - a.y) * 0.01 * s; }
+  }
+  const gain = coherence(a) + coherence(b) - before;
+  r.fires++; r.gain += gain; r.w = Math.max(0.05, Math.min(3, r.w + 0.15 * (gain - 0.01)));
+  a.fired = b.fired = 6; ping(r);
+  return gain;
+}
+
+// ---- the five tools (each reads the world, writes into the rule space)
+const TOOLS = {
+  // DISEMINER: co-occurrence of lower-trigram classes among contacts that ended well -> bond rule for the most related pair (cosine over contact profiles)
+  Being() {
+    if (contacts.length < 40) return null;
+    const P = Array.from({ length: 8 }, () => new Float32Array(8));
+    for (const c of contacts) P[c.a & 7][c.b & 7] += 1 + Math.max(0, c.g) * 10;
+    const cos = (i, j) => { let d = 0, ni = 0, nj = 0; for (let k = 0; k < 8; k++) { d += P[i][k] * P[j][k]; ni += P[i][k] ** 2; nj += P[j][k] ** 2; } return d / (Math.sqrt(ni * nj) || 1); };
+    let best = null, bs = -1;
+    for (let i = 0; i < 8; i++) for (let j = 0; j < 8; j++) {
+      if (rules.some(r => r.act === 'bond' && r.cond.sm === 7 && r.cond.sb === i && r.cond.ob === j)) continue;
+      const s = cos(i, j) * (P[i][j] + 1); if (s > bs) { bs = s; best = [i, j]; }
+    }
+    return best ? makeRule('Being', { sm: 7, sb: best[0], om: 7, ob: best[1] }, 'bond', 7) : null;
+  },
+  // AUTOLING: take the best-performing rule and try generalising its condition (drop one bit); keep the hypothesis only if the
+  // logged contacts it would have matched did at least as well as the parent's (induction from evidence, not a guess)
+  Evolution() {
+    const good = rules.filter(r => r.fires > 4 && r.gain / r.fires > 0).sort((x, y) => y.gain / y.fires - x.gain / x.fires);
+    if (!good.length || contacts.length < 40) return null;
+    const p = good[0], bitsOn = [];
+    for (let k = 0; k < 12; k++) { const m = k < 6 ? p.cond.sm : p.cond.om; if (m >> (k % 6) & 1) bitsOn.push(k); }
+    if (!bitsOn.length) return null;
+    const k = pick(bitsOn), c = { ...p.cond };
+    if (k < 6) { c.sm &= ~(1 << k); c.sb &= c.sm; } else { c.om &= ~(1 << (k - 6)); c.ob &= c.om; }
+    const ev = (cond) => { let s = 0, n = 0; for (const x of contacts) if ((x.a & cond.sm) === cond.sb && (x.b & cond.om) === cond.ob) { s += x.g; n++; } return n ? s / n : -1; };
+    if (ev(c) < ev(p.cond)) return null;
+    const r = makeRule('Evolution', c, p.act, p.op, p.id); r.seq = p.seq; return r;
+  },
+  // Monte Carlo: random variation of a rule (or a fresh random rule when the space is empty)
+  Movement() {
+    const acts = ['bond', 'turn', 'drift'];
+    if (!rules.length || rnd() < 0.2) { const sm = (rnd() * 64) | 0, om = (rnd() * 64) | 0; return makeRule('Movement', { sm, sb: (rnd() * 64 | 0) & sm, om, ob: (rnd() * 64 | 0) & om }, pick(acts), (rnd() * 16) | 0); }
+    const p = pick(rules), c = { ...p.cond }, k = (rnd() * 4) | 0;
+    if (k === 0) { c.sm ^= 1 << (rnd() * 6 | 0); c.sb &= c.sm; } else if (k === 1) { c.om ^= 1 << (rnd() * 6 | 0); c.ob &= c.om; }
+    else if (k === 2) { c.sb ^= (1 << (rnd() * 6 | 0)) & c.sm; }
+    const r = makeRule('Movement', c, k === 3 ? pick(acts) : p.act, k === 3 ? p.op : (rnd() * 16) | 0, p.id); return r;
+  },
+  // Grammar coder: composition -- two rules that keep firing on the same beings close together become one composite rule (sequence)
+  Design() {
+    const hot = rules.filter(r => r.fires > 3 && r.gain > 0 && !r.seq).sort((a, b) => b.fires - a.fires).slice(0, 6);
+    if (hot.length < 2) return null;
+    const a = hot[0], b = hot.find(r => r.act !== a.act) || hot[1];
+    if (rules.some(r => r.seq && r.parent === a.id && r.seq.length === 2 && r.seq[1][0] === b.act)) return null;
+    const r = makeRule('Design', { sm: a.cond.sm, sb: a.cond.sb, om: a.cond.om, ob: a.cond.ob }, 'seq', a.op, a.id);
+    r.seq = [[a.act, a.op], [b.act, b.op]]; return r;
+  },
+  // Generator + monitor: keeps the rule space bounded -- prunes rules that keep losing, and checks the others still pay
+  Space() {
+    let removed = 0;
+    rules = rules.filter(r => { const bad = r.fires > 15 && r.gain / r.fires < -0.002 || (r.fires === 0 && tick - r.born > 400); if (bad) removed++; return !bad; });
+    if (rules.length > 48) { rules.sort((a, b) => b.w - a.w); removed += rules.length - 48; rules.length = 48; }
+    return removed ? { pruned: removed } : null;
+  },
+};
+
+// ---- one round of the agent: bids, three most active levels act, shared reward, Colors read
+function agentRound() {
+  const bids = LEVELS.map(L => [L, lv[L].weight * (activation(L, jd) + 1e-6)]).sort((a, b) => b[1] - a[1]);
+  const active = bids.slice(0, 3).map(b => b[0]);
+  const out = {};
+  for (const L of active) {
+    const res = TOOLS[L]();
+    if (res && res.id) { rules.push(res); lv[L].wrote++; } else if (res && res.pruned) lv[L].pruned = (lv[L].pruned || 0) + res.pruned;
+    // the level's own outcome: mean gain per fire of the rules it authored (Space: share of rules still paying)
+    const mine = L === 'Space' ? rules : rules.filter(r => r.level === L);
+    const fired = mine.filter(r => r.fires);
+    out[L] = fired.length ? Math.max(0, Math.min(1, 0.5 + 20 * fired.reduce((s, r) => s + r.gain / r.fires, 0) / fired.length)) : 0.5;
+  }
+  const team = Object.values(out).reduce((a, b) => a + b, 0) / active.length;
+  for (const L of active) {
+    const S = lv[L], own = out[L], reward = 0.5 * team + 0.5 * own;
+    S.weight = Math.max(0.05, S.weight + 0.2 * (reward - S.base)); S.base = 0.9 * S.base + 0.1 * reward;
+    S.hist.push(own); if (S.hist.length > 20) S.hist.shift(); S.last = own;
+    // Colors as scorers
+    const n = S.hist.length, mean = S.hist.reduce((a, b) => a + b, 0) / n;
+    let sl = 0; if (n > 2) { const mx = (n - 1) / 2; let num = 0, den = 0; S.hist.forEach((v, i) => { num += (i - mx) * (v - mean); den += (i - mx) ** 2; }); sl = num / den; }
+    S.colors = { Fear: Math.abs(own - team) < 0.1 ? 'Communalist' : 'Separatist', Desire: own - S.base > 0.05 ? 'Leader' : 'Follower', Need: mean >= 0.7 && Math.abs(sl) < 0.01 ? 'Master' : 'Novice' };
+  }
+  return active;
+}
+
+// ---- physics + contacts: beings meet, matching rules fire (weighted), every contact is logged with its outcome
+function step() {
+  tick++; jd += 0.5;
+  const grid = new Map(), key = (x, y) => ((x / R) | 0) + ',' + ((y / R) | 0);
+  for (const b of beings) { const k = key(b.x, b.y); (grid.get(k) || grid.set(k, []).get(k)).push(b); }
+  for (const a of beings) {
+    const gx = (a.x / R) | 0, gy = (a.y / R) | 0;
+    for (let dx = -1; dx <= 1; dx++) for (let dy = -1; dy <= 1; dy++) for (const b of grid.get((gx + dx) + ',' + (gy + dy)) || []) {
+      if (b === a) continue; const ddx = b.x - a.x, ddy = b.y - a.y, d = Math.hypot(ddx, ddy) || 1;
+      const st = a.rel.get(b.id) || 0;
+      if (st) { const f = (d - 14) * 0.004 * st; a.vx += ddx / d * f; a.vy += ddy / d * f; }          // bonds hold beings at a distance
+      if (d < 7) { a.vx -= ddx / d * 0.05; a.vy -= ddy / d * 0.05; }
+      if (d < R && rnd() < 0.04) {
+        const m = rules.filter(r => matches(r, a, b));
+        let g = 0;
+        if (m.length) { const tot = m.reduce((s, r) => s + r.w, 0); let x = rnd() * tot; const r = m.find(r => (x -= r.w) <= 0) || m[0]; g = applyRule(r, a, b); }
+        contacts.push({ a: a.bits, b: b.bits, g }); if (contacts.length > 600) contacts.shift();
+      }
+    }
+  }
+  for (const b of beings) {
+    for (const [id, st] of b.rel) { const ns = st - 0.0015; if (ns <= 0) b.rel.delete(id); else b.rel.set(id, ns); }   // relations fade unless renewed
+    b.vx += (rnd() - 0.5) * 0.12; b.vy += (rnd() - 0.5) * 0.12; b.vx *= 0.9; b.vy *= 0.9;
+    b.x = (b.x + b.vx + W) % W; b.y = (b.y + b.vy + H) % H; if (b.fired) b.fired--;
+  }
+  if (tick % 10 === 0) agentRound();
+}
+
+// ---- rule as shape (its 28 bits) and as sound (its condition sets the pitch, its operator the interval)
+function ruleBits(r) { return [r.cond.sm, r.cond.sb, r.cond.om, r.cond.ob].flatMap(v => [5, 4, 3, 2, 1, 0].map(k => v >> k & 1)).concat([3, 2, 1, 0].map(k => r.op >> k & 1)); }
+function drawShape(ctx, r, cx, cy, rad) {
+  const bits = ruleBits(r), n = bits.length; ctx.beginPath();
+  bits.forEach((b, i) => { const a = i / n * 6.283 - 1.571, rr = rad * (b ? 1 : 0.45); i ? ctx.lineTo(cx + Math.cos(a) * rr, cy + Math.sin(a) * rr) : ctx.moveTo(cx + Math.cos(a) * rr, cy + Math.sin(a) * rr); });
+  ctx.closePath(); ctx.fillStyle = LCOL[r.level] + '55'; ctx.strokeStyle = LCOL[r.level]; ctx.fill(); ctx.stroke();
+  if (r.seq) { ctx.beginPath(); ctx.arc(cx, cy, rad * 0.25, 0, 7); ctx.stroke(); }
+}
+let audio = null, lastPing = 0;
+function ping(r) {
+  if (!audio || performance.now() - lastPing < 60) return; lastPing = performance.now();
+  const f = 110 * Math.pow(2, ((r.cond.sb * 7 + r.cond.ob) % 36) / 12), o = audio.createOscillator(), g = audio.createGain();
+  o.frequency.value = f * (1 + (r.op % 5) / 4); o.type = r.act === 'bond' ? 'sine' : r.act === 'turn' ? 'triangle' : 'square';
+  g.gain.setValueAtTime(0.04, audio.currentTime); g.gain.exponentialRampToValueAtTime(0.0001, audio.currentTime + 0.25);
+  o.connect(g).connect(audio.destination); o.start(); o.stop(audio.currentTime + 0.26);
+}
+
+// ---- display
+const cv = document.getElementById('world'), cx = cv.getContext('2d');
+function size() { const d = devicePixelRatio || 1, r = cv.getBoundingClientRect(); cv.width = r.width * d; cv.height = r.height * d; cx.setTransform(d, 0, 0, d, 0, 0); W = r.width; H = r.height; }
+function clusters() { const seen = new Set(); let c = 0; for (const b of beings) { if (seen.has(b.id) || !b.rel.size) continue; c++; const st = [b]; seen.add(b.id); while (st.length) { const x = st.pop(); for (const id of x.rel.keys()) if (!seen.has(id)) { seen.add(id); st.push(beings[id]); } } } return c; }
+function draw() {
+  cx.fillStyle = '#05060a'; cx.fillRect(0, 0, W, H);
+  cx.lineWidth = 1;
+  for (const a of beings) for (const [id, st] of a.rel) if (id > a.id) { const b = beings[id]; if (Math.abs(a.x - b.x) > W / 2 || Math.abs(a.y - b.y) > H / 2) continue; cx.strokeStyle = `rgba(160,180,255,${st * 0.6})`; cx.beginPath(); cx.moveTo(a.x, a.y); cx.lineTo(b.x, b.y); cx.stroke(); }
+  for (const b of beings) {
+    const hue = (b.bits & 7) / 8 * 360, l = 45 + (b.bits >> 3) * 4;
+    cx.fillStyle = `hsl(${hue},80%,${l}%)`; cx.beginPath(); cx.arc(b.x, b.y, b.fired ? 4 : 2.6, 0, 7); cx.fill();
+  }
+}
+let paused = false, uiT = 0;
+function loop(now) {
+  if (!paused) for (let i = 0; i < 2; i++) step();
+  draw();
+  if (now - uiT > 400) { uiT = now; ui(); }
+  requestAnimationFrame(loop);
+}
+function ui() {
+  const bonds = beings.reduce((s, b) => s + b.rel.size, 0) / 2, coh = beings.reduce((s, b) => s + coherence(b), 0) / N;
+  document.getElementById('stats').textContent = `tick ${tick} · rules ${rules.length} · bonds ${bonds | 0} · groups ${clusters()} · coherence ${coh.toFixed(3)}`;
+  document.getElementById('levels').innerHTML = LEVELS.map(L => { const S = lv[L], act = activation(L, jd);
+    return `<div class="lv"><b style="color:${LCOL[L]}">${L}</b><span>${TOOL[L]} · ${L === 'Space' ? 'pruned ' + (S.pruned || 0) : 'wrote ' + S.wrote} · ${Object.values(S.colors).join(' / ') || '—'}</span><div class="bar"><i style="width:${Math.min(100, S.weight * 50)}%;background:${LCOL[L]}"></i></div><span>clock ${act.toFixed(2)}</span></div>`; }).join('');
+  const box = document.getElementById('rules'), top = [...rules].sort((a, b) => b.w - a.w).slice(0, 24);
+  box.innerHTML = top.map(r => `<div class="rule"><canvas data-id="${r.id}" width="176" height="112"></canvas>#${r.id} ${r.seq ? r.seq.map(s => s[0] + ':' + BANK[s[1]][0]).join('→') : r.act + ':' + BANK[r.op][0]}<br>${TOOL[r.level]} · fired ${r.fires} · gain ${(r.fires ? r.gain / r.fires : 0).toFixed(3)}</div>`).join('');
+  box.querySelectorAll('canvas').forEach(c => { const r = rules.find(x => x.id === +c.dataset.id), g = c.getContext('2d'); g.lineWidth = 2; drawShape(g, r, 88, 56, 50); });
+}
+document.getElementById('run').onclick = e => { paused = !paused; e.target.textContent = paused ? 'Run' : 'Pause'; };
+document.getElementById('reset').onclick = () => reset();
+document.getElementById('sound').onclick = e => { if (audio) { audio.close(); audio = null; e.target.textContent = 'Sound off'; } else { audio = new AudioContext(); e.target.textContent = 'Sound on'; } };
+addEventListener('resize', size); size(); reset(); requestAnimationFrame(loop);
+window.__run = n => { for (let i = 0; i < n; i++) step(); ui(); return { tick, rules: rules.length, bonds: beings.reduce((s, b) => s + b.rel.size, 0) / 2, groups: clusters(), coherence: beings.reduce((s, b) => s + coherence(b), 0) / N, wrote: Object.fromEntries(LEVELS.map(L => [L, lv[L].wrote])), weights: Object.fromEntries(LEVELS.map(L => [L, +lv[L].weight.toFixed(2)])), positive: rules.filter(r => r.fires && r.gain > 0).length }; };
+</script></body></html>
