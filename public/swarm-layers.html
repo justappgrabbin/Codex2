@@ -50,17 +50,36 @@ const SLOTS = [
   { name: 'Base', op: 'xor', alpha: 0.35 }, { name: 'Axon', op: 'or', alpha: 0.5 },
 ];
 const TR = { a:'а',b:'б',c:'ц',d:'д',e:'е',f:'ф',g:'г',h:'х',i:'и',j:'й',k:'к',l:'л',m:'м',n:'н',o:'о',p:'п',q:'к',r:'р',s:'с',t:'т',u:'у',v:'в',w:'в',x:'кс',y:'й',z:'з','-':'-' };
-// letter ladder: zooming in moves Unicode -> Transliteration -> NATO -> ASCII -> Binary; each is the same letter
-const LADDER = ['Unicode', 'Transliteration', 'NATO', 'ASCII', 'Binary'];
-const rung = z => z < 1.6 ? 0 : z < 2.4 ? 1 : z < 3.4 ? 2 : z < 4.6 ? 3 : 4;
+// BHANTUGH, bottom to top: Binary, Hex, ASCII, NATO, Transliteration, Unicode, Geometry, HTML+hash.
+// Zoomed all the way in = Binary; zoomed all the way out = HTML/hash. Same letter at every rung.
+const LADDER = ['HTML / hash', 'Geometry', 'Unicode', 'Transliteration', 'NATO', 'ASCII', 'Hex', 'Binary'];
+const rung = z => Math.min(7, Math.floor((z - 1) / (5 / 8) ));
+// vowel primitives (from the architecture doc): I Movement, A Evolution, E Being, U Design, O Space
+const VOWEL_DIM = { I: 0, A: 1, E: 2, U: 3, O: 4 };
+const firstVowelDim = w => { for (const c of w.toUpperCase()) if (c in VOWEL_DIM) return VOWEL_DIM[c]; return -1; };
 function spell(li, R) {
-  const L = String.fromCharCode(65 + li), w = NATO[li];
-  return R === 0 ? String.fromCharCode(0x2800 + L.charCodeAt(0))   // Braille cell whose 8 dots are the letter's ASCII bits
-       : R === 1 ? [...w.toLowerCase()].map(c => TR[c] ?? c).join('')
-       : R === 2 ? w : R === 3 ? L : L.charCodeAt(0).toString(2).padStart(8, '0');
+  const L = String.fromCharCode(65 + li), code = L.charCodeAt(0), w = NATO[li];
+  switch (R) {
+    case 7: return code.toString(2).padStart(8, '0');
+    case 6: return '0x' + code.toString(16).toUpperCase();
+    case 5: return L;
+    case 4: return w;
+    case 3: return [...w.toLowerCase()].map(c => TR[c] ?? c).join('');
+    case 2: return String.fromCharCode(0x2800 + code);      // Braille cell whose 8 dots are the ASCII bits
+    case 1: return null;                                    // drawn as geometry
+    default: return '&#' + code + '; #' + ((code * 2654435761) >>> 0).toString(16).slice(0, 4);
+  }
+}
+// geometry rung: the letter's 8 bits as an 8-ray figure (bit on = long ray)
+function drawGeom(ctx, li, x, y, r) {
+  const code = 65 + li; ctx.beginPath();
+  for (let k = 0; k < 8; k++) { const on = (code >> (7 - k)) & 1, a = k / 8 * 6.283 - 1.571, rr = on ? r : r * 0.35;
+    k ? ctx.lineTo(x + Math.cos(a) * rr, y + Math.sin(a) * rr) : ctx.moveTo(x + Math.cos(a) * rr, y + Math.sin(a) * rr); }
+  ctx.closePath(); ctx.fill();
 }
 const NATO = ['Alfa','Bravo','Charlie','Delta','Echo','Foxtrot','Golf','Hotel','India','Juliett','Kilo','Lima','Mike','November','Oscar','Papa','Quebec','Romeo','Sierra','Tango','Uniform','Victor','Whiskey','X-ray','Yankee','Zulu'];
 
+const BY_DIM = [0, 1, 2, 3, 4].map(d => NATO.map((w, i) => [w, i]).filter(([w]) => firstVowelDim(w) === d).map(([, i]) => i));
 const mc = document.getElementById('mosaic'), mx = mc.getContext('2d');
 const wc = document.getElementById('words'), wx = wc.getContext('2d');
 let W, H, GW = 0, GH = 0, src = null, buf = null, img = null, zoom = 1, onlyLayer = -1, words = [], audio = null;
@@ -82,8 +101,10 @@ function prepare() {
   words = Array.from({ length: 700 }, () => newWord());
 }
 function newWord() {
-  const d = (Math.random() * 5) | 0;
-  return { x: Math.random() * GW, y: Math.random() * GH, d, li: (Math.random() * 26) | 0, life: 200 + Math.random() * 300 };
+  const x = Math.random() * GW, y = Math.random() * GH, i = ((y | 0) * GW + (x | 0)) * 4;
+  const byte = src ? ((src[i] * 0.3 + src[i + 1] * 0.59 + src[i + 2] * 0.11) | 0) : 0;
+  const d = byte % 5, pool = BY_DIM[d], li = pool[byte % pool.length];
+  return { x, y, d, li, life: 200 + Math.random() * 300 };
 }
 // Chladni plate figure for a dimension: nodal lines are where sand (words/energy) collects
 const chladni = (D, u, v, t) => {
@@ -132,7 +153,7 @@ function frame(now) {
   wx.clearRect(0, 0, W, H);
   const sxp = W / GW, syp = H / GH, fs = 7;
   const R = rung(zoom); document.getElementById('rung').textContent = LADDER[R];
-  wx.font = (R === 0 ? 10 : R === 3 ? 9 : fs) + 'px ui-monospace,Menlo,monospace'; wx.textAlign = 'center'; wx.textBaseline = 'middle';
+  wx.font = (R === 2 ? 10 : R === 5 ? 9 : R === 0 ? 6 : fs) + 'px ui-monospace,Menlo,monospace'; wx.textAlign = 'center'; wx.textBaseline = 'middle';
   wx.globalAlpha = Math.min(1, 0.35 + zoom * 0.2);
   for (const w of words) {
     const D = DIMS[w.d], e = 0.01, u = w.x / GW, v = w.y / GH, f0 = chladni(D, u, v, t);
@@ -142,7 +163,7 @@ function frame(now) {
     if (--w.life < 0 || w.x < 0 || w.x > GW || w.y < 0 || w.y > GH) Object.assign(w, newWord());
     const o = pix(w.x, w.y);
     wx.fillStyle = `rgb(${Math.min(255, out[o] + 40)},${Math.min(255, out[o + 1] + 40)},${Math.min(255, out[o + 2] + 40)})`;
-    wx.fillText(spell(w.li, R), w.x * sxp, w.y * syp);
+    if (R === 1) drawGeom(wx, w.li, w.x * sxp, w.y * syp, 5); else wx.fillText(spell(w.li, R), w.x * sxp, w.y * syp);
   }
   wx.globalAlpha = 1;
   if (audio) audio.gains.forEach((g, i) => g.gain.setTargetAtTime(onlyLayer < 0 || onlyLayer === i ? 0.03 : 0, audio.ctx.currentTime, 0.1));
