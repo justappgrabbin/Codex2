@@ -17,13 +17,15 @@ h3{margin:6px 0 3px;font-size:12px;color:#fff}
 </style></head><body>
 <div id="bar">
   <button id="run">Pause</button><button id="sound">Sound off</button><button id="reset">New world</button>
-  <span id="stats"></span>
+  <button id="tabW">Levels+rules</button><button id="tabS">State space</button><button id="tabR">Write-up</button><span id="stats"></span>
 </div>
 <canvas id="world"></canvas>
 <div id="panel">
   <h3>Levels (one Klein tool each; three most active act each round)</h3><div id="levels"></div>
   <h3>Rule space — written by the swarm, each rule shown as its shape</h3><div id="rules"></div>
 </div>
+<div id="spanel" style="display:none;position:fixed;left:0;right:0;bottom:0;top:calc(52vh + 40px);overflow:auto;padding:6px 8px;border-top:1px solid #222838;font:11px ui-monospace,monospace"></div>
+<div id="rpanel" style="display:none;position:fixed;left:0;right:0;bottom:0;top:calc(52vh + 40px);overflow:auto;padding:6px 8px;border-top:1px solid #222838;font:11px ui-monospace,monospace;white-space:pre-wrap"></div>
 <script>
 // AUTOPOIETIC SWARM. Nothing here is a picture. There are beings (6-bit identities), and a rule space that starts EMPTY.
 // Five Klein tools, one per level, write, revise, compose and prune rules from what the beings actually do.
@@ -65,7 +67,7 @@ const N = 160, R = 26;
 function reset() {
   seed = 7 + (Math.random() * 1e6 | 0); tick = 0; jd = 2461358.5; ruleId = 0; nextId = 0;
   beings = Array.from({ length: N }, () => ({ id: nextId++, bits: (rnd() * 64) | 0, x: rnd() * W, y: rnd() * H, vx: 0, vy: 0, rel: new Map(), fired: 0 }));
-  rules = []; contacts = [];
+  rules = []; contacts = []; STATE.clear();
   for (const L of LEVELS) { lv[L] = { weight: 1, base: 0.5, hist: [], wrote: 0, last: 0, colors: {} }; }
 }
 const lv = {};
@@ -79,6 +81,7 @@ const matches = (r, a, b) => (a.bits & r.cond.sm) === r.cond.sb && (b.bits & r.c
 const coherence = a => { let s = 0, n = 0; for (const [id, st] of a.rel) { const b = beings[id]; s += st * (6 - ham(a.bits, b.bits)) / 6; n += st; } return n ? s / n * Math.min(1, n / 3) : 0; };
 
 function applyRule(r, a, b) {
+  const a0 = a.bits;
   const before = coherence(a) + coherence(b);
   const acts = r.seq || [[r.act, r.op]];
   for (const [act, op] of acts) {
@@ -89,6 +92,7 @@ function applyRule(r, a, b) {
   const gain = coherence(a) + coherence(b) - before;
   r.fires++; r.gain += gain; r.w = Math.max(0.05, Math.min(3, r.w + 0.15 * (gain - 0.01)));
   a.fired = b.fired = 6; ping(r);
+  observeMeeting(r, a0, b.bits, a, gain);
   return gain;
 }
 
@@ -125,7 +129,7 @@ const TOOLS = {
   Movement() {
     const acts = ['bond', 'turn', 'drift'];
     if (!rules.length || rnd() < 0.2) { const sm = (rnd() * 64) | 0, om = (rnd() * 64) | 0; return makeRule('Movement', { sm, sb: (rnd() * 64 | 0) & sm, om, ob: (rnd() * 64 | 0) & om }, pick(acts), (rnd() * 16) | 0); }
-    const p = pick(rules), c = { ...p.cond }, k = (rnd() * 4) | 0;
+    const okay = rules.filter(r => logic(STATE.get('rule/' + r.id)) !== '0'), p = pick(okay.length ? okay : rules), c = { ...p.cond }, k = (rnd() * 4) | 0;
     if (k === 0) { c.sm ^= 1 << (rnd() * 6 | 0); c.sb &= c.sm; } else if (k === 1) { c.om ^= 1 << (rnd() * 6 | 0); c.ob &= c.om; }
     else if (k === 2) { c.sb ^= (1 << (rnd() * 6 | 0)) & c.sm; }
     const r = makeRule('Movement', c, k === 3 ? pick(acts) : p.act, k === 3 ? p.op : (rnd() * 16) | 0, p.id); return r;
@@ -147,6 +151,108 @@ const TOOLS = {
     return removed ? { pruned: removed } : null;
   },
 };
+
+
+// =====================================================================================================
+// THE RECORD. Monte Carlo and DISEMINER observe what the swarm does and file it into the state space,
+// each observation at its address. Every entry carries a std_logic value read from its evidence:
+//   'U' not enough evidence yet · 'X' evidence conflicts · '1' / '0' resolved good / bad · 'H' / 'L' leaning good / bad
+// The write-up is composed ONLY from entries: every line cites the addresses it came from, nothing else can be said.
+// Awareness: the swarm reads its own record back -- resolved-bad rules are damped, 'U' addresses draw exploration.
+// =====================================================================================================
+const STATE = new Map();   // address -> entry
+const bitsStr = v => v.toString(2).padStart(6, '0');
+function file(address, kind, tool, g, extra) {
+  let e = STATE.get(address);
+  if (!e) STATE.set(address, e = { address, kind, tools: new Set(), n: 0, sum: 0, sq: 0, pos: 0, neg: 0, first: tick, last: tick, ...extra });
+  e.tools.add(tool); e.n++; e.sum += g; e.sq += g * g; e.last = tick; if (g > 0.001) e.pos++; else if (g < -0.001) e.neg++;
+  return e;
+}
+function logic(e) {
+  if (!e || e.n < 5) return 'U';
+  const m = e.sum / e.n, sd = Math.sqrt(Math.max(0, e.sq / e.n - m * m)), se = sd / Math.sqrt(e.n);
+  if (e.pos > 0 && e.neg > 0 && Math.min(e.pos, e.neg) / Math.max(e.pos, e.neg) > 0.6) return 'X';
+  if (m > 2 * se && m > 0.002) return '1';
+  if (m < -2 * se && m < -0.002) return '0';
+  return m >= 0 ? 'H' : 'L';
+}
+// Monte Carlo observer: samples meetings at random (not all of them) and files rule outcomes and identity changes;
+// its estimates carry their own standard error, so it can say how sure it is
+const MC_RATE = 0.35;
+function observeMeeting(r, a0, b0, a, g) {
+  if (rnd() > MC_RATE) return;
+  file('rule/' + r.id, 'rule', 'Monte Carlo', g, { rule: r.id });
+  if (a.bits !== a0) file('change/' + bitsStr(a0) + '>' + bitsStr(a.bits), 'change', 'Monte Carlo', g, { from: a0, to: a.bits, op: r.op });
+}
+// DISEMINER observer: every 50 ticks files which identity classes (lower trigrams) are bonded together, from the beings themselves
+function observeRelations() {
+  const C = Array.from({ length: 8 }, () => new Float32Array(8)); let total = 0;
+  for (const a of beings) for (const [id, st] of a.rel) if (id > a.id) { const b = beings[id]; C[a.bits & 7][b.bits & 7] += st; C[b.bits & 7][a.bits & 7] += st; total += st; }
+  if (!total) return;
+  for (let i = 0; i < 8; i++) for (let j = i; j < 8; j++) {
+    const expected = (C[i].reduce((s, v) => s + v, 0) * C[j].reduce((s, v) => s + v, 0)) / (2 * total) || 1e-9;
+    const lift = C[i][j] / expected;                                           // >1: these classes bond more than chance
+    if (C[i][j] > 0.5) file('relation/' + bitsStr(i).slice(3) + '~' + bitsStr(j).slice(3), 'relation', 'DISEMINER', lift - 1, { i, j });
+  }
+  file('swarm/groups', 'measure', 'DISEMINER', clusters(), {});
+}
+// awareness: read the record back into behaviour
+function readRecord() {
+  for (const r of rules) { const s = logic(STATE.get('rule/' + r.id)); if (s === '0') r.w = Math.max(0.05, r.w * 0.8); else if (s === '1') r.w = Math.min(3, r.w * 1.03); }
+}
+const unknownRules = () => rules.filter(r => logic(STATE.get('rule/' + r.id)) === 'U');
+
+// ---- the write-up. Two forms, both composed only from entries.
+const OPN = i => BANK[i][0];
+function patt(m, v) { let s = ''; for (let k = 5; k >= 0; k--) s += (m >> k & 1) ? (v >> k & 1) : '-'; return s; }
+function vhdl(r) {
+  const e = STATE.get('rule/' + r.id), L = logic(e); if (!e) return null;
+  const acts = r.seq || [[r.act, r.op]];
+  const body = acts.map(([a, op]) => a === 'bond' ? `          rel(self, other) <= rel(self, other) + 1;  -- bond (${OPN(op)})`
+    : a === 'turn' ? `          self_next <= self ${OPN(op)} other;` : `          move <= parity(self ${OPN(op)} other);`).join('\n');
+  return `ENTITY rule_${r.id} IS                               -- written by ${TOOL[r.level]}${r.parent ? ', from rule_' + r.parent : ''}
+  PORT ( meet  : IN  STD_LOGIC;
+         self  : IN  STD_LOGIC_VECTOR(5 DOWNTO 0);
+         other : IN  STD_LOGIC_VECTOR(5 DOWNTO 0);
+         fired : OUT STD_LOGIC );
+END rule_${r.id};
+ARCHITECTURE observed OF rule_${r.id} IS
+BEGIN
+  PROCESS (meet)
+  BEGIN
+    IF rising_edge(meet) THEN
+      CASE (self, other) IS
+        WHEN ("${patt(r.cond.sm, r.cond.sb)}", "${patt(r.cond.om, r.cond.ob)}") =>
+${body}
+          fired <= '1';
+        WHEN OTHERS => fired <= '0';
+      END CASE;
+    END IF;
+  END PROCESS;
+END observed;
+-- evidence [rule/${r.id}]: sampled ${e.n} of ${r.fires} firings, mean gain ${(e.sum / e.n).toFixed(4)}, value '${L}'`;
+}
+function writeUp() {
+  const out = [], cite = a => ` [${a}]`, ents = [...STATE.values()];
+  const rs = ents.filter(e => e.kind === 'rule'), rel = ents.filter(e => e.kind === 'relation'), ch = ents.filter(e => e.kind === 'change');
+  const by = s => rs.filter(e => logic(e) === s);
+  out.push(`REPORT at tick ${tick}. Every sentence below is built from filed entries; the address in brackets is its evidence. Rule counts include rules the monitor has since pruned (${rs.filter(e => !rules.some(r => r.id === e.rule)).length} of ${rs.length}).`);
+  if (!rs.length) out.push('No rule has been observed yet. Nothing else can be said.');
+  const good = by('1').sort((a, b) => b.sum / b.n - a.sum / a.n), bad = by('0'), unk = by('U'), mixed = by('X');
+  if (good.length) out.push(`${good.length} rule${good.length > 1 ? 's are' : ' is'} resolved as helping the swarm hold together; the strongest is rule ${good[0].rule}, mean gain ${(good[0].sum / good[0].n).toFixed(4)} over ${good[0].n} sampled firings.` + cite(good[0].address));
+  if (bad.length) out.push(`${bad.length} rule${bad.length > 1 ? 's are' : ' is'} resolved as pulling it apart.` + bad.slice(0, 4).map(e => cite(e.address)).join(''));
+  if (mixed.length) out.push(`${mixed.length} rule${mixed.length > 1 ? 's give' : ' gives'} conflicting evidence ('X'); no claim is made about ${mixed.length > 1 ? 'them' : 'it'}.` + mixed.slice(0, 3).map(e => cite(e.address)).join(''));
+  if (unk.length) out.push(`${unk.length} rule${unk.length > 1 ? 's have' : ' has'} too little evidence ('U') to say anything.`);
+  const strong = rel.filter(e => logic(e) === '1').sort((a, b) => b.sum / b.n - a.sum / a.n).slice(0, 3);
+  for (const e of strong) out.push(`Beings whose lower trigram is ${bitsStr(e.i).slice(3)} and ${bitsStr(e.j).slice(3)} bond ${(1 + e.sum / e.n).toFixed(2)} times as often as chance, seen in ${e.n} readings.` + cite(e.address));
+  const chs = ch.filter(e => e.n >= 3).sort((a, b) => b.n - a.n).slice(0, 3);
+  for (const e of chs) out.push(`Identity ${bitsStr(e.from)} became ${bitsStr(e.to)} ${e.n} times in the sample (operator ${OPN(e.op)}).` + cite(e.address));
+  const gm = STATE.get('swarm/groups'); if (gm && gm.n) out.push(`Across ${gm.n} readings the swarm held on average ${(gm.sum / gm.n).toFixed(1)} groups.` + cite('swarm/groups'));
+  out.push('', '-- The strongest resolved rules, written out as entities --');
+  for (const e of good.slice(0, 3)) { const r = rules.find(x => x.id === e.rule); if (r) out.push(vhdl(r), ''); }
+  if (!good.length) out.push('(none resolved yet)');
+  return out.join('\n');
+}
 
 // ---- one round of the agent: bids, three most active levels act, shared reward, Colors read
 function agentRound() {
@@ -200,6 +306,7 @@ function step() {
     b.x = (b.x + b.vx + W) % W; b.y = (b.y + b.vy + H) % H; if (b.fired) b.fired--;
   }
   if (tick % 10 === 0) agentRound();
+  if (tick % 50 === 0) { observeRelations(); readRecord(); }
 }
 
 // ---- rule as shape (its 28 bits) and as sound (its condition sets the pitch, its operator the interval)
@@ -239,7 +346,16 @@ function loop(now) {
   if (now - uiT > 400) { uiT = now; ui(); }
   requestAnimationFrame(loop);
 }
+let tab = 'W';
+function showTab(t) { tab = t; document.getElementById('panel').style.display = t === 'W' ? '' : 'none'; document.getElementById('spanel').style.display = t === 'S' ? '' : 'none'; document.getElementById('rpanel').style.display = t === 'R' ? '' : 'none'; ui(); }
 function ui() {
+  if (tab === 'S') {
+    const ents = [...STATE.values()].sort((a, b) => b.last - a.last).slice(0, 80);
+    const col = { U: '#777', X: '#e0a030', '1': '#50e68c', '0': '#ff5a6e', H: '#9fd9b4', L: '#e8a0a8' };
+    document.getElementById('spanel').innerHTML = `<b>${STATE.size} entries</b> · values: ${['U','X','0','1','L','H'].map(v => v + ' ' + [...STATE.values()].filter(e => logic(e) === v).length).join(' · ')}<br>` +
+      ents.map(e => `<div><span style="color:${col[logic(e)]}">'${logic(e)}'</span> ${e.address} · n=${e.n} · mean ${(e.sum / e.n).toFixed(4)} · by ${[...e.tools].join('+')}</div>`).join('');
+  }
+  if (tab === 'R') document.getElementById('rpanel').textContent = writeUp();
   const bonds = beings.reduce((s, b) => s + b.rel.size, 0) / 2, coh = beings.reduce((s, b) => s + coherence(b), 0) / N;
   document.getElementById('stats').textContent = `tick ${tick} · rules ${rules.length} · bonds ${bonds | 0} · groups ${clusters()} · coherence ${coh.toFixed(3)}`;
   document.getElementById('levels').innerHTML = LEVELS.map(L => { const S = lv[L], act = activation(L, jd);
@@ -248,9 +364,11 @@ function ui() {
   box.innerHTML = top.map(r => `<div class="rule"><canvas data-id="${r.id}" width="176" height="112"></canvas>#${r.id} ${r.seq ? r.seq.map(s => s[0] + ':' + BANK[s[1]][0]).join('→') : r.act + ':' + BANK[r.op][0]}<br>${TOOL[r.level]} · fired ${r.fires} · gain ${(r.fires ? r.gain / r.fires : 0).toFixed(3)}</div>`).join('');
   box.querySelectorAll('canvas').forEach(c => { const r = rules.find(x => x.id === +c.dataset.id), g = c.getContext('2d'); g.lineWidth = 2; drawShape(g, r, 88, 56, 50); });
 }
+document.getElementById('tabW').onclick = () => showTab('W'); document.getElementById('tabS').onclick = () => showTab('S'); document.getElementById('tabR').onclick = () => showTab('R');
 document.getElementById('run').onclick = e => { paused = !paused; e.target.textContent = paused ? 'Run' : 'Pause'; };
 document.getElementById('reset').onclick = () => reset();
 document.getElementById('sound').onclick = e => { if (audio) { audio.close(); audio = null; e.target.textContent = 'Sound off'; } else { audio = new AudioContext(); e.target.textContent = 'Sound on'; } };
 addEventListener('resize', size); size(); reset(); requestAnimationFrame(loop);
+window.__report = () => writeUp(); window.__state = () => STATE.size; window.__tab = showTab;
 window.__run = n => { for (let i = 0; i < n; i++) step(); ui(); return { tick, rules: rules.length, bonds: beings.reduce((s, b) => s + b.rel.size, 0) / 2, groups: clusters(), coherence: beings.reduce((s, b) => s + coherence(b), 0) / N, wrote: Object.fromEntries(LEVELS.map(L => [L, lv[L].wrote])), weights: Object.fromEntries(LEVELS.map(L => [L, +lv[L].weight.toFixed(2)])), positive: rules.filter(r => r.fires && r.gain > 0).length }; };
 </script></body></html>
