@@ -1,0 +1,129 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Five-Dimension Swarm Photo</title>
+<style>
+html,body{margin:0;height:100%;background:#05060a;color:#cfd3e0;font:13px system-ui,sans-serif;overflow:hidden}
+#bar{position:fixed;top:0;left:0;right:0;display:flex;gap:6px;flex-wrap:wrap;align-items:center;padding:8px;background:#05060ad0;z-index:2}
+button,label.b{background:#161a26;color:#cfd3e0;border:1px solid #2a3044;border-radius:6px;padding:6px 10px;font:inherit}
+#lvl{font-weight:600;color:#fff}
+#key{position:fixed;bottom:8px;left:8px;right:8px;display:flex;gap:10px;flex-wrap:wrap;font-size:12px;z-index:2}
+#key span{display:flex;align-items:center;gap:4px}#key i{width:10px;height:10px;border-radius:50%;display:inline-block}
+canvas{position:fixed;inset:0;width:100%;height:100%;touch-action:none}
+</style></head><body>
+<div id="bar">
+  <label class="b">Photo<input id="pick" type="file" accept="image/*" hidden></label>
+  <button id="down">− Down</button><span id="lvl"></span><button id="up">Up +</button>
+  <button id="again">Re-form</button>
+</div>
+<div id="key"></div>
+<canvas id="cv"></canvas>
+<script>
+// Five dimension swarms. Each unit is one sampled pixel. The same unit reads differently per level:
+// binary -> ASCII -> NATO -> transliteration -> Unicode. Moving up a level, the same picture is re-written in the next representation.
+// Placeholder: dimension = byte % 5 (to be replaced by the address-derived dimension).
+const DIMS = [
+  { name: 'Space', col: [80, 160, 255], move: 'toward' },
+  { name: 'Evolution', col: [80, 230, 140], move: 'outward' },
+  { name: 'Being', col: [255, 190, 70], move: 'inward' },
+  { name: 'Movement', col: [255, 90, 110], move: 'up' },
+  { name: 'Design', col: [190, 120, 255], move: 'around' },
+];
+const LEVELS = ['Binary', 'ASCII', 'NATO', 'Transliteration', 'Unicode'];
+const NATO = ['Alfa','Bravo','Charlie','Delta','Echo','Foxtrot','Golf','Hotel','India','Juliett','Kilo','Lima','Mike','November','Oscar','Papa','Quebec','Romeo','Sierra','Tango','Uniform','Victor','Whiskey','X-ray','Yankee','Zulu'];
+const CYR = ['а','б','ц','д','е','ф','г','х','и','й','к','л','м','н','о','п','к','р','с','т','у','в','ш','кс','ы','з'];
+const BLOCKS = ' ·░▒▓█';
+const ASCII_RAMP = ' .:-=+*#%@';
+
+const cv = document.getElementById('cv'), cx = cv.getContext('2d');
+let W = 0, H = 0, units = [], level = 2, img = null, t0 = performance.now();
+
+function glyph(u, L) {
+  const b = u.byte, letter = b % 26;
+  switch (L) {
+    case 0: return b.toString(2).padStart(8, '0');
+    case 1: return ASCII_RAMP[Math.min(9, (u.lum * 10) | 0)];
+    case 2: return NATO[letter];
+    case 3: return CYR[letter];
+    default: return BLOCKS[Math.min(5, (u.lum * 6) | 0)];
+  }
+}
+// cell size per level: deeper levels need room for their writing
+const CELL = [44, 9, 30, 12, 7];
+
+function sample() {
+  const L = level, cell = CELL[L], cols = Math.max(4, Math.floor(W / cell)), rows = Math.max(4, Math.floor((H - 70) / cell));
+  const oc = document.createElement('canvas'); oc.width = cols; oc.height = rows;
+  const o = oc.getContext('2d'); const s = Math.min(cols / img.width, rows / img.height);
+  const dw = img.width * s, dh = img.height * s;
+  o.drawImage(img, (cols - dw) / 2, (rows - dh) / 2, dw, dh);
+  const d = o.getImageData(0, 0, cols, rows).data, old = units; units = [];
+  for (let y = 0; y < rows; y++) for (let x = 0; x < cols; x++) {
+    const i = (y * cols + x) * 4, r = d[i], g = d[i + 1], bl = d[i + 2], a = d[i + 3];
+    if (a < 10) continue;
+    const lum = (0.3 * r + 0.59 * g + 0.11 * bl) / 255, byte = (lum * 255) | 0;
+    const p = old.length ? old[(Math.random() * old.length) | 0] : null;
+    units.push({ tx: x * cell + cell / 2, ty: 50 + y * cell + cell / 2, gx: x, gy: y,
+      x: p ? p.x : Math.random() * W, y: p ? p.y : Math.random() * H,
+      c: [r, g, bl], lum, byte, d: byte % 5, ph: Math.random() * 6.28 });
+  }
+  t0 = performance.now();
+  document.getElementById('lvl').textContent = LEVELS[L];
+}
+
+function flow(dim, u, k) {
+  const cxm = W / 2, cym = H / 2, dx = u.tx - cxm, dy = u.ty - cym, a = u.ph + k * 3;
+  switch (DIMS[dim].move) {
+    case 'up': return [Math.sin(a) * 2, -((k * 40 + u.ph * 5) % 8)];
+    case 'inward': return [-dx * 0.02 * Math.sin(a), -dy * 0.02 * Math.sin(a)];
+    case 'outward': return [dx * 0.02 * Math.sin(a), dy * 0.02 * Math.sin(a)];
+    case 'around': return [Math.cos(a) * 4, Math.sin(a) * 4];
+    default: return [-dx * 0.01 * Math.cos(a), -dy * 0.01 * Math.cos(a)];
+  }
+}
+
+function frame(now) {
+  cx.fillStyle = '#05060a'; cx.fillRect(0, 0, W, H);
+  const age = (now - t0) / 1000, k = now / 1000;
+  // sharpness: starts blurry (coarse blocks), resolves over ~4s
+  const block = Math.max(1, Math.round(16 / (1 + age * age)));
+  const settle = Math.min(1, age / 3.5);
+  const cell = CELL[level];
+  cx.textAlign = 'center'; cx.textBaseline = 'middle';
+  cx.font = (level === 0 ? 8 : level === 2 ? 8 : cell * 0.95) + 'px ui-monospace,monospace';
+  // coarse-color map for blur stage
+  const coarse = new Map();
+  if (block > 1) for (const u of units) {
+    const key = ((u.gx / block) | 0) + ',' + ((u.gy / block) | 0); let c = coarse.get(key);
+    if (!c) coarse.set(key, c = [0, 0, 0, 0]); c[0] += u.c[0]; c[1] += u.c[1]; c[2] += u.c[2]; c[3]++;
+  }
+  for (const u of units) {
+    const f = flow(u.d, u, k), wob = 1 - settle * 0.85;
+    const gx = u.tx + f[0] * wob * 4, gy = u.ty + f[1] * wob * 4;
+    u.x += (gx - u.x) * 0.08; u.y += (gy - u.y) * 0.08;
+    let c = u.c;
+    if (block > 1) { const s = coarse.get(((u.gx / block) | 0) + ',' + ((u.gy / block) | 0)); c = [s[0] / s[3], s[1] / s[3], s[2] / s[3]]; }
+    const dc = DIMS[u.d].col, m = 0.45 * (1 - settle * 0.4), Lm = 0.25 + 0.75 * u.lum;
+    cx.fillStyle = `rgb(${c[0] * (1 - m) + dc[0] * Lm * m | 0},${c[1] * (1 - m) + dc[1] * Lm * m | 0},${c[2] * (1 - m) + dc[2] * Lm * m | 0})`;
+    cx.fillText(glyph(u, level), u.x, u.y);
+  }
+  requestAnimationFrame(frame);
+}
+
+function defaultImage() {
+  const c = document.createElement('canvas'); c.width = 400; c.height = 400; const g = c.getContext('2d');
+  const gr = g.createRadialGradient(200, 170, 20, 200, 200, 260); gr.addColorStop(0, '#ffe2a8'); gr.addColorStop(.5, '#d0507a'); gr.addColorStop(1, '#101a40');
+  g.fillStyle = gr; g.fillRect(0, 0, 400, 400);
+  g.fillStyle = '#0b1028'; g.beginPath(); g.arc(200, 150, 55, 0, 7); g.fill(); g.fillRect(130, 210, 140, 190);
+  const im = new Image(); im.src = c.toDataURL(); return im;
+}
+function setImage(im) { im.onload = () => { img = im; sample(); }; if (im.complete && im.naturalWidth) { img = im; sample(); } }
+function size() { const d = devicePixelRatio || 1; W = innerWidth; H = innerHeight; cv.width = W * d; cv.height = H * d; cx.setTransform(d, 0, 0, d, 0, 0); if (img) sample(); }
+document.getElementById('pick').onchange = e => { const f = e.target.files[0]; if (f) { const im = new Image(); im.src = URL.createObjectURL(f); setImage(im); } };
+document.getElementById('up').onclick = () => { if (level < 4) { level++; sample(); } };
+document.getElementById('down').onclick = () => { if (level > 0) { level--; sample(); } };
+document.getElementById('again').onclick = () => { units.forEach(u => { u.x = Math.random() * W; u.y = Math.random() * H; }); t0 = performance.now(); };
+addEventListener('wheel', e => { const n = Math.max(0, Math.min(4, level + (e.deltaY < 0 ? 1 : -1))); if (n !== level) { level = n; sample(); } });
+document.getElementById('key').innerHTML = DIMS.map(d => `<span><i style="background:rgb(${d.col})"></i>${d.name}</span>`).join('');
+addEventListener('resize', size); size(); setImage(defaultImage()); requestAnimationFrame(frame);
+window.__level = l => { level = l; sample(); };
+</script></body></html>
