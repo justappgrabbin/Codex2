@@ -139,6 +139,11 @@ export class SwarmExecutor {
     const r = await this.kernel.execute(name, inputs);
     return r && typeof r === 'object' && 'value' in r ? r.value : r;
   }
+  /** Same as run, but returns the kernel's own trace: every primitive unit that fired. */
+  async runTraced(toolId, args = []) {
+    const name = this.names.get(toolId); if (!name) throw new Error(`${toolId} is not a swarm formation`);
+    const f = this.kernel.get(name); return this.kernel.execute(name, Object.fromEntries(f.inputs.map((k, i) => [k, args[i]])));
+  }
   formations() { return [...this.names.entries()].map(([tool, name]) => ({ tool, name, ...this.kernel.get(name) })); }
 }
 export default lowerSource;

@@ -14,8 +14,10 @@ import { UniversalExecutionBridge } from '../engines/unified-execution-spine/src
 import { ExecutionAddressResolver } from '../engines/unified-execution-spine/src/execution-address-resolver.mjs';
 import { MorphMemoryEngine } from '../donors/recovered/synthai-r21.22-self-cultivation-graph-integrated/UPGRADES/vendor/morph-mir-system/lib/morphMemoryEngine.js';
 import { createModuleRuntime } from './module-runtime.mjs';
+import { lowerSource } from './lowerer.mjs';
+import { requirementOf, MODES } from './equivalence.mjs';
 
-export const STAGES = Object.freeze(['ingest', 'five', 'analyze', 'execute', 'address', 'morph-backend', 'become']);
+export const STAGES = Object.freeze(['ingest', 'five', 'analyze', 'swarm', 'execute', 'address', 'morph-backend', 'become']);
 export const DIMENSION_KEY = Object.freeze({ Who: 'Space', What: 'Evolution', Where: 'Being', When: 'Movement', Why: 'Design' });
 
 // Morph MIR behavior tags -> the dimension they belong to. PROVISIONAL working rule
@@ -92,7 +94,15 @@ export class BecomePipeline {
         dimensions: dimensionsOf(node.behaviors, rel) };
     } else rec.stages.analyze = { note: 'not code; kept as data/markup/asset', dimensions: dimensionsOf([], {}) };
     this.emit(a.name, 'analyze', rec.stages.analyze);
-    // 4 execute
+    // 3b native swarm: which functions L lowers onto the ORIGINAL SWARM-OS kernel, which stay latent
+    if (node && /\.(m?[jt]sx?|cjs)$/i.test(a.name)) {
+      try { const low = lowerSource(a.content, a.name);
+        rec.stages.swarm = { mode: MODES.SWARM, engine: 'SWARM-OS RecursivePrimitiveKernel (original)', native: low.formations.map(f => ({ name: f.name, units: f.steps.length })),
+          latent: low.skipped.map(x => ({ name: x.name, requires: requirementOf(x.reason) })), total: low.total };
+      } catch (e) { rec.stages.swarm = { mode: MODES.LATENT, error: String(e.message) }; }
+      this.emit(a.name, 'swarm', rec.stages.swarm);
+    }
+    // 4 execute — REFERENCE execution (original code via the bridge). Never reported as swarm.
     const siblings = artifacts.filter(x => x !== a).map(x => ({ name: x.name, content: x.content }));
     let exec = null;
     // Code that needs a screen (DOM / React) runs in the live page frame, not headless.
@@ -101,7 +111,7 @@ export class BecomePipeline {
     if (execute && node && needsScreen && this.liveScreen === false) { rec.stages.execute = { ok: false, path: 'deferred-to-live-frame', requirements: ['screen'] }; this.emit(a.name, 'execute', rec.stages.execute); }
     else if (execute && node) {
       exec = await this.bridge.execute({ name: a.name, content: a.content }, { files: siblings, analysis: rec.stages.analyze, behavioralContract: { purpose: node.purpose, behaviors: node.behaviors } });
-      rec.stages.execute = { ok: !!exec.ok, path: exec.path, engine: exec.result?.engine, stdout: (exec.result?.stdout || []).slice(0, 20), requirements: exec.result?.requirements || exec.requirements?.required || [], error: exec.result?.stderr?.[0] || exec.firstError || null };
+      rec.stages.execute = { mode: MODES.REFERENCE, ok: !!exec.ok, path: exec.path, engine: exec.result?.engine, stdout: (exec.result?.stdout || []).slice(0, 20), requirements: exec.result?.requirements || exec.requirements?.required || [], error: exec.result?.stderr?.[0] || exec.firstError || null };
       this.emit(a.name, 'execute', rec.stages.execute);
     }
     // 5 record + address
@@ -113,7 +123,7 @@ export class BecomePipeline {
     // 6 morph the backend — only when the module runtime could not run it
     if (exec && !exec.ok && rec.stages.execute?.path !== 'deferred-to-live-frame') {
       const back = await this.backend.execute({ name: a.name, content: a.content }, { analysis: rec.stages.analyze });
-      rec.stages['morph-backend'] = { ok: !!back.ok, path: back.path, stdout: (back.result?.stdout || []).slice(0, 20), firstError: back.firstError || null };
+      rec.stages['morph-backend'] = { mode: MODES.REFERENCE, ok: !!back.ok, path: back.path, stdout: (back.result?.stdout || []).slice(0, 20), firstError: back.firstError || null };
       this.emit(a.name, 'morph-backend', rec.stages['morph-backend']);
       if (back.ok) rec.ran = 'morphed-backend';
     } else if (exec?.ok) rec.ran = /synthesis|fallback|learned/.test(exec.path) ? 'morphed-backend' : 'native';
@@ -126,7 +136,7 @@ export class BecomePipeline {
         const codeText = res.code || '';
         let runs = null;
         if (codeText) { const t = await this.bridge.execute({ name: a.name.replace(/\.\w+$/, '') + '.rebuilt.mjs', content: codeText }, { files: siblings }); runs = { ok: !!t.ok, path: t.path, stdout: (t.result?.stdout || []).slice(0, 10), requirements: t.result?.requirements || [] }; }
-        rec.stages.become = { strategy: res.strategy, confidence: res.confidence, missing: res.missing || [], code: codeText.slice(0, 20000), runs };
+        rec.stages.become = { mode: MODES.REFERENCE, strategy: res.strategy, confidence: res.confidence, missing: res.missing || [], code: codeText.slice(0, 20000), runs };
         if (runs?.ok) rec.ran = 'became';
       } catch (e) { rec.stages.become = { error: String(e.message) }; }
       this.emit(a.name, 'become', rec.stages.become);
@@ -140,6 +150,9 @@ function summarize(files) {
   const count = k => files.filter(f => f.outcome === k).length;
   const lead = { Movement: 0, Evolution: 0, Being: 0, Design: 0, Space: 0 };
   for (const f of files) { const d = f.stages.analyze?.dimensions?.leading; if (d) lead[d]++; }
-  return { liveFrame: count('live-frame'), native: count('native'), morphedBackend: count('morphed-backend'), became: count('became'), understoodOnly: count('understood-only'), data: count('held-as-data'), leadingDimension: lead };
+  let swarmFns = 0, latentFns = 0; for (const f of files) { swarmFns += f.stages.swarm?.native?.length || 0; latentFns += f.stages.swarm?.latent?.length || 0; }
+  return { swarm: { nativeFunctions: swarmFns, latentFunctions: latentFns, engine: 'SWARM-OS RecursivePrimitiveKernel (original)' },
+    reference: 'outcomes below are REFERENCE executions of the original code, used for comparison only',
+    liveFrame: count('live-frame'), native: count('native'), morphedBackend: count('morphed-backend'), became: count('became'), understoodOnly: count('understood-only'), data: count('held-as-data'), leadingDimension: lead };
 }
 export default BecomePipeline;

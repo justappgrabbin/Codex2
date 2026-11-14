@@ -1,3 +1,7 @@
+// STATUS: EXPERIMENTAL EXTENSION — not the primary engine. The primary swarm engine is the
+// owner's original SWARM-OS RecursivePrimitiveKernel (see lowerer.mjs + equivalence.mjs).
+// Results from here are labeled 'extended-swarm' and must be proven against reference
+// execution before any operator is proposed for the original kernel.
 // Swarm lowerer: the fuller translator. Real app code (objects, text, lists,
 // callbacks, async, React-style components and their state) becomes formations
 // on the SwarmKernel, so the swarm runs it. lowerer.mjs (strict, owner VM

@@ -1,3 +1,7 @@
+// STATUS: EXPERIMENTAL EXTENSION — not the primary engine. The primary swarm engine is the
+// owner's original SWARM-OS RecursivePrimitiveKernel (see lowerer.mjs + equivalence.mjs).
+// Results from here are labeled 'extended-swarm' and must be proven against reference
+// execution before any operator is proposed for the original kernel.
 // Swarm kernel: the owner's RecursivePrimitiveKernel rules (formations of steps,
 // `use` composes another formation) running on the owner's PrimitiveExecutionVM,
 // with more kinds of units registered through the VM's own registerOperator():

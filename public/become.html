@@ -81,19 +81,19 @@ function panel(){
     (f.stages.analyze?.dimensions?.leading?`<p><span class="k" style="background:${COLOR[f.stages.analyze.dimensions.leading]}"></span>leads with ${f.stages.analyze.dimensions.leading} <span class="mut">(provisional)</span></p>`:'')+
     `<p class="mut">five: ${Object.entries(f.stages.five?.fields||{}).map(([k,v])=>k+' '+v).join(' · ')}</p>`+
     `<p class="mut">address: ${f.stages.address?.canonical ? (f.stages.address.canonical.dimension+' '+f.stages.address.canonical.gate+'.'+f.stages.address.canonical.line) : ''} · ${f.stages.address?.ontological||''}</p>`+
-    (f.stages.execute?`<p>execute: ${f.stages.execute.path}${f.stages.execute.requirements?.length?' · needs '+esc(f.stages.execute.requirements.join(', ')):''}</p>`:'')+
+    (f.stages.swarm?.native?`<p><b>native swarm:</b> ${f.stages.swarm.native.length} of ${f.stages.swarm.total} functions${f.stages.swarm.native.length?' — '+esc(f.stages.swarm.native.map(x=>x.name).join(', ')):''}</p>`+(f.stages.swarm.latent.length?`<p class="mut">latent: ${esc(f.stages.swarm.latent.map(x=>x.name+' ('+x.requires+')').join('; '))}</p>`:''):'')+(f.stages.execute?`<p><span class="mut">reference</span> execute: ${f.stages.execute.path}${f.stages.execute.requirements?.length?' · needs '+esc(f.stages.execute.requirements.join(', ')):''}</p>`:'')+
     (f.stages.execute?.stdout?.length?`<pre>${esc(f.stages.execute.stdout.join('\n'))}</pre>`:'')+
     (f.stages['morph-backend']?`<p>morph backend: ${f.stages['morph-backend'].path}</p>`:'')+
     (f.stages.become?`<p>become: ${f.stages.become.strategy||f.stages.become.error} ${f.stages.become.confidence?('· confidence '+f.stages.become.confidence.toFixed(2)):''} ${f.stages.become.runs?('· rebuilt runs: '+f.stages.become.runs.ok):''}</p>`:'')+
-    (canLive(f)?`<button id="live-go">▶ Become live</button> `:'')+(f.stages.become?.code?`<button id="show-code">rebuilt code</button>`:'')+` <button id="back">Back</button><pre id="code" style="display:none"></pre>`;
+    (canLive(f)?`<button id="live-go">▶ Reference preview</button> `:'')+(f.stages.become?.code?`<button id="show-code">rebuilt code</button>`:'')+` <button id="back">Back</button><pre id="code" style="display:none"></pre>`;
     $('back').onclick=()=>{sel=null;panel();};if($('live-go'))$('live-go').onclick=()=>live(f);
     if($('show-code'))$('show-code').onclick=()=>{const p=$('code');p.textContent=f.stages.become.code;p.style.display='block';};return;}
   const s=result.summary;
-  i.innerHTML=`<h3>What happened</h3>`+Object.entries({native:'ran as-is','morphed-backend':'ran after morphing the backend',became:'became (rebuilt & running)','live-frame':'needs a screen — become live','understood-only':'understood, waiting on requirements','held-as-data':'data / markup / assets'})
+  i.innerHTML=`<h3>Native swarm <span class="mut">(original SWARM-OS kernel)</span></h3><div>functions running as swarm: <b>${s.swarm.nativeFunctions}</b></div><div>latent, with requirements: ${s.swarm.latentFunctions}</div>`+`<h3>Reference execution <span class="mut">(original code — for comparison, not swarm)</span></h3>`+Object.entries({native:'ran as-is','morphed-backend':'ran after morphing the backend',became:'became (rebuilt & running)','live-frame':'needs a screen — become live','understood-only':'understood, waiting on requirements','held-as-data':'data / markup / assets'})
     .map(([k,t])=>`<div><span class="k" style="background:${OUT[k]}"></span>${t}: ${s[{native:'native','morphed-backend':'morphedBackend',became:'became','live-frame':'liveFrame','understood-only':'understoodOnly','held-as-data':'data'}[k]]}</div>`).join('')+
     `<h3>Leading dimension (provisional)</h3>`+Object.entries(s.leadingDimension).map(([d,n])=>`<div><span class="k" style="background:${COLOR[d]}"></span>${d} ${n}</div>`).join('')+
     `<h3>Can become live</h3>`+(result.files.filter(canLive).slice(0,40).map(f=>`<div><button data-l="${esc(f.file)}">▶ ${esc(f.file.split('/').pop())}</button></div>`).join('')||'<p class="mut">none</p>')+
-    `<p class="mut">Tap a cluster to see every stage for that file. ▶ makes the swarm become it: the swarm is the screen, the real app works behind it. Esc returns.</p>`;
+    `<p class="mut">Tap a cluster to see every stage for that file. ▶ is a reference preview of the original code, not swarm execution. Esc returns.</p>`;
   i.querySelectorAll('[data-l]').forEach(b=>b.onclick=()=>live(result.files.find(f=>f.file===b.dataset.l)));
 }
 const esc=s=>String(s).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
