@@ -13,5 +13,9 @@ android {
     }
     externalNativeBuild { cmake { path 'CMakeLists.txt' } }
     sourceSets { main { jniLibs.srcDirs = ['libnode/bin', 'src/main/jniLibs'] } }
+    // PRoot is executed as a program, so libproot.so must exist as a real file in
+    // nativeLibraryDir. Without legacy packaging, Android keeps native libs compressed
+    // inside the APK and LinuxBridge finds no binary to run (silent shell fallback).
+    packaging { jniLibs { useLegacyPackaging true } }
     buildTypes { release { minifyEnabled false } }
 }

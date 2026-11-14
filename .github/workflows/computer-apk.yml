@@ -2,7 +2,7 @@ name: Synthia Computer Android checkpoint
 on:
   workflow_dispatch:
   push:
-    branches: [reassembly/computer-2026-09-29]
+    branches: [reassembly/computer-2026-09-29, browser/no-backend-models]
     paths: ['computer/**', '.github/workflows/computer-apk.yml']
 
 jobs:
@@ -27,6 +27,8 @@ jobs:
       - run: sdkmanager 'platforms;android-35' 'ndk;27.0.12077973' 'cmake;3.22.1'
       - run: npm --prefix computer ci && npm --prefix computer/shell/kimi-linux ci && npm --prefix computer run build && npm --prefix computer run test:integration
       - run: python computer/android/prepare-assets.py
+      - name: Stage hidden Linux container (PRoot + Alpine)
+        run: bash computer/android/fetch-linux.sh
       - name: Stage Node 18 mobile runtime
         run: |
           curl -fL --retry 3 -o /tmp/node-mobile.zip 'https://github.com/nodejs-mobile/nodejs-mobile/releases/download/v18.20.4/nodejs-mobile-v18.20.4-android.zip'

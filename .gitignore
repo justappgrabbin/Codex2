@@ -13,3 +13,5 @@ local-data/
 /core
 /core.[0-9]*
 public/computer-runtime/
+computer/android/app/src/main/jniLibs/arm64-v8a/libproot.so
+computer/android/app/src/main/assets/web/runtime/
