@@ -1,0 +1,6 @@
+feb74171d99a011307f8b497247ae732e02fd9cbdc0f0e32aea9d65444f23468  originals/01-SynthAI-Exact-Address-Recall-PATCH.zip
+22944ae853ca73dc7ac5c1b9cdf06af6e560b7dab6140975b3df3f610a5d7095  originals/02-synthia-core-v1.0.0.zip
+1def70a163b159a05851465b0cdec49b4c62a2356b1ec4e526554cbbbc91e9c0  originals/03-Synthia-Codex-Provider-Runtime-v0.1.1.zip
+cee899ef720a0e1776f525c959b6e12404a74dd3b4547da7caf34dff5febcc46  originals/04-Pure-Synthia-Trainable-Assembly-v0.4.2.zip
+4b407881be4324860d09e3c743b5d518d35b8f0daa0831545a6c7e2b3c62c6af  originals/05-Synthia-Universal-Execution-Spine-v0.4.0.zip
+fa3344dac6f8c4b2e838b9146ca5c6d339e1fc4ec0bb7aa15c3259724beff3fd  originals/06-Kimi_Agent_Automata-State-Space-Merge-1-.zip
