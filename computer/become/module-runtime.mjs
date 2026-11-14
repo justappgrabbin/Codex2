@@ -38,6 +38,16 @@ function resolveSibling(from, spec, files) {
 const toDataURL = (code, mime = 'text/javascript') => `data:${mime};base64,` + (typeof Buffer !== 'undefined'
   ? Buffer.from(code, 'utf8').toString('base64') : btoa(unescape(encodeURIComponent(code))));
 
+/** Direct relative imports of one file, resolved to file names (for build order). */
+export function importsOf(name, files) {
+  const code = files.get(name) || '', out = [];
+  for (const m of code.matchAll(/(?:\bimport\s+(?:[\s\S]*?\sfrom\s+)?|\bimport\s*\(\s*|\bexport\s+(?:\*|\{[^}]*\})\s*from\s+)(['"])([^'"]+)\1/g)) {
+    if (!/^\.{0,2}\/|^[@~]\//.test(m[2])) continue;
+    const hit = resolveSibling(name, m[2], files); if (hit) out.push(hit);
+  }
+  return [...new Set(out)];
+}
+
 /** Build a self-contained module graph: every relative import becomes a data: URL. */
 export function linkModules(entryName, files, { packages = {} } = {}) {
   const made = new Map(), missing = [], external = new Set();
