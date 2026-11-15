@@ -1,0 +1,103 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>64 hexagrams on the dodecahedron</title>
+<style>
+html,body{margin:0;height:100%;background:#05060a;color:#cfd3e0;font:12px system-ui,sans-serif;overflow:hidden}
+canvas{position:fixed;left:0;top:0;width:100%;height:62vh;touch-action:none}
+#p{position:fixed;left:0;right:0;bottom:0;top:62vh;overflow:auto;padding:6px 10px;border-top:1px solid #222838}
+button{background:#161a26;color:#cfd3e0;border:1px solid #2a3044;border-radius:6px;padding:5px 9px;font:inherit;margin:2px}
+.k{font-size:11px;color:#9aa3b8}.tag{display:inline-block;padding:0 4px;border-radius:3px;font-size:10px;margin-right:4px}
+.V{background:#1f4d33;color:#9ff0c0}.P{background:#4d3a1f;color:#f0d29f}
+.lines{display:inline-flex;flex-direction:column-reverse;gap:3px;vertical-align:middle;margin:4px 8px}
+.ln{width:56px;height:8px;display:flex;justify-content:space-between;cursor:pointer}.ln i{background:#cfd3e0;height:8px}
+</style></head><body>
+<canvas id="c"></canvas>
+<div id="p">
+  <div class="k">Drag to rotate (a view: nothing changes). Tap a hexagram, then tap a line to flip it (a real change: it moves to its new place).</div>
+  <div id="sel"></div>
+  <div id="log" class="k"></div>
+  <div class="k" style="margin-top:6px">
+    <span class="tag V">verified</span>tiers 1·6·15·20·15·6·1 fill center·faces·edges·corners·edges·faces·sphere exactly (64)<br>
+    <span class="tag V">verified</span>complement (flip all six lines) = the point straight through the centre, for every hexagram<br>
+    <span class="tag P">placeholder</span>which hexagram sits on which corner / edge / face inside its tier: sorted by binary value, needs your rule<br>
+    <span class="tag P">placeholder</span>all-yang on the outer sphere, all-yin at the centre (the chart pairs them, it does not say which is which)<br>
+    <span class="tag P">source</span>gate lines from your Codex3 king-wen.mjs (bottom line = bit 0); names from the Black Book list of the 64
+  </div>
+</div>
+<script>
+const PHI = (1 + Math.sqrt(5)) / 2, IP = 1 / PHI;
+// gate number and Black Book name for each binary value (lines from Codex3 king-wen.mjs, bottom line = bit 0)
+const WORD = {"63": [1, "The Creative"], "0": [2, "The Receptive"], "17": [3, "Difficulty at the Beginning"], "34": [4, "Youthful Folly"], "23": [5, "Waiting"], "58": [6, "Conflict"], "2": [7, "The Army"], "16": [8, "Holding Together"], "55": [9, "The Taming Power of the Small"], "59": [10, "Treading"], "7": [11, "Peace"], "56": [12, "Standstill"], "61": [13, "Fellowship of Man"], "47": [14, "Possession in Great Measure"], "4": [15, "Modesty"], "8": [16, "Enthusiasm"], "25": [17, "Following"], "38": [18, "Work on What Has Been Spoilt"], "3": [19, "Approach"], "48": [20, "Contemplation"], "41": [21, "Biting Through"], "37": [22, "Grace"], "32": [23, "Splitting Apart"], "1": [24, "Returning"], "57": [25, "Innocence"], "39": [26, "The Taming Power of the Great"], "33": [27, "Nourishment"], "30": [28, "Preponderance of the Great"], "18": [29, "The Abysmal"], "45": [30, "Clinging Fire"], "28": [31, "Influence"], "14": [32, "Duration"], "60": [33, "Retreat"], "15": [34, "Power of the Great"], "40": [35, "Progress"], "5": [36, "Darkening of the Light"], "53": [37, "Family"], "43": [38, "Opposition"], "10": [39, "Obstruction"], "20": [40, "Deliverance"], "35": [41, "Decrease"], "49": [42, "Increase"], "31": [43, "Breakthrough"], "62": [44, "Coming to Meet"], "24": [45, "Gathering Together"], "6": [46, "Pushing Upward"], "26": [47, "Oppression"], "22": [48, "The Well"], "29": [49, "Revolution"], "46": [50, "The Cauldron"], "9": [51, "The Arousing"], "36": [52, "Keeping Still"], "52": [53, "Development"], "11": [54, "The Marrying Maiden"], "13": [55, "Abundance"], "44": [56, "The Wanderer"], "54": [57, "The Gentle"], "27": [58, "The Joyous"], "50": [59, "Dispersion"], "19": [60, "Limitation"], "51": [61, "Inner Truth"], "12": [62, "Preponderance of the Small"], "21": [63, "After Completion"], "42": [64, "Before Completion"]};
+// --- dodecahedron
+const V = [];
+for (const a of [-1, 1]) for (const b of [-1, 1]) for (const c of [-1, 1]) V.push([a, b, c]);
+for (const a of [-1, 1]) for (const b of [-1, 1]) { V.push([0, a * IP, b * PHI]); V.push([a * IP, b * PHI, 0]); V.push([a * PHI, 0, b * IP]); }
+const dist = (p, q) => Math.hypot(p[0] - q[0], p[1] - q[1], p[2] - q[2]);
+const E = []; for (let i = 0; i < 20; i++) for (let j = i + 1; j < 20; j++) if (Math.abs(dist(V[i], V[j]) - 2 * IP) < 1e-6) E.push([i, j]);
+const F = []; // face centres = icosahedron directions
+for (const a of [-1, 1]) for (const b of [-1, 1]) { F.push([0, a, b * PHI]); F.push([a, b * PHI, 0]); F.push([a * PHI, 0, b]); }
+const norm = (p, r) => { const l = Math.hypot(...p); return p.map(x => x / l * r); };
+const mid = e => V[e[0]].map((x, k) => (x + V[e[1]][k]) / 2);
+const neg = p => p.map(x => -x);
+const rep = p => { for (const x of p) if (Math.abs(x) > 1e-9) return x > 0; return true; };
+const same = (p, q) => dist(p, q) < 1e-6;
+// --- hexagrams by tier (number of yang lines)
+const pop = h => { let n = 0; for (let k = 0; k < 6; k++) n += h >> k & 1; return n; };
+const C = h => 63 ^ h;
+const R = { v: Math.hypot(1, 1, 1), e: Math.hypot(...mid(E[0])), f: 1.25 };
+const pos = new Array(64);
+function place(pts, low, r) {        // pts: points of one kind; low: hexagrams of the lower tier (their complements go opposite)
+  const reps = pts.filter(rep).sort((a, b) => a[0] - b[0] || a[1] - b[1] || a[2] - b[2]);
+  const hs = low.filter(h => h < C(h) || pop(h) !== pop(C(h))).sort((a, b) => a - b);
+  if (reps.length !== hs.length) throw new Error('count mismatch ' + reps.length + ' ' + hs.length);
+  hs.forEach((h, i) => { pos[h] = norm(reps[i], r); pos[C(h)] = norm(neg(reps[i]), r); });
+}
+const tier = n => [...Array(64).keys()].filter(h => pop(h) === n);
+place(V, tier(3), R.v);                 // 20 corners: 10 complementary pairs
+place(E.map(mid), tier(2), R.e);        // 30 edges: 15 + 15
+place(F, tier(1), R.f);                 // 12 faces: 6 + 6
+pos[0] = [0, 0, 0]; pos[63] = null;     // centre / outer sphere
+// self-check
+const errs = []; for (let h = 1; h < 63; h++) { if (!pos[h]) errs.push(h); else if (!same(pos[C(h)], neg(pos[h]))) errs.push('anti ' + h); }
+// --- view
+const cv = document.getElementById('c'), cx = cv.getContext('2d');
+let W, H, rx = -0.4, ry = 0.6, sel = null, trail = [], log = [];
+function size() { const d = devicePixelRatio || 1, r = cv.getBoundingClientRect(); W = r.width; H = r.height; cv.width = W * d; cv.height = H * d; cx.setTransform(d, 0, 0, d, 0, 0); }
+function proj(p) { const [x, y, z] = p, cy = Math.cos(ry), sy = Math.sin(ry), cx2 = Math.cos(rx), sx = Math.sin(rx);
+  const x1 = x * cy + z * sy, z1 = -x * sy + z * cy, y1 = y * cx2 - z1 * sx, z2 = y * cx2 * 0 + y * sx + z1 * cx2, s = Math.min(W, H) * 0.24, f = 4 / (4 - z2 * 0.6);
+  return [W / 2 + x1 * s * f, H / 2 + y1 * s * f, z2]; }
+const TC = ['#ffffff', '#50a0ff', '#50e68c', '#ffbe46', '#ff5a6e', '#be78ff', '#ffffff'];
+function glyph(h, X, Y, w, col) { for (let k = 0; k < 6; k++) { const y = Y + (2.5 - k) * w * 0.32; cx.fillStyle = col;
+  if (h >> k & 1) cx.fillRect(X - w / 2, y, w, w * 0.18); else { cx.fillRect(X - w / 2, y, w * 0.42, w * 0.18); cx.fillRect(X + w * 0.08, y, w * 0.42, w * 0.18); } } }
+function draw() {
+  cx.fillStyle = '#05060a'; cx.fillRect(0, 0, W, H);
+  const o = proj([0, 0, 0]), s = Math.min(W, H) * 0.24 * 1.55;
+  cx.strokeStyle = sel === 63 ? '#fff' : '#2a3044'; cx.beginPath(); cx.arc(o[0], o[1], s, 0, 7); cx.stroke();
+  cx.strokeStyle = '#33405e'; for (const [a, b] of E) { const p = proj(V[a]), q = proj(V[b]); cx.beginPath(); cx.moveTo(p[0], p[1]); cx.lineTo(q[0], q[1]); cx.stroke(); }
+  if (trail.length > 1) { cx.strokeStyle = '#fff'; cx.lineWidth = 2; cx.beginPath(); trail.forEach((h, i) => { const p = h === 63 ? [o[0], o[1] - s] : proj(pos[h]); i ? cx.lineTo(p[0], p[1]) : cx.moveTo(p[0], p[1]); }); cx.stroke(); cx.lineWidth = 1; }
+  const pts = []; for (let h = 0; h < 63; h++) { const p = proj(pos[h]); pts.push([p[2], h, p]); }
+  pts.sort((a, b) => a[0] - b[0]);
+  for (const [z, h, p] of pts) { const w = 13 + z * 2, col = h === sel ? '#fff' : TC[pop(h)];
+    cx.globalAlpha = 0.45 + 0.55 * (z + 1.6) / 3.2; glyph(h, p[0], p[1] - 6, w * 0.7, col); cx.font = (9 + z * 1.5) + 'px system-ui'; cx.textAlign = 'center'; cx.fillStyle = col; cx.fillText(WORD[h][0] + ' ' + WORD[h][1], p[0], p[1] + w * 0.7); if (h === sel) { cx.strokeStyle = '#fff'; cx.strokeRect(p[0] - w, p[1] - w, 2 * w, 2 * w); } }
+  cx.globalAlpha = 1; glyph(63, o[0], o[1] - s, 14, sel === 63 ? '#fff' : '#ccc');
+  requestAnimationFrame(draw);
+}
+const where = h => h === 0 ? 'centre' : h === 63 ? 'outer sphere' : ['', 'face', 'edge', 'corner', 'edge', 'face'][pop(h)];
+function choose(h) { sel = h; trail = [h]; ui(); }
+function flip(k) { const from = sel, to = sel ^ (1 << k); log.unshift(`Gate ${WORD[from][0]} ${WORD[from][1]} (${where(from)}) → line ${k + 1} → Gate ${WORD[to][0]} ${WORD[to][1]} (${where(to)})`); log = log.slice(0, 6); sel = to; trail.push(to); ui(); }
+function ui() {
+  if (sel == null) return;
+  const lines = [...Array(6).keys()].map(k => `<div class="ln" onclick="flip(${k})">${sel >> k & 1 ? '<i style="width:56px"></i>' : '<i style="width:24px"></i><i style="width:24px"></i>'}</div>`).join('');
+  document.getElementById('sel').innerHTML = `<span class="lines">${lines}</span> <b>Gate ${WORD[sel][0]} ${WORD[sel][1]}</b> · ${sel.toString(2).padStart(6, '0')} · ${pop(sel)} yang · ${where(sel)} · complement Gate ${WORD[C(sel)][0]} ${WORD[C(sel)][1]} sits opposite (${where(C(sel))}) <button onclick="choose(C(sel))">go to complement</button>`;
+  document.getElementById('log').innerHTML = log.join('<br>');
+}
+let drag = null, moved = 0;
+cv.addEventListener('pointerdown', e => { drag = [e.clientX, e.clientY]; moved = 0; });
+addEventListener('pointermove', e => { if (!drag) return; const dx = e.clientX - drag[0], dy = e.clientY - drag[1]; moved += Math.abs(dx) + Math.abs(dy); ry += dx * 0.01; rx += dy * 0.01; drag = [e.clientX, e.clientY]; });
+addEventListener('pointerup', e => { if (drag && moved < 6) { const r = cv.getBoundingClientRect(), x = e.clientX - r.left, y = e.clientY - r.top; let best = null, bd = 18;
+  for (let h = 0; h < 63; h++) { const p = proj(pos[h]), d = Math.hypot(p[0] - x, p[1] - y); if (d < bd) { bd = d; best = h; } }
+  const o = proj([0, 0, 0]), s = Math.min(W, H) * 0.24 * 1.55; if (Math.hypot(o[0] - x, o[1] - s - y) < 18) best = 63; if (best != null) choose(best); } drag = null; });
+addEventListener('resize', size); size(); choose(42); requestAnimationFrame(draw);
+window.__check = () => ({ errors: errs, edges: E.length, placed: pos.filter((p, h) => p || h === 63).length });
+window.choose = choose; window.flip = flip; window.C = C;
+</script></body></html>
