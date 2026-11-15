@@ -21,7 +21,7 @@ button{background:#161a26;color:#cfd3e0;border:1px solid #2a3044;border-radius:6
     <span class="tag V">verified</span>complement (flip all six lines) = the point straight through the centre, for every hexagram<br>
     <span class="tag P">placeholder</span>which hexagram sits on which corner / edge / face inside its tier: sorted by binary value, needs your rule<br>
     <span class="tag P">placeholder</span>all-yang on the outer sphere, all-yin at the centre (the chart pairs them, it does not say which is which)<br>
-    <span class="tag V">spec</span>particles: address from longitude (Section M), Rule O validation (Sections I, J), resonance ×2, sentence only from valid steps (Section 6)<br><span class="tag P">placeholder</span>particle speeds; Section J colors that are neither listed compatible nor incompatible are shown grey as unresolved<br><span class="tag P">source</span>gate lines from your Codex3 king-wen.mjs (bottom line = bit 0); names from the Black Book list of the 64
+    <span class="tag V">spec</span>each gate belongs to the dimension its row gives (Base column), carries its anchor word, and moves on that dimension's axis (Section F: Movement, Being vertical; Evolution, Space horizontal; Design diagonal); vertical drawn first, then horizontal, then diagonal<br><span class="tag P">placeholder</span>dimension colours (not found in the paper)<br><span class="tag V">spec</span>particles: address from longitude (Section M), Rule O validation (Sections I, J), resonance ×2, sentence only from valid steps (Section 6)<br><span class="tag P">placeholder</span>particle speeds; Section J colors that are neither listed compatible nor incompatible are shown grey as unresolved<br><span class="tag P">source</span>gate lines from your Codex3 king-wen.mjs (bottom line = bit 0); names from the Black Book list of the 64
   </div>
 </div>
 <script>
@@ -83,8 +83,14 @@ function ruleO(a) {
   if (!COMPAT[a.tone].includes(a.color)) return { ok: null, why: `UNRESOLVED: Section J lists Color ${a.color + 1} ${COLORS[a.color]} neither compatible nor incompatible with Tone ${a.tone + 1}` };
   const res = ANCHOR[a.base] === a.tone, b = GBIN[a.gate];
   return { ok: true, weight: res ? 2 : 1, res,
-    text: `Gate ${a.gate} ${WORD[b][1]} · Line ${a.line + 1} ${LINES[a.line]} · Color ${a.color + 1} ${COLORS[a.color]} · Tone ${a.tone + 1} ${TONES[a.tone]} · Base ${a.base + 1} ${BASES[a.base]}${res ? ' · RESONANT ×2' : ''}` };
+    text: `[${BASES[GDIM[a.gate]]} · ${GANCH[a.gate]} · ${AXIS[GDIM[a.gate]]}] Gate ${a.gate} ${WORD[b][1]} · Line ${a.line + 1} ${LINES[a.line]} · Color ${a.color + 1} ${COLORS[a.color]} · Tone ${a.tone + 1} ${TONES[a.tone]} · Base ${a.base + 1} ${BASES[a.base]}${res ? ' · RESONANT ×2' : ''}` };
 }
+
+// Each gate's own dimension and anchor word (gate table, spec section 4); axis per dimension (Section F)
+const GDIM = {"1": 0, "2": 0, "3": 3, "4": 1, "5": 4, "6": 2, "7": 0, "8": 0, "9": 3, "10": 2, "11": 4, "12": 4, "13": 1, "14": 3, "15": 4, "16": 4, "17": 1, "18": 3, "19": 2, "20": 0, "21": 3, "22": 4, "23": 1, "24": 1, "25": 1, "26": 3, "27": 2, "28": 2, "29": 2, "30": 4, "31": 0, "32": 3, "33": 1, "34": 2, "35": 3, "36": 4, "37": 2, "38": 2, "39": 0, "40": 3, "41": 4, "42": 3, "43": 1, "44": 3, "45": 3, "46": 2, "47": 1, "48": 3, "49": 2, "50": 3, "51": 0, "52": 3, "53": 3, "54": 3, "55": 4, "56": 4, "57": 3, "58": 2, "59": 2, "60": 0, "61": 1, "62": 4, "63": 1, "64": 1}, GANCH = {"1": "Creation", "2": "Landscape", "3": "Structure", "4": "Memory", "5": "Rhythm / Timing", "6": "Sex / Survival", "7": "Orientation", "8": "Seeing", "9": "Structure", "10": "Being", "11": "Illusion / Form", "12": "Hearing / Music", "13": "Memory", "14": "Progress", "15": "Rhythm", "16": "Music / Expression", "17": "Gravity", "18": "Structure / Decay", "19": "Touch", "20": "Environment", "21": "Structure", "22": "Music / Form", "23": "Light", "24": "Memory", "25": "Love", "26": "Life / Art", "27": "Survival", "28": "Survival", "29": "Matter", "30": "Fantasy / Form", "31": "Orientation", "32": "Continuity", "33": "Memory", "34": "Matter / Body", "35": "Progress", "36": "Illusion", "37": "Touch", "38": "Survival", "39": "Energy", "40": "Ego / Structure", "41": "Fantasy", "42": "Growth", "43": "Light", "44": "Smell / Structure", "45": "Manifestation", "46": "Biology / Body", "47": "Memory", "48": "Structure", "49": "Survival", "50": "Structure", "51": "Energy", "52": "Structure", "53": "Progress", "54": "Manifestation", "55": "Music / Freedom", "56": "Fantasy / Illusion", "57": "Smell", "58": "Biology", "59": "Sex", "60": "Limitation", "61": "Light", "62": "Form", "63": "Gravity", "64": "Memory"};
+const AXIS = ['vertical', 'horizontal', 'vertical', 'diagonal', 'horizontal']; // Movement, Evolution, Being, Design, Space
+const ORDER = { vertical: 0, horizontal: 1, diagonal: 2 };
+const DCOL = ['#ff5a6e', '#50e68c', '#ffbe46', '#be78ff', '#50a0ff'];   // placeholder colours until the paper gives them
 const NP = 240, P = Array.from({ length: NP }, (_, i) => ({ lon: (i * 137.50776405) % 360, v: 0.004 + (i % 7) * 0.0015 })); // placeholder speeds
 let showP = true, tally = { ok: 0, res: 0, halt: 0, un: 0 }, lastSent = [];
 function stepP() {
@@ -94,10 +100,18 @@ function stepP() {
 }
 function drawP() {
   if (!showP) return;
-  for (const q of P) { if (!q.a) continue; const b = GBIN[q.a.gate], base = pos[b] || [0, -1.55, 0], j = (q.lon * 97 % 1) - 0.5;
-    const p = proj(base.map((x, k) => x * 1.05 + (k === 0 ? j * 0.12 : k === 1 ? (q.a.line - 2.5) * 0.03 : 0)));
-    cx.fillStyle = q.r.ok === false ? '#ff3b4f' : q.r.ok === null ? '#777' : q.r.res ? '#ffffff' : TC[q.a.base + 1];
-    cx.beginPath(); cx.arc(p[0], p[1], q.r.ok ? (q.r.res ? 4 : 2.2) : 1.6, 0, 7); cx.fill(); }
+  const t = performance.now() / 1000, list = P.filter(q => q.a).sort((x, y) => ORDER[AXIS[GDIM[y.a.gate]]] - ORDER[AXIS[GDIM[x.a.gate]]]); // vertical drawn last = on top (first)
+  for (const q of list) { const d = GDIM[q.a.gate], ax = AXIS[d], b = GBIN[q.a.gate], base = pos[b] || [0, -1.55, 0], ph = q.lon * 7.3 + t * (1 + q.v * 200);
+    const off = ax === 'vertical' ? [0, Math.sin(ph) * 0.12, 0] : ax === 'horizontal' ? [Math.sin(ph) * 0.12, 0, Math.cos(ph) * 0.05] : [Math.sin(ph) * 0.09, Math.sin(ph) * 0.09, 0];
+    const p = proj(base.map((x, k) => x * 1.05 + off[k]));
+    const w = q.r.ok ? (q.r.res ? 2 : 1) : 0.6;
+    cx.globalAlpha = q.r.ok === false ? 0.35 : q.r.ok === null ? 0.5 : 1;
+    cx.strokeStyle = cx.fillStyle = DCOL[d]; cx.lineWidth = 1.5 * w;
+    // form follows the axis: vertical = upright stroke, horizontal = flat stroke, diagonal = slanted stroke
+    const L = 5 * w, v = ax === 'vertical' ? [0, L] : ax === 'horizontal' ? [L, 0] : [L * 0.7, L * 0.7];
+    cx.beginPath(); cx.moveTo(p[0] - v[0], p[1] - v[1]); cx.lineTo(p[0] + v[0], p[1] + v[1]); cx.stroke();
+    if (q.r.res) { cx.beginPath(); cx.arc(p[0], p[1], 3, 0, 7); cx.fillStyle = '#fff'; cx.fill(); } }
+  cx.globalAlpha = 1; cx.lineWidth = 1;
 }
 function uiP() {
   const s = P.filter(q => q.r && q.r.ok).slice(0, 4).map(q => q.r.text);
