@@ -1,0 +1,313 @@
+{
+ "source": "Consciousness Causal Graph Construction Specification (Google Doc 13Q1W7lXzpJq7AZtlcDadUp21BnUjwS2ISusXGskjgnk), copied verbatim",
+ "axis_sectionF": [
+  [
+   "Vertical",
+   "Individuality Body",
+   "D1 (Movement) D3 being",
+   "MC / IC, North / South Nodes",
+   "Establishes the core axial alignment between pure consciousness and physical embodiment."
+  ],
+  [
+   "Horizontal",
+   "Self–Other / Relational",
+   "Base 5 (Space), Base 2 (Evolution)",
+   "ASC / DSC, Horizon",
+   "Defines the relational frequency, governing interaction, projection, and sensory dialogue."
+  ],
+  [
+   "Diagonal",
+   "Evolutionary / Kinetic",
+   "Base 4 (Design)",
+   "Vertex / Anti-Vertex, Intercepted Axes",
+   "Drives non-linear mutations, karmic shifts, and structural adaptation vectors."
+  ]
+ ],
+ "zodiac_house_sectionGH": [
+  [
+   "Aries",
+   "Cardinal",
+   "Fire",
+   "House 1",
+   "Emergence / Self-Identity",
+   "Initiative, Spark, Primordial Force, Ignition"
+  ],
+  [
+   "Taurus",
+   "Fixed",
+   "Earth",
+   "House 2",
+   "Resources / Material Form",
+   "Persistence, Substance, Value, Grounding"
+  ],
+  [
+   "Gemini",
+   "Mutable",
+   "Air",
+   "House 3",
+   "Local Exchange / Duality",
+   "Connectivity, Perception, Duality, Syntax"
+  ],
+  [
+   "Cancer",
+   "Cardinal",
+   "Water",
+   "House 4",
+   "Roots / Containment",
+   "Sanctuary, Memory, Container, Ancestry"
+  ],
+  [
+   "Leo",
+   "Fixed",
+   "Fire",
+   "House 5",
+   "Radiance / Expression",
+   "Vitality, Sovereignty, Creation, Heart-Core"
+  ],
+  [
+   "Virgo",
+   "Mutable",
+   "Earth",
+   "House 6",
+   "Refinement / Synthesis",
+   "Discrimination, Order, Synthesis, Craft"
+  ],
+  [
+   "Libra",
+   "Cardinal",
+   "Air",
+   "House 7",
+   "Equanimity / Mirroring",
+   "Harmony, Polarization, Mirroring, Reciprocity"
+  ],
+  [
+   "Scorpio",
+   "Fixed",
+   "Water",
+   "House 8",
+   "Transmutation / Depth",
+   "Regeneration, Bonding, Fusion, Catharsis"
+  ],
+  [
+   "Sagittarius",
+   "Mutable",
+   "Fire",
+   "House 9",
+   "Vector / Expansion",
+   "Truth, Trajectory, Expansion, Synthesis"
+  ],
+  [
+   "Capricorn",
+   "Fixed",
+   "Earth",
+   "House 10",
+   "Architecture / Mastery",
+   "Structure, Integrity, Pinnacle, Crystallization"
+  ],
+  [
+   "Aquarius",
+   "Fixed",
+   "Air",
+   "House 11",
+   "Network / Innovation",
+   "Frequency, Universal Mind, Collective, Innovation"
+  ],
+  [
+   "Pisces",
+   "Mutable",
+   "Water",
+   "House 12",
+   "Dissolution / Transcendent",
+   "Boundless, Unity, Resonance, Dissolution"
+  ]
+ ],
+ "base_x_tone_sectionI": [
+  [
+   "1. Movement",
+   "Valid (Smell/Security)",
+   "Valid (Taste/Discern)",
+   "Resonant Anchor (Outer Vision)",
+   "Valid (Inner Vision)",
+   "Valid (Feeling)",
+   "Valid (Hearing)"
+  ],
+  [
+   "2. Evolution",
+   "Valid (Smell/Survival)",
+   "Resonant Anchor (Taste)",
+   "Valid (Outer Vision)",
+   "Valid (Inner Vision)",
+   "Valid (Feeling)",
+   "Valid (Hearing/Sound)"
+  ],
+  [
+   "3. Being",
+   "Valid (Smell/Instinct)",
+   "Valid (Taste/Exploration)",
+   "Valid (Outer Vision)",
+   "Valid (Inner Vision)",
+   "Valid (Feeling)",
+   "Resonant Anchor (Touch/Hearing)"
+  ],
+  [
+   "4. Design",
+   "Resonant Anchor (Smell)",
+   "Valid (Taste/Doubt)",
+   "Valid (Outer Vision)",
+   "Valid (Inner Vision)",
+   "Valid (Feeling)",
+   "Valid (Hearing)"
+  ],
+  [
+   "5. Space",
+   "Valid (Smell/Caution)",
+   "Valid (Taste/Testing)",
+   "Valid (Outer Vision)",
+   "Valid (Inner Vision)",
+   "Valid (Feeling)",
+   "Resonant Anchor (Hearing/Music)"
+  ]
+ ],
+ "tone_x_color_sectionJK": [
+  [
+   "Tone 1 (Security)",
+   "Color 1 (Fear), Color 2 (Hope)",
+   "Color 6 (Innocence - Passive vs. Alert conflict)",
+   "Splenic Instinct / Immediate Survival"
+  ],
+  [
+   "Tone 2 (Uncertainty)",
+   "Color 1 (Fear), Color 2 (Hope)",
+   "Color 4 (Need - Fixity vs. Exploration conflict)",
+   "Splenic Discrimination / Trial Taste"
+  ],
+  [
+   "Tone 3 (Action)",
+   "Color 3 (Desire), Color 4 (Need)",
+   "Color 1 (Fear - Paralysis vs. Action conflict)",
+   "Ajna Outer Focus / Objective Execution"
+  ],
+  [
+   "Tone 4 (Meditation)",
+   "Color 3 (Desire), Color 4 (Need)",
+   "Color 5 (Guilt - External projection conflict)",
+   "Ajna Inner Vision / Contemplative Mind"
+  ],
+  [
+   "Tone 5 (Judgement)",
+   "Color 4 (Need), Color 5 (Guilt)",
+   "Color 2 (Hope - Blind faith vs. Evaluation conflict)",
+   "Solar Plexus Discernment / Emotional Weight"
+  ],
+  [
+   "Tone 6 (Acceptance)",
+   "Color 5 (Guilt), Color 6 (Innocence)",
+   "Color 1 (Fear - Defense vs. Integration conflict)",
+   "Solar Plexus Resonance / Synthesis"
+  ]
+ ],
+ "lines_section5": [
+  [
+   "1",
+   "Foundation",
+   "Forward Sequential",
+   "Starts strictly at Anchor Node; walks forward $N+1$, emphasizing foundational origins."
+  ],
+  [
+   "2",
+   "Natural",
+   "Unbroken Natural",
+   "Traverses whole chain seamlessly along natural harmonic gradient without jumping."
+  ],
+  [
+   "3",
+   "Experimentation",
+   "Non-Linear / Loop",
+   "Permitted to skip intermediate nodes or execute a recursive loop (e.g., $A to C to B to C$)."
+  ],
+  [
+   "4",
+   "Externalization",
+   "Outward Projection",
+   "Emphasizes external nodes (e.g., Environment, Landscape, Communication)."
+  ],
+  [
+   "5",
+   "Projection",
+   "Universalizing",
+   "Broadens keyword definitions, projecting output across universalized domains."
+  ],
+  [
+   "6",
+   "Transition",
+   "Direct Terminal Leap",
+   "Skips intermediate nodes, jumping directly from the Anchor Node to the terminal link ($A to F$)."
+  ]
+ ],
+ "gates_section4": {
+  "25": {
+   "name": "Innocence",
+   "archetype": "Spirit / Universal Love",
+   "base": "Base 2 (Evolution)",
+   "anchor": "Love",
+   "sign": "Aries",
+   "house": "House 1",
+   "lines": [
+    "Selflessness",
+    "The Existentialist",
+    "Sensibility",
+    "Survival",
+    "Recuperation",
+    "Ignorance"
+   ]
+  },
+  "17": {
+   "name": "Following",
+   "archetype": "Opinions / Future Vision",
+   "base": "Base 2 (Evolution)",
+   "anchor": "Gravity",
+   "sign": "Aries",
+   "house": "House 1"
+  },
+  "27": {
+   "name": "Nourishment",
+   "archetype": "Caring / Preservation",
+   "base": "Base 3 (Being)",
+   "anchor": "Survival",
+   "sign": "Aries",
+   "house": "House 1"
+  },
+  "24": {
+   "name": "Returning",
+   "archetype": "Rationalization / Memory",
+   "base": "Base 2 (Evolution)",
+   "anchor": "Memory",
+   "sign": "Taurus",
+   "house": "House 2"
+  },
+  "16": {
+   "name": "Enthusiasm",
+   "archetype": "Selectivity / Skill",
+   "base": "Base 5 (Space)",
+   "anchor": "Music / Expression",
+   "sign": "Aries",
+   "house": "House 1"
+  },
+  "7": {
+   "name": "The Army",
+   "archetype": "Direction of the Collective",
+   "base": "Base 1 (Movement)",
+   "anchor": "Orientation",
+   "sign": "Leo",
+   "house": "House 5"
+  }
+ },
+ "who_what_where_when_why": {
+  "source": "user (stated in chat, Nov 2026)",
+  "Space": "who",
+  "Evolution": "what",
+  "Being": "where",
+  "Movement": "when",
+  "Design": "why"
+ }
+}
