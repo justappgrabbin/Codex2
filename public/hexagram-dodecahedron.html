@@ -14,14 +14,14 @@ button{background:#161a26;color:#cfd3e0;border:1px solid #2a3044;border-radius:6
 <canvas id="c"></canvas>
 <div id="p">
   <div class="k">Drag to rotate (a view: nothing changes). Tap a hexagram, then tap a line to flip it (a real change: it moves to its new place).</div>
-  <div id="sel"></div>
+  <div id="swarm" class="k" style="color:#cfd3e0"></div><div id="sel"></div>
   <div id="log" class="k"></div>
   <div class="k" style="margin-top:6px">
     <span class="tag V">verified</span>tiers 1·6·15·20·15·6·1 fill center·faces·edges·corners·edges·faces·sphere exactly (64)<br>
     <span class="tag V">verified</span>complement (flip all six lines) = the point straight through the centre, for every hexagram<br>
     <span class="tag P">placeholder</span>which hexagram sits on which corner / edge / face inside its tier: sorted by binary value, needs your rule<br>
     <span class="tag P">placeholder</span>all-yang on the outer sphere, all-yin at the centre (the chart pairs them, it does not say which is which)<br>
-    <span class="tag P">source</span>gate lines from your Codex3 king-wen.mjs (bottom line = bit 0); names from the Black Book list of the 64
+    <span class="tag V">spec</span>particles: address from longitude (Section M), Rule O validation (Sections I, J), resonance ×2, sentence only from valid steps (Section 6)<br><span class="tag P">placeholder</span>particle speeds; Section J colors that are neither listed compatible nor incompatible are shown grey as unresolved<br><span class="tag P">source</span>gate lines from your Codex3 king-wen.mjs (bottom line = bit 0); names from the Black Book list of the 64
   </div>
 </div>
 <script>
@@ -59,6 +59,53 @@ place(F, tier(1), R.f);                 // 12 faces: 6 + 6
 pos[0] = [0, 0, 0]; pos[63] = null;     // centre / outer sphere
 // self-check
 const errs = []; for (let h = 1; h < 63; h++) { if (!pos[h]) errs.push(h); else if (!same(pos[C(h)], neg(pos[h]))) errs.push('anti ' + h); }
+
+// ================= PARTICLE SWARM: Rule O execution engine (Consciousness Causal Graph spec, sections I, J, M, 6) =================
+const GATE_WHEEL = [41,19,13,49,30,55,37,63,22,36,25,17,21,51,42,3,27,24,2,23,8,20,16,35,45,12,15,52,39,53,62,56,31,33,7,4,29,59,40,64,47,6,46,18,48,57,32,50,28,44,1,43,14,34,9,5,26,11,10,58,38,54,61,60];
+const LINES = ['Foundation','Natural','Experimentation','Externalization','Projection','Transition'];
+const COLORS = ['Fear','Hope','Desire','Need','Guilt','Innocence'];
+const TONES = ['Security','Uncertainty','Action','Meditation','Judgement','Acceptance'];
+const BASES = ['Movement','Evolution','Being','Design','Space'];
+// Section I: every Base x Tone is Valid; one Resonant Anchor per base (base index -> tone index)
+const ANCHOR = { 0: 2, 1: 1, 2: 5, 3: 0, 4: 5 };
+// Section J: compatible colors / explicitly incompatible color per tone (0-based)
+const COMPAT = [[0, 1], [0, 1], [2, 3], [2, 3], [3, 4], [4, 5]], INCOMPAT = [5, 3, 0, 4, 1, 0];
+const GBIN = {}; for (const b in WORD) GBIN[WORD[b][0]] = +b;
+// Section M: one longitude -> gate, line, color, tone, base
+function address(lon) {
+  let p = ((lon - 302) % 360 + 360) % 360 / 5.625; const gi = Math.floor(p); let f = p - gi;
+  const line = Math.floor(f * 6); f = f * 6 - line; const color = Math.floor(f * 6); f = f * 6 - color; const tone = Math.floor(f * 6); f = f * 6 - tone;
+  return { gate: GATE_WHEEL[gi], line, color, tone, base: Math.floor(f * 5) };
+}
+// Section 6: validate -> anchor -> trajectory -> lens -> resonance -> sentence (only from valid steps)
+function ruleO(a) {
+  if (INCOMPAT[a.tone] === a.color) return { ok: false, why: `HALT: Tone ${a.tone + 1} ${TONES[a.tone]} x Color ${a.color + 1} ${COLORS[a.color]} is listed incompatible (Section J)` };
+  if (!COMPAT[a.tone].includes(a.color)) return { ok: null, why: `UNRESOLVED: Section J lists Color ${a.color + 1} ${COLORS[a.color]} neither compatible nor incompatible with Tone ${a.tone + 1}` };
+  const res = ANCHOR[a.base] === a.tone, b = GBIN[a.gate];
+  return { ok: true, weight: res ? 2 : 1, res,
+    text: `Gate ${a.gate} ${WORD[b][1]} · Line ${a.line + 1} ${LINES[a.line]} · Color ${a.color + 1} ${COLORS[a.color]} · Tone ${a.tone + 1} ${TONES[a.tone]} · Base ${a.base + 1} ${BASES[a.base]}${res ? ' · RESONANT ×2' : ''}` };
+}
+const NP = 240, P = Array.from({ length: NP }, (_, i) => ({ lon: (i * 137.50776405) % 360, v: 0.004 + (i % 7) * 0.0015 })); // placeholder speeds
+let showP = true, tally = { ok: 0, res: 0, halt: 0, un: 0 }, lastSent = [];
+function stepP() {
+  tally = { ok: 0, res: 0, halt: 0, un: 0 };
+  for (const q of P) { q.lon = (q.lon + q.v) % 360; q.a = address(q.lon); q.r = ruleO(q.a);
+    if (q.r.ok === false) tally.halt++; else if (q.r.ok === null) tally.un++; else { tally.ok++; if (q.r.res) tally.res++; } }
+}
+function drawP() {
+  if (!showP) return;
+  for (const q of P) { if (!q.a) continue; const b = GBIN[q.a.gate], base = pos[b] || [0, -1.55, 0], j = (q.lon * 97 % 1) - 0.5;
+    const p = proj(base.map((x, k) => x * 1.05 + (k === 0 ? j * 0.12 : k === 1 ? (q.a.line - 2.5) * 0.03 : 0)));
+    cx.fillStyle = q.r.ok === false ? '#ff3b4f' : q.r.ok === null ? '#777' : q.r.res ? '#ffffff' : TC[q.a.base + 1];
+    cx.beginPath(); cx.arc(p[0], p[1], q.r.ok ? (q.r.res ? 4 : 2.2) : 1.6, 0, 7); cx.fill(); }
+}
+function uiP() {
+  const s = P.filter(q => q.r && q.r.ok).slice(0, 4).map(q => q.r.text);
+  const h = P.filter(q => q.r && q.r.ok === false).slice(0, 2).map(q => q.r.why);
+  document.getElementById('swarm').innerHTML = `<b>Particles ${NP}</b> · emitting ${tally.ok} (resonant ${tally.res}) · halted ${tally.halt} · unresolved ${tally.un}<br>` + s.join('<br>') + '<br><span style="color:#ff7a88">' + h.join('<br>') + '</span>';
+}
+setInterval(() => { stepP(); uiP(); }, 120);
+
 // --- view
 const cv = document.getElementById('c'), cx = cv.getContext('2d');
 let W, H, rx = -0.4, ry = 0.6, sel = null, trail = [], log = [];
@@ -79,6 +126,7 @@ function draw() {
   pts.sort((a, b) => a[0] - b[0]);
   for (const [z, h, p] of pts) { const w = 13 + z * 2, col = h === sel ? '#fff' : TC[pop(h)];
     cx.globalAlpha = 0.45 + 0.55 * (z + 1.6) / 3.2; glyph(h, p[0], p[1] - 6, w * 0.7, col); cx.font = (9 + z * 1.5) + 'px system-ui'; cx.textAlign = 'center'; cx.fillStyle = col; cx.fillText(WORD[h][0] + ' ' + WORD[h][1], p[0], p[1] + w * 0.7); if (h === sel) { cx.strokeStyle = '#fff'; cx.strokeRect(p[0] - w, p[1] - w, 2 * w, 2 * w); } }
+  drawP();
   cx.globalAlpha = 1; glyph(63, o[0], o[1] - s, 14, sel === 63 ? '#fff' : '#ccc');
   requestAnimationFrame(draw);
 }
@@ -98,6 +146,6 @@ addEventListener('pointerup', e => { if (drag && moved < 6) { const r = cv.getBo
   for (let h = 0; h < 63; h++) { const p = proj(pos[h]), d = Math.hypot(p[0] - x, p[1] - y); if (d < bd) { bd = d; best = h; } }
   const o = proj([0, 0, 0]), s = Math.min(W, H) * 0.24 * 1.55; if (Math.hypot(o[0] - x, o[1] - s - y) < 18) best = 63; if (best != null) choose(best); } drag = null; });
 addEventListener('resize', size); size(); choose(42); requestAnimationFrame(draw);
-window.__check = () => ({ errors: errs, edges: E.length, placed: pos.filter((p, h) => p || h === 63).length });
+window.__check = () => ({ tally, sample: P.slice(0,3).map(q => q.r && (q.r.text || q.r.why)), errors: errs, edges: E.length, placed: pos.filter((p, h) => p || h === 63).length });
 window.choose = choose; window.flip = flip; window.C = C;
 </script></body></html>
