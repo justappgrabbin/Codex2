@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>Swarm on the State Space — small clean version</title>
+<style>
+  :root { color-scheme: dark; --bg:#0b0c10; --fg:#e8e6df; --dim:#8a8778; --line:#2a2c33; --acc:#c9b46a; }
+  * { box-sizing: border-box; }
+  html, body { margin:0; height:100%; background:var(--bg); color:var(--fg); font:13px/1.4 system-ui, sans-serif; overflow:hidden; }
+  canvas { position:fixed; inset:0; width:100%; height:100%; touch-action:none; }
+  #bar { position:fixed; left:8px; right:8px; top:8px; display:flex; flex-wrap:wrap; gap:6px; align-items:center; pointer-events:none; }
+  #bar > * { pointer-events:auto; }
+  button, select { background:#16181e; color:var(--fg); border:1px solid var(--line); border-radius:8px; padding:6px 10px; font:inherit; }
+  button.on { border-color:var(--acc); color:var(--acc); }
+  #stats { color:var(--dim); font-variant-numeric:tabular-nums; }
+  #panel { position:fixed; left:8px; right:8px; bottom:8px; max-height:38vh; display:flex; flex-direction:column; gap:6px; pointer-events:none; }
+  #panel > div { pointer-events:auto; background:rgba(16,17,22,.88); border:1px solid var(--line); border-radius:10px; padding:8px 10px; }
+  #inspect:empty, #log:empty { display:none; }
+  #log { overflow:auto; font:11px/1.45 ui-monospace, monospace; color:var(--dim); max-height:20vh; }
+  #log b { color:var(--fg); font-weight:500; }
+  .k { color:var(--acc); }
+  @media (min-width: 900px) { #panel { left:auto; width:380px; top:56px; bottom:8px; max-height:none; } #log { max-height:none; flex:1; } }
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div id="bar">
+  <button id="play" class="on">Pause</button>
+  <button id="spin" class="on">Spin</button>
+  <select id="layer" title="One layer on at a time">
+    <option value="letter">Layer: letters</option>
+    <option value="address">Layer: gate.line</option>
+    <option value="binary">Layer: binary</option>
+    <option value="dimension">Layer: dimension</option>
+  </select>
+  <button id="reset">Reseed</button>
+  <span id="stats"></span>
+</div>
+<div id="panel"><div id="inspect"></div><div id="log"></div></div>
+<script>
+'use strict';
+const DATA = /*__DATA__*/null;
+
+// ---------- constants (same wheel math as pure-synthia/state-space/constants.js) ----------
+const WHEEL = 1296000, GATE = 20250, LINE = 3375, COLOR = 562.5, TONE = 93.75, SIGN = 108000;
+const DIMENSIONS = ['Movement','Evolution','Being','Design','Space'];
+const TRI_BITS = { Earth:[0,0,0], Thunder:[1,0,0], Water:[0,1,0], Lake:[1,1,0], Mountain:[0,0,1], Fire:[1,0,1], Wind:[0,1,1], Heaven:[1,1,1] };
+function mulberry32(seed){ let a=seed>>>0; return ()=>{ a|=0; a=(a+0x6D2B79F5)|0; let t=Math.imul(a^(a>>>15),1|a); t=(t+Math.imul(t^(t>>>7),61|t))^t; return ((t^(t>>>14))>>>0)/4294967296; }; }
+
+const GATES = {}; for (const g of DATA.gates) { g.bits = [...TRI_BITS[g.lower], ...TRI_BITS[g.upper]]; GATES[g.n] = g; }
+
+// ---------- the state space: a dodecahedron, 12 faces = 12 signs, 5 corners = 5 dimensions ----------
+const PHI = (1 + Math.sqrt(5)) / 2;
+const sub=(a,b)=>[a[0]-b[0],a[1]-b[1],a[2]-b[2]], add=(a,b)=>[a[0]+b[0],a[1]+b[1],a[2]+b[2]], mul=(a,s)=>[a[0]*s,a[1]*s,a[2]*s];
+const dot=(a,b)=>a[0]*b[0]+a[1]*b[1]+a[2]*b[2], cross=(a,b)=>[a[1]*b[2]-a[2]*b[1],a[2]*b[0]-a[0]*b[2],a[0]*b[1]-a[1]*b[0]];
+const norm=(a)=>mul(a,1/Math.hypot(...a)), lerp=(a,b,t)=>add(a,mul(sub(b,a),t));
+
+const VERTS = [];
+for (const x of [-1,1]) for (const y of [-1,1]) for (const z of [-1,1]) VERTS.push([x,y,z]);
+for (const a of [-1,1]) for (const b of [-1,1]) { VERTS.push([0,a/PHI,b*PHI]); VERTS.push([a/PHI,b*PHI,0]); VERTS.push([a*PHI,0,b/PHI]); }
+const NORMALS = [];
+for (const a of [-1,1]) for (const b of [-1,1]) { NORMALS.push(norm([a,0,b*PHI])); NORMALS.push(norm([a*PHI,b,0])); NORMALS.push(norm([0,a*PHI,b])); }
+const UP = norm([1,0,PHI]);
+const REF = norm(cross(UP, [1,0,0]));
+const azimuth = (n) => { const p = sub(n, mul(UP, dot(n, UP))); return Math.atan2(dot(cross(REF, p), UP), dot(REF, p)); };
+const level = (n) => Math.round(dot(n, UP) * 2); // 2 top, 1 upper ring, -1 lower ring, -2 bottom
+const ordered = [...NORMALS].sort((a,b) => (level(b)-level(a)) || (azimuth(a)-azimuth(b)));
+const FACES = ordered.map((n, i) => {
+  const best = Math.max(...VERTS.map(v => dot(v, n)));
+  const vs = VERTS.filter(v => Math.abs(dot(v, n) - best) < 1e-6);
+  const c = mul(vs.reduce(add, [0,0,0]), 1/5);
+  const e1 = norm(sub(vs[0], c)), e2 = cross(n, e1);
+  vs.sort((a,b) => Math.atan2(dot(sub(a,c),e2), dot(sub(a,c),e1)) - Math.atan2(dot(sub(b,c),e2), dot(sub(b,c),e1)));
+  return { sign: DATA.signs[i], n, c, vs };
+});
+const EDGES = []; { const L = 2/PHI; for (let i=0;i<VERTS.length;i++) for (let j=i+1;j<VERTS.length;j++) if (Math.abs(Math.hypot(...sub(VERTS[i],VERTS[j]))-L)<1e-6) EDGES.push([i,j]); }
+
+// wheel position + depth -> point on the solid. Angle around the face = position inside the sign,
+// so corner k of every face is DIMENSIONS[k]; depth 0 = face centre (latent), 1 = face edge (expressed).
+function place(lon, depth) {
+  lon = ((lon % WHEEL) + WHEEL) % WHEEL;
+  const f = FACES[Math.floor(lon / SIGN)], t = (lon % SIGN) / SIGN * 5, k = Math.floor(t), fr = t - k;
+  const rim = lerp(f.vs[k], f.vs[(k+1)%5], fr);
+  return lerp(f.c, rim, 0.12 + 0.82 * depth);
+}
+
+// ---------- address of a wheel position (gate > line > color > tone), read from the data ----------
+function addressAt(g, off) { // off = arc-seconds inside this gate's span
+  const line = Math.min(6, Math.floor(off / LINE) + 1), inLine = off - (line-1)*LINE;
+  return { gate: g.n, line, color: Math.min(6, Math.floor(inLine / COLOR) + 1), tone: Math.min(6, Math.floor((inLine % COLOR) / TONE) + 1) };
+}
+// visual syntax from pure-synthia/state-space/colors.js: hue = wheel, sat = 30+line*10, light = 25+tone*7
+const colorOf = (lon, a) => `hsl(${(lon/WHEEL*360).toFixed(1)} ${30+a.line*10}% ${25+a.tone*7}%)`;
+
+// ---------- the swarm ----------
+// Units are letters. Each gate releases the first three letters of its own name; a unit can only
+// move inside its own gate's 20250" span. Dimension per letter = DIMENSIONS[alphabetIndex mod 5]
+// (the rule in pure-synthia/state-space/letters.js).
+// Motion per dimension (user's stated rules): Movement + Being move vertically (depth),
+// Evolution sideways at ~45deg, Design zigzags on the diagonal, Space has no stated rule -> free drift.
+const BIAS = {
+  Movement:  (u) => [0, 1],
+  Being:     (u) => [0, 1],
+  Evolution: (u) => [1, 1],
+  Design:    (u) => [1, (Math.floor(u.age / 25) % 2) ? 1 : -1],
+  Space:     (u) => [u.rng() - .5, u.rng() - .5],
+};
+let units = [], tick = 0, rng, bonds = new Map(), counts = {}, logLines = [];
+function seed(s) {
+  rng = mulberry32(s); units = []; tick = 0; bonds = new Map(); counts = { enter:0, cohere:0, harmonize:0, interfere:0, 'channel-open':0, 'channel-close':0 }; logLines = [];
+  for (const g of DATA.gates) {
+    const letters = g.name.toLowerCase().replace(/[^a-z]/g, '').slice(0, 3).split('');
+    letters.forEach((ch, i) => {
+      const dim = DIMENSIONS[(ch.charCodeAt(0) - 97) % 5];
+      const u = { id: units.length, g, ch, dim, off: rng()*GATE, depth: rng(), v:[0,0], energy: 1, age: 0, rng, cell: null, best: null, gid: i };
+      u.best = { off: u.off, depth: u.depth, e: 0 };
+      units.push(u);
+    });
+  }
+  log(`seeded ${units.length} units on ${DATA.gates.length} gates (seed ${s})`);
+}
+const lonOf = (u) => (u.g.start + u.off) % WHEEL;
+
+function step() {
+  tick++;
+  // social best per gate = position of the highest-energy unit of that gate
+  const gbest = {}; for (const u of units) if (!gbest[u.g.n] || u.energy > gbest[u.g.n].energy) gbest[u.g.n] = u;
+  for (const u of units) {
+    u.age++;
+    const b = BIAS[u.dim](u), gb = gbest[u.g.n];
+    const toP = [(u.best.off - u.off)/GATE, u.best.depth - u.depth], toG = [(gb.off - u.off)/GATE, gb.depth - u.depth];
+    for (let k=0;k<2;k++) u.v[k] = .86*u.v[k] + .02*rng()*toP[k] + .008*rng()*toG[k] + .006*b[k] + .004*(rng()-.5);
+    u.off += u.v[0]*GATE*.6; u.depth += u.v[1]*.6;
+    if (u.off < 0) { u.off = -u.off; u.v[0] = -u.v[0]; } if (u.off >= GATE) { u.off = 2*GATE - u.off - 1; u.v[0] = -u.v[0]; }
+    if (u.depth < 0) { u.depth = -u.depth; u.v[1] = -u.v[1]; } if (u.depth > 1) { u.depth = 2 - u.depth; u.v[1] = -u.v[1]; }
+    u.energy *= .995;
+    // self interaction: entering a new line cell, the unit reads that line
+    const a = addressAt(u.g, u.off), key = u.g.n + '.' + a.line;
+    if (key !== u.cell) { u.cell = key; u.addr = a; u.energy += .25; counts.enter++; }
+    if (u.energy > u.best.e) u.best = { off: u.off, depth: u.depth, e: u.energy };
+  }
+  // local contact: real distance on the solid (< 0.14). Latent units sit near their face centre,
+  // so different gates in the same sign meet there; expressed units meet at gate borders on the rim.
+  u_contacts = [];
+  for (const u of units) u.pos = place(lonOf(u), u.depth);
+  for (let i = 0; i < units.length; i++) for (let j = i + 1; j < units.length; j++) {
+    const u = units[i], w = units[j], d = sub(u.pos, w.pos);
+    if (Math.abs(d[0]) > .14 || Math.abs(d[1]) > .14 || Math.abs(d[2]) > .14 || Math.hypot(...d) > .14) continue;
+    let kind;
+    if (u.g === w.g) { kind = 'cohere'; u.energy += .02; w.energy += .02; }
+    else if (u.g.upper === w.g.upper || u.g.lower === w.g.lower || u.g.upper === w.g.lower || u.g.lower === w.g.upper) { kind = 'harmonize'; u.energy += .15; w.energy += .15; }
+    else { kind = 'interfere'; u.energy *= .9; w.energy *= .9; u.v[1] += .01; w.v[1] += .01; } // pushed outward toward expression
+    counts[kind]++; u_contacts.push([u, w, kind]);
+  }
+  // channel interaction: an expressed unit (depth > .6) in gate A line L and an expressed unit in the
+  // partner gate B on the same line L hold the channel open across the solid.
+  const live = new Map();
+  const expressed = {}; for (const u of units) if (u.depth > .6 && u.addr) (expressed[u.g.n + '.' + u.addr.line] ||= []).push(u);
+  for (const g of DATA.gates) for (const c of g.channels) {
+    if (c.partner < g.n) continue;
+    for (let L = 1; L <= 6; L++) {
+      const A = expressed[g.n + '.' + L], B = expressed[c.partner + '.' + L];
+      if (A && B) { live.set(`${g.n}-${c.partner}.${L}`, { a: A[0], b: B[0], name: c.name, L }); A[0].energy += .1; B[0].energy += .1; }
+    }
+  }
+  for (const [k, v] of live) if (!bonds.has(k)) { counts['channel-open']++; log(`<b>${k.split('.')[0]}</b> channel <span class="k">${v.name}</span> opened on line ${v.L} by ${v.a.ch}/${v.b.ch}`); }
+  for (const [k, v] of bonds) if (!live.has(k)) { counts['channel-close']++; log(`${k.split('.')[0]} channel ${v.name} closed (line ${v.L})`); }
+  bonds = live;
+}
+let u_contacts = [];
+function log(s) { logLines.unshift(`t${String(tick).padStart(5,'0')} ${s}`); if (logLines.length > 120) logLines.pop(); logDirty = true; }
+
+// ---------- rendering ----------
+const cv = document.getElementById('c'), ctx = cv.getContext('2d');
+let W, H, DPR, rotY = .6, rotX = -.35, zoom = 1, spin = true, running = true, layer = 'letter', selected = null, logDirty = true;
+function resize() { DPR = devicePixelRatio || 1; W = innerWidth; H = innerHeight; cv.width = W*DPR; cv.height = H*DPR; ctx.setTransform(DPR,0,0,DPR,0,0); }
+addEventListener('resize', resize); resize();
+function proj(p) {
+  const cy = Math.cos(rotY), sy = Math.sin(rotY), cx = Math.cos(rotX), sx = Math.sin(rotX);
+  let x = p[0]*cy + p[2]*sy, z = -p[0]*sy + p[2]*cy, y = p[1]*cx - z*sx; z = p[1]*sx + z*cx;
+  const s = Math.min(W, H) * .26 * zoom, persp = 4 / (4 - z);
+  return [W/2 + x*s*persp, H/2 - y*s*persp, z, persp];
+}
+function draw() {
+  ctx.clearRect(0,0,W,H);
+  // faces (back to front) with sign + corner dimension labels
+  const fs = FACES.map(f => ({ f, z: proj(f.c)[2] })).sort((a,b) => a.z - b.z);
+  for (const { f, z } of fs) {
+    ctx.beginPath(); f.vs.forEach((v,i) => { const p = proj(v); i ? ctx.lineTo(p[0],p[1]) : ctx.moveTo(p[0],p[1]); }); ctx.closePath();
+    ctx.fillStyle = `rgba(255,255,255,${z > 0 ? .025 : .01})`; ctx.fill();
+    if (z > .3) {
+      const c = proj(f.c); ctx.fillStyle = 'rgba(232,230,223,.28)'; ctx.font = '11px system-ui'; ctx.textAlign = 'center'; ctx.fillText(f.sign, c[0], c[1]);
+      f.vs.forEach((v,k) => { const p = proj(lerp(f.c, v, .9)); ctx.fillStyle = 'rgba(201,180,106,.35)'; ctx.font = '9px system-ui'; ctx.fillText(DIMENSIONS[k][0], p[0], p[1]); });
+    }
+  }
+  ctx.strokeStyle = 'rgba(255,255,255,.14)'; ctx.lineWidth = 1;
+  for (const [i,j] of EDGES) { const a = proj(VERTS[i]), b = proj(VERTS[j]); ctx.beginPath(); ctx.moveTo(a[0],a[1]); ctx.lineTo(b[0],b[1]); ctx.stroke(); }
+  // channel bonds: drawn through the interior, labelled with the channel name (edge = string of words)
+  ctx.font = '10px system-ui';
+  for (const [, b] of bonds) {
+    const pa = place(lonOf(b.a), b.a.depth), pb = place(lonOf(b.b), b.b.depth), mid = mul(add(pa,pb), .25);
+    const A = proj(pa), B = proj(pb), M = proj(mid);
+    ctx.strokeStyle = 'rgba(201,180,106,.55)'; ctx.beginPath(); ctx.moveTo(A[0],A[1]); ctx.quadraticCurveTo(M[0],M[1],B[0],B[1]); ctx.stroke();
+    ctx.fillStyle = 'rgba(201,180,106,.9)'; ctx.textAlign = 'center'; ctx.fillText(b.name, (A[0]+2*M[0]+B[0])/4, (A[1]+2*M[1]+B[1])/4);
+  }
+  // local contacts
+  for (const [u, w, kind] of u_contacts) {
+    const a = proj(place(lonOf(u), u.depth)), b = proj(place(lonOf(w), w.depth));
+    ctx.strokeStyle = kind === 'interfere' ? 'rgba(220,90,80,.6)' : kind === 'harmonize' ? 'rgba(120,200,160,.6)' : 'rgba(255,255,255,.25)';
+    ctx.beginPath(); ctx.moveTo(a[0],a[1]); ctx.lineTo(b[0],b[1]); ctx.stroke();
+  }
+  // units
+  const ps = units.map(u => { const lon = lonOf(u); return { u, lon, p: proj(place(lon, u.depth)) }; }).sort((a,b) => a.p[2] - b.p[2]);
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  for (const { u, lon, p } of ps) {
+    const a = u.addr || addressAt(u.g, u.off), alpha = (p[2] > 0 ? 1 : .35) * (.35 + .65*u.depth);
+    const size = (9 + Math.min(8, u.energy*1.5)) * p[3];
+    let txt;
+    if (layer === 'letter') txt = u.ch; else if (layer === 'address') txt = `${a.gate}.${a.line}`;
+    else if (layer === 'binary') txt = u.g.bits.join(''); else txt = u.dim[0];
+    ctx.globalAlpha = alpha; ctx.fillStyle = colorOf(lon, a);
+    ctx.font = `${u.depth > .6 ? 600 : 400} ${size.toFixed(1)}px ui-monospace, monospace`; ctx.fillText(txt, p[0], p[1]);
+    if (u === selected) { ctx.globalAlpha = 1; ctx.strokeStyle = '#c9b46a'; ctx.beginPath(); ctx.arc(p[0], p[1], size, 0, 7); ctx.stroke(); }
+    u._sx = p[0]; u._sy = p[1];
+  }
+  ctx.globalAlpha = 1; ctx.textBaseline = 'alphabetic';
+}
+function ui() {
+  document.getElementById('stats').textContent = `t ${tick} · ${units.length} units · ${bonds.size} channels open · contacts ${u_contacts.length}`;
+  if (logDirty) { document.getElementById('log').innerHTML = `<div class="k">observer — counts: ${Object.entries(counts).map(([k,v]) => `${k} ${v}`).join(' · ')}</div>` + logLines.join('<br>'); logDirty = false; }
+  if (selected) {
+    const u = selected, a = u.addr || addressAt(u.g, u.off), line = u.g.lines[a.line];
+    const myBonds = [...bonds.values()].filter(b => b.a === u || b.b === u).map(b => b.name);
+    document.getElementById('inspect').innerHTML =
+      `<b>“${u.ch}”</b> · ${u.dim} · gate ${u.g.n} ${u.g.name} (${u.g.title})<br>` +
+      `address ${a.gate}.${a.line} color ${a.color} tone ${a.tone} · ${u.g.upper}/${u.g.lower} · ${u.g.bits.join('')}<br>` +
+      `line theme: <span class="k">${line.theme}</span><br>` +
+      `depth ${u.depth.toFixed(2)} (${u.depth > .6 ? 'expressed' : 'latent'}) · energy ${u.energy.toFixed(2)}` +
+      (myBonds.length ? `<br>holding: ${myBonds.join(', ')}` : '') +
+      `<br>channels from this gate: ${u.g.channels.map(c => `${c.name} ↔ ${c.partner}`).join(', ')}`;
+  }
+}
+function loop() { if (running) { step(); step(); } if (spin) rotY += .0025; draw(); ui(); requestAnimationFrame(loop); }
+
+// ---------- input ----------
+const ptrs = new Map(); let dragged = 0, pinch0 = 0, zoom0 = 1;
+cv.addEventListener('pointerdown', e => { cv.setPointerCapture(e.pointerId); ptrs.set(e.pointerId, [e.clientX, e.clientY]); dragged = 0;
+  if (ptrs.size === 2) { const [a,b] = [...ptrs.values()]; pinch0 = Math.hypot(a[0]-b[0], a[1]-b[1]); zoom0 = zoom; } });
+cv.addEventListener('pointermove', e => { if (!ptrs.has(e.pointerId)) return; const [px,py] = ptrs.get(e.pointerId);
+  if (ptrs.size === 2) { ptrs.set(e.pointerId, [e.clientX, e.clientY]); const [a,b] = [...ptrs.values()]; zoom = Math.max(.5, Math.min(4, zoom0 * Math.hypot(a[0]-b[0], a[1]-b[1]) / pinch0)); dragged = 99; return; }
+  const dx = e.clientX - px, dy = e.clientY - py; dragged += Math.abs(dx) + Math.abs(dy);
+  rotY += dx * .008; rotX = Math.max(-1.5, Math.min(1.5, rotX + dy * .008)); ptrs.set(e.pointerId, [e.clientX, e.clientY]); });
+cv.addEventListener('pointerup', e => { ptrs.delete(e.pointerId); if (dragged < 6) {
+  let best = null, bd = 28; for (const u of units) { const d = Math.hypot(u._sx - e.clientX, u._sy - e.clientY); if (d < bd) { bd = d; best = u; } }
+  selected = best; if (!best) document.getElementById('inspect').innerHTML = ''; } });
+cv.addEventListener('wheel', e => { zoom = Math.max(.5, Math.min(4, zoom * (e.deltaY < 0 ? 1.1 : .9))); e.preventDefault(); }, { passive: false });
+const tog = (id, get, set, on, off) => { const b = document.getElementById(id); b.onclick = () => { set(!get()); b.classList.toggle('on', get()); if (on) b.textContent = get() ? on : off; }; };
+tog('play', () => running, v => running = v, 'Pause', 'Play');
+tog('spin', () => spin, v => spin = v);
+document.getElementById('layer').onchange = e => layer = e.target.value;
+document.getElementById('reset').onclick = () => { selected = null; document.getElementById('inspect').innerHTML = ''; seed((Math.random()*2**32)>>>0); };
+
+seed(64);
+if (location.hash === '#test') { for (let i = 0; i < 2000; i++) step(); window.__result = { tick, units: units.length, bonds: bonds.size, counts }; }
+loop();
+</script>
+</body>
+</html>

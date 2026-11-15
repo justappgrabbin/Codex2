@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>Swarm on the State Space — small clean version</title>
+<style>
+  :root { color-scheme: dark; --bg:#0b0c10; --fg:#e8e6df; --dim:#8a8778; --line:#2a2c33; --acc:#c9b46a; }
+  * { box-sizing: border-box; }
+  html, body { margin:0; height:100%; background:var(--bg); color:var(--fg); font:13px/1.4 system-ui, sans-serif; overflow:hidden; }
+  canvas { position:fixed; inset:0; width:100%; height:100%; touch-action:none; }
+  #bar { position:fixed; left:8px; right:8px; top:8px; display:flex; flex-wrap:wrap; gap:6px; align-items:center; pointer-events:none; }
+  #bar > * { pointer-events:auto; }
+  button, select { background:#16181e; color:var(--fg); border:1px solid var(--line); border-radius:8px; padding:6px 10px; font:inherit; }
+  button.on { border-color:var(--acc); color:var(--acc); }
+  #stats { color:var(--dim); font-variant-numeric:tabular-nums; }
+  #panel { position:fixed; left:8px; right:8px; bottom:8px; max-height:38vh; display:flex; flex-direction:column; gap:6px; pointer-events:none; }
+  #panel > div { pointer-events:auto; background:rgba(16,17,22,.88); border:1px solid var(--line); border-radius:10px; padding:8px 10px; }
+  #inspect:empty, #log:empty { display:none; }
+  #log { overflow:auto; font:11px/1.45 ui-monospace, monospace; color:var(--dim); max-height:20vh; }
+  #log b { color:var(--fg); font-weight:500; }
+  .k { color:var(--acc); }
+  @media (min-width: 900px) { #panel { left:auto; width:380px; top:56px; bottom:8px; max-height:none; } #log { max-height:none; flex:1; } }
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div id="bar">
+  <button id="play" class="on">Pause</button>
+  <button id="spin" class="on">Spin</button>
+  <select id="layer" title="One layer on at a time">
+    <option value="letter">Layer: letters</option>
+    <option value="address">Layer: gate.line</option>
+    <option value="binary">Layer: binary</option>
+    <option value="dimension">Layer: dimension</option>
+  </select>
+  <button id="reset">Reseed</button>
+  <span id="stats"></span>
+</div>
+<div id="panel"><div id="inspect"></div><div id="log"></div></div>
+<script>
+'use strict';
+const DATA = {"signs":["Aries","Taurus","Gemini","Cancer","Leo","Virgo","Libra","Scorpio","Sagittarius","Capricorn","Aquarius","Pisces"],"gates":[{"n":1,"name":"Self-Expression","center":"G","channels":[{"name":"Inspiration","circuit":"Knowing","partner":8}],"lines":{"1":{"lon":803700,"theme":"Creation is independent of will"},"2":{"lon":807075,"theme":"Love is light"},"3":{"lon":810450,"theme":"The energy to sustain creative work"},"4":{"lon":813825,"theme":"Aloneness as the medium of creativity"},"5":{"lon":817200,"theme":"The energy to attract society"},"6":{"lon":820575,"theme":"Objectivity"}},"start":803700,"upper":"Heaven","lower":"Heaven","title":"The Creative Heaven"},{"n":2,"name":"Higher Knowing","center":"G","channels":[{"name":"The Beat","circuit":"Knowing","partner":14}],"lines":{"1":{"lon":155700,"theme":"Intuition"},"2":{"lon":159075,"theme":"Genius"},"3":{"lon":162450,"theme":"Patience"},"4":{"lon":165825,"theme":"Secretiveness"},"5":{"lon":169200,"theme":"Intelligent application"},"6":{"lon":172575,"theme":"Fixation"}},"start":155700,"upper":"Earth","lower":"Earth","title":"The Receptive Earth"},{"n":3,"name":"Ordering","center":"Sacral","channels":[{"name":"Mutation","circuit":"Knowing","partner":60}],"lines":{"1":{"lon":94950,"theme":"Syntheses"},"2":{"lon":98325,"theme":"Immaturity"},"3":{"lon":101700,"theme":"Survival"},"4":{"lon":105075,"theme":"Charisma"},"5":{"lon":108450,"theme":"Victimization"},"6":{"lon":111825,"theme":"Surrender"}},"start":94950,"upper":"Water","lower":"Thunder","title":"Difficulty at the Beginning"},{"n":4,"name":"Formulization","center":"Ajna","channels":[{"name":"Logic","circuit":"Understanding","partner":63}],"lines":{"1":{"lon":499950,"theme":"Pleasure"},"2":{"lon":503325,"theme":"Acceptance"},"3":{"lon":506700,"theme":"Irresponsibility"},"4":{"lon":510075,"theme":"The liar"},"5":{"lon":513450,"theme":"Seduction"},"6":{"lon":516825,"theme":"Excess"}},"start":499950,"upper":"Mountain","lower":"Water","title":"Youthful Folly"},{"n":5,"name":"Fixed Rhythms","center":"Sacral","channels":[{"name":"Rhythm","circuit":"Understanding","partner":15}],"lines":{"1":{"lon":904950,"theme":"Perseverance"},"2":{"lon":908325,"theme":"Inner peace"},"3":{"lon":911700,"theme":"Compulsiveness"},"4":{"lon":915075,"theme":"The hunter"},"5":{"lon":918450,"theme":"Joy"},"6":{"lon":921825,"theme":"Yielding"}},"start":904950,"upper":"Water","lower":"Heaven","title":"Waiting"},{"n":6,"name":"Friction","center":"SolarPlexus","channels":[{"name":"Mating","circuit":"Defense","partner":59}],"lines":{"1":{"lon":621450,"theme":"Retreat"},"2":{"lon":624825,"theme":"The guerilla"},"3":{"lon":628200,"theme":"Allegiance"},"4":{"lon":631575,"theme":"Triumph"},"5":{"lon":634950,"theme":"Arbitration"},"6":{"lon":638325,"theme":"The peacemaker"}},"start":621450,"upper":"Heaven","lower":"Water","title":"Conflict"},{"n":7,"name":"The Role of the Self","center":"G","channels":[{"name":"The Alpha","circuit":"Understanding","partner":31}],"lines":{"1":{"lon":479700,"theme":"Authoritarian"},"2":{"lon":483075,"theme":"The democrat"},"3":{"lon":486450,"theme":"The anarchist"},"4":{"lon":489825,"theme":"The abdicator"},"5":{"lon":493200,"theme":"The general"},"6":{"lon":496575,"theme":"The administrator"}},"start":479700,"upper":"Earth","lower":"Water","title":"The Army"},{"n":8,"name":"Contribution","center":"Throat","channels":[{"name":"Inspiration","circuit":"Knowing","partner":1}],"lines":{"1":{"lon":196200,"theme":"Honesty"},"2":{"lon":199575,"theme":"Service"},"3":{"lon":202950,"theme":"The phoney"},"4":{"lon":206325,"theme":"Respect"},"5":{"lon":209700,"theme":"Dharma"},"6":{"lon":213075,"theme":"Communion"}},"start":196200,"upper":"Water","lower":"Earth","title":"Holding Together"},{"n":9,"name":"Focus","center":"Sacral","channels":[{"name":"Concentration","circuit":"Understanding","partner":52}],"lines":{"1":{"lon":884700,"theme":"Sensibility"},"2":{"lon":888075,"theme":"Misery loves company"},"3":{"lon":891450,"theme":"The straw that broke the camel's back"},"4":{"lon":894825,"theme":"Dedication"},"5":{"lon":898200,"theme":"Faith"},"6":{"lon":901575,"theme":"Gratitude"}},"start":884700,"upper":"Wind","lower":"Heaven","title":"Small Taming"},{"n":10,"name":"The Behavior of the Self","center":"G","channels":[{"name":"Exploration","circuit":"Centering","partner":34},{"name":"Perfected Form","circuit":"Centering","partner":57},{"name":"Awakening","circuit":"Centering","partner":20}],"lines":{"1":{"lon":965700,"theme":"Modesty"},"2":{"lon":969075,"theme":"The hermit"},"3":{"lon":972450,"theme":"The martyr"},"4":{"lon":975825,"theme":"The opportunist"},"5":{"lon":979200,"theme":"The heretic"},"6":{"lon":982575,"theme":"The role mdoel"}},"start":965700,"upper":"Heaven","lower":"Lake","title":"Treading"},{"n":11,"name":"Ideas","center":"Ajna","channels":[{"name":"Curiosity","circuit":"Sensing","partner":56}],"lines":{"1":{"lon":945450,"theme":"Attunement"},"2":{"lon":948825,"theme":"Rigour"},"3":{"lon":952200,"theme":"The realist"},"4":{"lon":955575,"theme":"The teacher"},"5":{"lon":958950,"theme":"The philanthropist"},"6":{"lon":962325,"theme":"Adaptability"}},"start":945450,"upper":"Earth","lower":"Heaven","title":"Peace"},{"n":12,"name":"Caution","center":"Throat","channels":[{"name":"Openness","circuit":"Knowing","partner":22}],"lines":{"1":{"lon":297450,"theme":"The monk"},"2":{"lon":300825,"theme":"Purification"},"3":{"lon":304200,"theme":"Confession"},"4":{"lon":307575,"theme":"The prophet"},"5":{"lon":310950,"theme":"The pragmatist"},"6":{"lon":314325,"theme":"Metamorphisis"}},"start":297450,"upper":"Heaven","lower":"Earth","title":"Stand Still"},{"n":13,"name":"The Listener","center":"G","channels":[{"name":"The Prodigal","circuit":"Retreat","partner":33}],"lines":{"1":{"lon":1127700,"theme":"Empathy"},"2":{"lon":1131075,"theme":"Bigotry"},"3":{"lon":1134450,"theme":"Pessimism"},"4":{"lon":1137825,"theme":"Fatigue"},"5":{"lon":1141200,"theme":"The saviour"},"6":{"lon":1144575,"theme":"The optimist"}},"start":1127700,"upper":"Heaven","lower":"Fire","title":"Fellowship"},{"n":14,"name":"Power Skills","center":"Sacral","channels":[{"name":"The Beat","circuit":"Knowing","partner":2}],"lines":{"1":{"lon":844200,"theme":"Money isn't everything"},"2":{"lon":847575,"theme":"Management"},"3":{"lon":850950,"theme":"Service"},"4":{"lon":854325,"theme":"Security"},"5":{"lon":857700,"theme":"Arrogance"},"6":{"lon":861075,"theme":"Humility"}},"start":844200,"upper":"Fire","lower":"Heaven","title":"Great Possession"},{"n":15,"name":"Extremes","center":"G","channels":[{"name":"Rhythm","circuit":"Understanding","partner":5}],"lines":{"1":{"lon":317700,"theme":"Duty"},"2":{"lon":321075,"theme":"Influence"},"3":{"lon":324450,"theme":"Ego inflation"},"4":{"lon":329445,"theme":"The wallflower"},"5":{"lon":331200,"theme":"Sensitivity"},"6":{"lon":334575,"theme":"Self-defense"}},"start":317700,"upper":"Earth","lower":"Mountain","title":"Modesty"},{"n":16,"name":"Skills","center":"Throat","channels":[{"name":"The Wave Length","circuit":"Understanding","partner":48}],"lines":{"1":{"lon":236700,"theme":"Delusion"},"2":{"lon":240075,"theme":"The cynic"},"3":{"lon":243450,"theme":"Independence"},"4":{"lon":246825,"theme":"The leader"},"5":{"lon":250200,"theme":"The grinch"},"6":{"lon":253575,"theme":"Gullibility"}},"start":236700,"upper":"Thunder","lower":"Earth","title":"Enthusiasm"},{"n":17,"name":"Opinions","center":"Ajna","channels":[{"name":"Acceptance","circuit":"Understanding","partner":62}],"lines":{"1":{"lon":13950,"theme":"Openness"},"2":{"lon":17325,"theme":"Discrimination"},"3":{"lon":20700,"theme":"Understanding"},"4":{"lon":24075,"theme":"The personnel manager"},"5":{"lon":27450,"theme":"No human is an island"},"6":{"lon":30825,"theme":"The bodhisattva"}},"start":13950,"upper":"Lake","lower":"Thunder","title":"Following"},{"n":18,"name":"Correction","center":"Spleen","channels":[{"name":"Judgement","circuit":"Understanding","partner":58}],"lines":{"1":{"lon":661950,"theme":"Conservatism"},"2":{"lon":665325,"theme":"Terminal disease"},"3":{"lon":668700,"theme":"The zealot"},"4":{"lon":672075,"theme":"The incompetent"},"5":{"lon":675450,"theme":"Therapy"},"6":{"lon":678825,"theme":"The perfected form"}},"start":661950,"upper":"Mountain","lower":"Wind","title":"Work on the Decayed"},{"n":19,"name":"Wanting","center":"Root","channels":[{"name":"Synthesis","circuit":"Ego","partner":49}],"lines":{"1":{"lon":1107450,"theme":"Interdependence"},"2":{"lon":1110825,"theme":"Service"},"3":{"lon":1114200,"theme":"Dedication"},"4":{"lon":1117575,"theme":"The team player"},"5":{"lon":1120950,"theme":"Sacrifice"},"6":{"lon":1124325,"theme":"The recluse"}},"start":1107450,"upper":"Earth","lower":"Lake","title":"Approach"},{"n":20,"name":"The Now","center":"Throat","channels":[{"name":"Awakening","circuit":"Knowing","partner":10},{"name":"The Brain Wave","circuit":"Knowing","partner":57},{"name":"Charisma","circuit":"Knowing","partner":34}],"lines":{"1":{"lon":216450,"theme":"Superficiality"},"2":{"lon":219825,"theme":"The dogmatist"},"3":{"lon":223200,"theme":"Self-awareness"},"4":{"lon":226575,"theme":"Application"},"5":{"lon":229950,"theme":"Realism"},"6":{"lon":233295,"theme":"Wisdom"}},"start":216450,"upper":"Wind","lower":"Earth","title":"Contemplation"},{"n":21,"name":"The Hunter/Huntress","center":"Heart","channels":[{"name":"The Money Line","circuit":"Ego","partner":45}],"lines":{"1":{"lon":34200,"theme":"Warning"},"2":{"lon":37575,"theme":"Might is right"},"3":{"lon":40950,"theme":"Powerlessness"},"4":{"lon":44325,"theme":"Strategy"},"5":{"lon":47700,"theme":"Objectivity"},"6":{"lon":51075,"theme":"Chaos"}},"start":34200,"upper":"Fire","lower":"Thunder","title":"Biting Through"},{"n":22,"name":"Openness","center":"SolarPlexus","channels":[{"name":"Openness","circuit":"Knowing","partner":12}],"lines":{"1":{"lon":1249200,"theme":"Second class ticket"},"2":{"lon":1252575,"theme":"Charm school"},"3":{"lon":1255950,"theme":"The enchanter"},"4":{"lon":1259325,"theme":"Sensitivity"},"5":{"lon":1262700,"theme":"Directness"},"6":{"lon":1266075,"theme":"Maturity"}},"start":1249200,"upper":"Mountain","lower":"Fire","title":"Grace"},{"n":23,"name":"Assimilation","center":"Throat","channels":[{"name":"Structuring","circuit":"Knowing","partner":43}],"lines":{"1":{"lon":175950,"theme":"Proselytization"},"2":{"lon":179325,"theme":"Self-defense"},"3":{"lon":182700,"theme":"Individuality"},"4":{"lon":186075,"theme":"Fragmentation"},"5":{"lon":189450,"theme":"Assimilation"},"6":{"lon":192825,"theme":"Fusion"}},"start":175950,"upper":"Mountain","lower":"Earth","title":"Splitting Apart"},{"n":24,"name":"Rationalizing","center":"Ajna","channels":[{"name":"Awareness","circuit":"Knowing","partner":61}],"lines":{"1":{"lon":135450,"theme":"The sin of omission"},"2":{"lon":138825,"theme":"Recognition"},"3":{"lon":142200,"theme":"The addict"},"4":{"lon":145575,"theme":"The hermit"},"5":{"lon":148950,"theme":"Confession"},"6":{"lon":152325,"theme":"The gift horse"}},"start":135450,"upper":"Earth","lower":"Thunder","title":"Return"},{"n":25,"name":"The Spirit of the Self","center":"G","channels":[{"name":"Initiation","circuit":"Centering","partner":51}],"lines":{"1":{"lon":1289700,"theme":"Selflessness"},"2":{"lon":1293075,"theme":"The existentialist"},"3":{"lon":450,"theme":"Sensibility"},"4":{"lon":3825,"theme":"Survival"},"5":{"lon":7200,"theme":"Recuperation"},"6":{"lon":10575,"theme":"Ignorance"}},"start":1289700,"upper":"Heaven","lower":"Thunder","title":"Innocence"},{"n":26,"name":"The Egoist","center":"Heart","channels":[{"name":"Surrender","circuit":"Ego","partner":44}],"lines":{"1":{"lon":925200,"theme":"A bird in the hand"},"2":{"lon":928575,"theme":"The lessons of history"},"3":{"lon":931950,"theme":"Influence"},"4":{"lon":935325,"theme":"Censorship"},"5":{"lon":938700,"theme":"Adaptability"},"6":{"lon":942075,"theme":"Authority"}},"start":925200,"upper":"Mountain","lower":"Heaven","title":"Great Taming"},{"n":27,"name":"Caring","center":"Sacral","channels":[{"name":"Preservation","circuit":"Defense","partner":50}],"lines":{"1":{"lon":115200,"theme":"Selfishness"},"2":{"lon":118575,"theme":"Self-sufficiency"},"3":{"lon":121950,"theme":"Greed"},"4":{"lon":125325,"theme":"Generosity"},"5":{"lon":128700,"theme":"The executor"},"6":{"lon":132075,"theme":"Wariness"}},"start":115200,"upper":"Mountain","lower":"Thunder","title":"Mouth Corners"},{"n":28,"name":"The Game Player","center":"Spleen","channels":[{"name":"Struggle","circuit":"Knowing","partner":38}],"lines":{"1":{"lon":763200,"theme":"Preparation"},"2":{"lon":766575,"theme":"Shaking hands with the devil"},"3":{"lon":769950,"theme":"Adventurism"},"4":{"lon":773325,"theme":"Holding on"},"5":{"lon":773100,"theme":"Treachery"},"6":{"lon":780075,"theme":"Blaze of glory"}},"start":763200,"upper":"Lake","lower":"Wind","title":"Great Preponderance"},{"n":29,"name":"Saying Yes","center":"Sacral","channels":[{"name":"Discovery","circuit":"Sensing","partner":46}],"lines":{"1":{"lon":520200,"theme":"The draftee"},"2":{"lon":522975,"theme":"Assessment"},"3":{"lon":526950,"theme":"Evaluation"},"4":{"lon":530325,"theme":"Directness"},"5":{"lon":533700,"theme":"Overreach"},"6":{"lon":537075,"theme":"Confusion"}},"start":520200,"upper":"Water","lower":"Water","title":"The Abysmal Water"},{"n":30,"name":"Recognition of Feelings","center":"SolarPlexus","channels":[{"name":"Recognition","circuit":"Sensing","partner":41}],"lines":{"1":{"lon":1168200,"theme":"Composure"},"2":{"lon":1171575,"theme":"Pragmatism"},"3":{"lon":1174950,"theme":"Resignation"},"4":{"lon":1178325,"theme":"Burnout"},"5":{"lon":1181700,"theme":"Irony"},"6":{"lon":1185075,"theme":"Enforcement"}},"start":1168200,"upper":"Fire","lower":"Fire","title":"The Clinging Fire"},{"n":31,"name":"Leading","center":"Throat","channels":[{"name":"The Alpha","circuit":"Understanding","partner":7}],"lines":{"1":{"lon":439200,"theme":"Manifestation"},"2":{"lon":442575,"theme":"Arrogance"},"3":{"lon":445920,"theme":"Selectivity"},"4":{"lon":449325,"theme":"Intent"},"5":{"lon":452700,"theme":"Self-righteousness"},"6":{"lon":456075,"theme":"Application"}},"start":439200,"upper":"Lake","lower":"Mountain","title":"Influence"},{"n":32,"name":"Continuity","center":"Spleen","channels":[{"name":"Transformation","circuit":"Ego","partner":54}],"lines":{"1":{"lon":722700,"theme":"Conservation"},"2":{"lon":726075,"theme":"Restraint"},"3":{"lon":729450,"theme":"Lack on continuity"},"4":{"lon":732825,"theme":"Right is might"},"5":{"lon":736200,"theme":"Flexibility"},"6":{"lon":739575,"theme":"Tranquility"}},"start":722700,"upper":"Thunder","lower":"Wind","title":"Duration"},{"n":33,"name":"Privacy","center":"Throat","channels":[{"name":"The Prodigal","circuit":"Sensing","partner":13}],"lines":{"1":{"lon":459450,"theme":"Avoidance"},"2":{"lon":444825,"theme":"Surrender"},"3":{"lon":466200,"theme":"Spirit"},"4":{"lon":469575,"theme":"Dignity"},"5":{"lon":472950,"theme":"Timing"},"6":{"lon":476325,"theme":"Disassociation"}},"start":459450,"upper":"Heaven","lower":"Mountain","title":"Retreat"},{"n":34,"name":"Power","center":"Sacral","channels":[{"name":"Power","circuit":"Centering","partner":57},{"name":"Charisma","circuit":"Centering","partner":20},{"name":"Exploration","circuit":"Centering","partner":10}],"lines":{"1":{"lon":864450,"theme":"The bully"},"2":{"lon":867825,"theme":"Momentum"},"3":{"lon":871200,"theme":"Machismo"},"4":{"lon":874575,"theme":"Triumph"},"5":{"lon":877950,"theme":"Annihilation"},"6":{"lon":878925,"theme":"Common sense"}},"start":864450,"upper":"Thunder","lower":"Heaven","title":"Great Power"},{"n":35,"name":"Change","center":"Throat","channels":[{"name":"Transitoriness","circuit":"Sensing","partner":36}],"lines":{"1":{"lon":256950,"theme":"Humility"},"2":{"lon":260325,"theme":"Creative block"},"3":{"lon":263700,"theme":"Collaboration"},"4":{"lon":267075,"theme":"Hunger"},"5":{"lon":270450,"theme":"Altruism"},"6":{"lon":273825,"theme":"Rectification"}},"start":256950,"upper":"Fire","lower":"Earth","title":"Progress"},{"n":36,"name":"Crisis","center":"SolarPlexus","channels":[{"name":"Transitoriness","circuit":"Sensing","partner":35}],"lines":{"1":{"lon":1269450,"theme":"Resistance"},"2":{"lon":1272825,"theme":"Support"},"3":{"lon":1276200,"theme":"Transition"},"4":{"lon":1279575,"theme":"Espionage"},"5":{"lon":1282950,"theme":"The underground"},"6":{"lon":1286325,"theme":"Justice"}},"start":1269450,"upper":"Earth","lower":"Fire","title":"Darkening of the Light"},{"n":37,"name":"Friendship","center":"SolarPlexus","channels":[{"name":"Community","circuit":"Ego","partner":40}],"lines":{"1":{"lon":1208700,"theme":"The mother/father"},"2":{"lon":1212075,"theme":"Responsibility"},"3":{"lon":1215450,"theme":"Evenhandedness"},"4":{"lon":1218825,"theme":"Leadership by example"},"5":{"lon":1222200,"theme":"Love"},"6":{"lon":1225575,"theme":"Purpose"}},"start":1208700,"upper":"Wind","lower":"Fire","title":"The Family"},{"n":38,"name":"The Fighter","center":"Root","channels":[{"name":"Struggle","circuit":"Knowing","partner":28}],"lines":{"1":{"lon":1006200,"theme":"Qualification"},"2":{"lon":1009575,"theme":"Politeness"},"3":{"lon":1012950,"theme":"Alliance"},"4":{"lon":1016325,"theme":"Investigation"},"5":{"lon":1019700,"theme":"Alienation"},"6":{"lon":1023075,"theme":"Misunderstanding"}},"start":1006200,"upper":"Fire","lower":"Lake","title":"Opposition"},{"n":39,"name":"The Provocateur","center":"Root","channels":[{"name":"Emoting","circuit":"Knowing","partner":55}],"lines":{"1":{"lon":358200,"theme":"Disengagement"},"2":{"lon":361575,"theme":"Confrontation"},"3":{"lon":364950,"theme":"Responsibility"},"4":{"lon":368325,"theme":"Temperance"},"5":{"lon":371700,"theme":"Single-mindedness"},"6":{"lon":375075,"theme":"The troubleshooter"}},"start":358200,"upper":"Water","lower":"Mountain","title":"Obstruction"},{"n":40,"name":"Aloneness","center":"Heart","channels":[{"name":"Community","circuit":"Ego","partner":37}],"lines":{"1":{"lon":560700,"theme":"Recuperation"},"2":{"lon":564075,"theme":"Resoluteness"},"3":{"lon":567450,"theme":"Humility"},"4":{"lon":570825,"theme":"Organization"},"5":{"lon":574200,"theme":"Rigidity"},"6":{"lon":577575,"theme":"Decapitation"}},"start":560700,"upper":"Thunder","lower":"Water","title":"Deliverance"},{"n":41,"name":"Contraction","center":"Root","channels":[{"name":"Recognition","circuit":"Sensing","partner":30}],"lines":{"1":{"lon":1087200,"theme":"Reasonableness"},"2":{"lon":1090575,"theme":"Caution"},"3":{"lon":1093950,"theme":"Efficiency"},"4":{"lon":1097325,"theme":"Correction"},"5":{"lon":1100700,"theme":"Authorization"},"6":{"lon":1104075,"theme":"Contagion"}},"start":1087200,"upper":"Mountain","lower":"Lake","title":"Decrease"},{"n":42,"name":"Growth","center":"Sacral","channels":[{"name":"Maturation","circuit":"Sensing","partner":53}],"lines":{"1":{"lon":74700,"theme":"Diversification"},"2":{"lon":78075,"theme":"Identification"},"3":{"lon":81450,"theme":"Trial and error"},"4":{"lon":84825,"theme":"The middle man"},"5":{"lon":88200,"theme":"Self-actualization"},"6":{"lon":90975,"theme":"Nurturing"}},"start":74700,"upper":"Wind","lower":"Thunder","title":"Increase"},{"n":43,"name":"Insight","center":"Ajna","channels":[{"name":"Structuring","circuit":"Knowing","partner":23}],"lines":{"1":{"lon":823950,"theme":"Patience"},"2":{"lon":827325,"theme":"Dedication"},"3":{"lon":830700,"theme":"Expediency"},"4":{"lon":834075,"theme":"The one-track mind"},"5":{"lon":837450,"theme":"Progression"},"6":{"lon":840825,"theme":"Breakthrough"}},"start":823950,"upper":"Lake","lower":"Heaven","title":"Breakthrough"},{"n":44,"name":"Alertness","center":"Spleen","channels":[{"name":"Surrender","circuit":"Ego","partner":26}],"lines":{"1":{"lon":783450,"theme":"Conditions"},"2":{"lon":786825,"theme":"Management"},"3":{"lon":790200,"theme":"Interference"},"4":{"lon":793575,"theme":"Honesty"},"5":{"lon":796950,"theme":"Manipulation"},"6":{"lon":800325,"theme":"Aloofness"}},"start":783450,"upper":"Heaven","lower":"Wind","title":"Coming to Meet"},{"n":45,"name":"The Gatherer","center":"Throat","channels":[{"name":"The Money Line","circuit":"Ego","partner":21}],"lines":{"1":{"lon":277200,"theme":"Canvassing"},"2":{"lon":280575,"theme":"Consensus"},"3":{"lon":283950,"theme":"Exclusion"},"4":{"lon":287325,"theme":"Direction"},"5":{"lon":290700,"theme":"Leadership"},"6":{"lon":294075,"theme":"Reconsideration"}},"start":277200,"upper":"Lake","lower":"Earth","title":"Gathering Together"},{"n":46,"name":"The Determination of the Self","center":"G","channels":[{"name":"Discovery","circuit":"Sensing","partner":29}],"lines":{"1":{"lon":641700,"theme":"Being discovered"},"2":{"lon":645075,"theme":"The prima donna"},"3":{"lon":648450,"theme":"Projection"},"4":{"lon":651825,"theme":"Impact"},"5":{"lon":655200,"theme":"Pacing"},"6":{"lon":658575,"theme":"Integrity"}},"start":641700,"upper":"Earth","lower":"Wind","title":"Pushing Upward"},{"n":47,"name":"Realizing","center":"Ajna","channels":[{"name":"Abstraction","circuit":"Sensing","partner":64}],"lines":{"1":{"lon":601200,"theme":"Taking stock"},"2":{"lon":604575,"theme":"Ambition"},"3":{"lon":607950,"theme":"Self-oppression"},"4":{"lon":611295,"theme":"Repression"},"5":{"lon":614700,"theme":"The saint"},"6":{"lon":618075,"theme":"Futility"}},"start":601200,"upper":"Lake","lower":"Water","title":"Oppression"},{"n":48,"name":"Depth","center":"Spleen","channels":[{"name":"The Wave Length","circuit":"Understanding","partner":16}],"lines":{"1":{"lon":682200,"theme":"Insignificance"},"2":{"lon":685575,"theme":"Degeneracy"},"3":{"lon":688950,"theme":"Incommunicado"},"4":{"lon":692325,"theme":"Restructuring"},"5":{"lon":695700,"theme":"Action"},"6":{"lon":699075,"theme":"Self-fulfillment"}},"start":682200,"upper":"Water","lower":"Wind","title":"The Well"},{"n":49,"name":"Principles","center":"SolarPlexus","channels":[{"name":"Synthesis","circuit":"Ego","partner":19}],"lines":{"1":{"lon":1147950,"theme":"The law of necessity"},"2":{"lon":1151325,"theme":"The last resort"},"3":{"lon":1154700,"theme":"Popular discontent"},"4":{"lon":1158075,"theme":"Platform"},"5":{"lon":1161450,"theme":"Organization"},"6":{"lon":1164825,"theme":"Attraction"}},"start":1147950,"upper":"Lake","lower":"Fire","title":"Revolution"},{"n":50,"name":"Values","center":"Spleen","channels":[{"name":"Preservation","circuit":"Defense","partner":27}],"lines":{"1":{"lon":742950,"theme":"The immigrant"},"2":{"lon":746325,"theme":"Determination"},"3":{"lon":749700,"theme":"Adaptability"},"4":{"lon":753075,"theme":"Corruption"},"5":{"lon":756450,"theme":"Consistency"},"6":{"lon":759825,"theme":"Leadership"}},"start":742950,"upper":"Fire","lower":"Wind","title":"The Cauldron"},{"n":51,"name":"Shock","center":"Heart","channels":[{"name":"Initiation","circuit":"Centering","partner":25}],"lines":{"1":{"lon":54450,"theme":"Reference"},"2":{"lon":57825,"theme":"Withdrawl"},"3":{"lon":61200,"theme":"Adaptation"},"4":{"lon":64575,"theme":"Limitation"},"5":{"lon":67950,"theme":"Symmetry"},"6":{"lon":71325,"theme":"Separation"}},"start":54450,"upper":"Thunder","lower":"Thunder","title":"The Arousing Thunder"},{"n":52,"name":"Inaction","center":"Root","channels":[{"name":"Concentration","circuit":"Understanding","partner":9}],"lines":{"1":{"lon":337950,"theme":"Think before you speak"},"2":{"lon":341325,"theme":"Concern"},"3":{"lon":344700,"theme":"Controls"},"4":{"lon":348075,"theme":"Self-discipline"},"5":{"lon":351450,"theme":"Explanation"},"6":{"lon":354825,"theme":"Peacefulness"}},"start":337950,"upper":"Mountain","lower":"Mountain","title":"The Keeping Still Mountain"},{"n":53,"name":"Beginnings","center":"Root","channels":[{"name":"Maturation","circuit":"Sensing","partner":42}],"lines":{"1":{"lon":378450,"theme":"Accumulation"},"2":{"lon":381825,"theme":"Momentum"},"3":{"lon":385200,"theme":"Practicality"},"4":{"lon":388575,"theme":"Assuredness"},"5":{"lon":391950,"theme":"Assertion"},"6":{"lon":395325,"theme":"Phasing"}},"start":378450,"upper":"Wind","lower":"Mountain","title":"Development"},{"n":54,"name":"Ambition","center":"Root","channels":[{"name":"Transformation","circuit":"Ego","partner":32}],"lines":{"1":{"lon":1026450,"theme":"Influence"},"2":{"lon":1029825,"theme":"Discretion"},"3":{"lon":1033200,"theme":"Covert interaction"},"4":{"lon":1036575,"theme":"Enlightenment/endarkenment"},"5":{"lon":1039950,"theme":"Magnanimity"},"6":{"lon":1043325,"theme":"Selectivity"}},"start":1026450,"upper":"Thunder","lower":"Lake","title":"The Marrying Maiden"},{"n":55,"name":"Spirit","center":"SolarPlexus","channels":[{"name":"Emoting","circuit":"Knowing","partner":39}],"lines":{"1":{"lon":1188450,"theme":"Co-operation"},"2":{"lon":1191825,"theme":"Distrust"},"3":{"lon":1195200,"theme":"Innocence"},"4":{"lon":1198575,"theme":"Assimilation"},"5":{"lon":1201950,"theme":"Growth"},"6":{"lon":1205325,"theme":"Selfishness"}},"start":1188450,"upper":"Thunder","lower":"Fire","title":"Abundance"},{"n":56,"name":"Stimulation","center":"Throat","channels":[{"name":"Curiosity","circuit":"Sensing","partner":11}],"lines":{"1":{"lon":418950,"theme":"Quality"},"2":{"lon":422325,"theme":"Linkage"},"3":{"lon":425700,"theme":"Alienation"},"4":{"lon":429075,"theme":"Expediency"},"5":{"lon":432450,"theme":"Attracting attention"},"6":{"lon":435825,"theme":"Caution"}},"start":418950,"upper":"Fire","lower":"Mountain","title":"The Wanderer"},{"n":57,"name":"Intuitive Insight","center":"Spleen","channels":[{"name":"The Brain Wave","circuit":"Knowing","partner":20},{"name":"Power","circuit":"Knowing","partner":34},{"name":"Perfected Form","circuit":"Knowing","partner":10}],"lines":{"1":{"lon":702450,"theme":"Confusion"},"2":{"lon":705825,"theme":"Cleansing"},"3":{"lon":709200,"theme":"Acuteness"},"4":{"lon":712575,"theme":"The directory"},"5":{"lon":715950,"theme":"Progression"},"6":{"lon":719325,"theme":"Utilization"}},"start":702450,"upper":"Wind","lower":"Wind","title":"The Gentle Wind"},{"n":58,"name":"Aliveness","center":"Root","channels":[{"name":"Judgement","circuit":"Understanding","partner":18}],"lines":{"1":{"lon":985950,"theme":"Love of life"},"2":{"lon":989325,"theme":"Perversion"},"3":{"lon":992700,"theme":"Electricity"},"4":{"lon":996075,"theme":"Focusing"},"5":{"lon":999450,"theme":"Defense"},"6":{"lon":1002825,"theme":"Carried away"}},"start":985950,"upper":"Lake","lower":"Lake","title":"The Joyous Lake"},{"n":59,"name":"Sexuality","center":"Sacral","channels":[{"name":"Mating","circuit":"Defense","partner":6}],"lines":{"1":{"lon":540450,"theme":"The preemptive strike"},"2":{"lon":543825,"theme":"Shyness"},"3":{"lon":547200,"theme":"Openness"},"4":{"lon":550575,"theme":"Brotherhood/sisterhood"},"5":{"lon":553950,"theme":"The femme fatale or Casanove"},"6":{"lon":557325,"theme":"The one night stand"}},"start":540450,"upper":"Wind","lower":"Water","title":"Dispersion"},{"n":60,"name":"Acceptance","center":"Root","channels":[{"name":"Mutation","circuit":"Knowing","partner":3}],"lines":{"1":{"lon":1066950,"theme":"Acceptance"},"2":{"lon":1070325,"theme":"Decisiveness"},"3":{"lon":1073700,"theme":"Conservatism"},"4":{"lon":1077075,"theme":"Resourcefulness"},"5":{"lon":1080450,"theme":"Leadership"},"6":{"lon":1083825,"theme":"Rigidity"}},"start":1066950,"upper":"Water","lower":"Lake","title":"Limitation"},{"n":61,"name":"Mystery","center":"Head","channels":[{"name":"Awareness","circuit":"Knowing","partner":24}],"lines":{"1":{"lon":1046700,"theme":"Occult knowledge"},"2":{"lon":1050075,"theme":"Natual brilliance"},"3":{"lon":1053450,"theme":"Interdependence"},"4":{"lon":1056825,"theme":"Research"},"5":{"lon":1060200,"theme":"Influence"},"6":{"lon":1063575,"theme":"Appeal"}},"start":1046700,"upper":"Wind","lower":"Lake","title":"Inner Truth"},{"n":62,"name":"Detail","center":"Throat","channels":[{"name":"Acceptance","circuit":"Understanding","partner":17}],"lines":{"1":{"lon":398700,"theme":"Routine"},"2":{"lon":402075,"theme":"Restraint"},"3":{"lon":405450,"theme":"Discovery"},"4":{"lon":408825,"theme":"Asceticism"},"5":{"lon":412200,"theme":"Metamorphisis"},"6":{"lon":415575,"theme":"Self-discipline"}},"start":398700,"upper":"Thunder","lower":"Mountain","title":"Small Preponderance"},{"n":63,"name":"Doubt","center":"Head","channels":[{"name":"Logic","circuit":"Understanding","partner":4}],"lines":{"1":{"lon":1228950,"theme":"Composure"},"2":{"lon":1232325,"theme":"Structuring"},"3":{"lon":1235700,"theme":"Continuance"},"4":{"lon":1239075,"theme":"Memory"},"5":{"lon":1242450,"theme":"Affirmation"},"6":{"lon":1245825,"theme":"Nostalgia"}},"start":1228950,"upper":"Water","lower":"Fire","title":"After Completion"},{"n":64,"name":"Confusion","center":"Head","channels":[{"name":"Abstraction","circuit":"Sensing","partner":47}],"lines":{"1":{"lon":580950,"theme":"Conditions"},"2":{"lon":584325,"theme":"Qualification"},"3":{"lon":587700,"theme":"Overextension"},"4":{"lon":591075,"theme":"Conviction"},"5":{"lon":594450,"theme":"Promise"},"6":{"lon":597825,"theme":"Victory"}},"start":580950,"upper":"Fire","lower":"Water","title":"Before Completion"}]};
+
+// ---------- constants (same wheel math as pure-synthia/state-space/constants.js) ----------
+const WHEEL = 1296000, GATE = 20250, LINE = 3375, COLOR = 562.5, TONE = 93.75, SIGN = 108000;
+const DIMENSIONS = ['Movement','Evolution','Being','Design','Space'];
+const TRI_BITS = { Earth:[0,0,0], Thunder:[1,0,0], Water:[0,1,0], Lake:[1,1,0], Mountain:[0,0,1], Fire:[1,0,1], Wind:[0,1,1], Heaven:[1,1,1] };
+function mulberry32(seed){ let a=seed>>>0; return ()=>{ a|=0; a=(a+0x6D2B79F5)|0; let t=Math.imul(a^(a>>>15),1|a); t=(t+Math.imul(t^(t>>>7),61|t))^t; return ((t^(t>>>14))>>>0)/4294967296; }; }
+
+const GATES = {}; for (const g of DATA.gates) { g.bits = [...TRI_BITS[g.lower], ...TRI_BITS[g.upper]]; GATES[g.n] = g; }
+
+// ---------- the state space: a dodecahedron, 12 faces = 12 signs, 5 corners = 5 dimensions ----------
+const PHI = (1 + Math.sqrt(5)) / 2;
+const sub=(a,b)=>[a[0]-b[0],a[1]-b[1],a[2]-b[2]], add=(a,b)=>[a[0]+b[0],a[1]+b[1],a[2]+b[2]], mul=(a,s)=>[a[0]*s,a[1]*s,a[2]*s];
+const dot=(a,b)=>a[0]*b[0]+a[1]*b[1]+a[2]*b[2], cross=(a,b)=>[a[1]*b[2]-a[2]*b[1],a[2]*b[0]-a[0]*b[2],a[0]*b[1]-a[1]*b[0]];
+const norm=(a)=>mul(a,1/Math.hypot(...a)), lerp=(a,b,t)=>add(a,mul(sub(b,a),t));
+
+const VERTS = [];
+for (const x of [-1,1]) for (const y of [-1,1]) for (const z of [-1,1]) VERTS.push([x,y,z]);
+for (const a of [-1,1]) for (const b of [-1,1]) { VERTS.push([0,a/PHI,b*PHI]); VERTS.push([a/PHI,b*PHI,0]); VERTS.push([a*PHI,0,b/PHI]); }
+const NORMALS = [];
+for (const a of [-1,1]) for (const b of [-1,1]) { NORMALS.push(norm([a,0,b*PHI])); NORMALS.push(norm([a*PHI,b,0])); NORMALS.push(norm([0,a*PHI,b])); }
+const UP = norm([1,0,PHI]);
+const REF = norm(cross(UP, [1,0,0]));
+const azimuth = (n) => { const p = sub(n, mul(UP, dot(n, UP))); return Math.atan2(dot(cross(REF, p), UP), dot(REF, p)); };
+const level = (n) => Math.round(dot(n, UP) * 2); // 2 top, 1 upper ring, -1 lower ring, -2 bottom
+const ordered = [...NORMALS].sort((a,b) => (level(b)-level(a)) || (azimuth(a)-azimuth(b)));
+const FACES = ordered.map((n, i) => {
+  const best = Math.max(...VERTS.map(v => dot(v, n)));
+  const vs = VERTS.filter(v => Math.abs(dot(v, n) - best) < 1e-6);
+  const c = mul(vs.reduce(add, [0,0,0]), 1/5);
+  const e1 = norm(sub(vs[0], c)), e2 = cross(n, e1);
+  vs.sort((a,b) => Math.atan2(dot(sub(a,c),e2), dot(sub(a,c),e1)) - Math.atan2(dot(sub(b,c),e2), dot(sub(b,c),e1)));
+  return { sign: DATA.signs[i], n, c, vs };
+});
+const EDGES = []; { const L = 2/PHI; for (let i=0;i<VERTS.length;i++) for (let j=i+1;j<VERTS.length;j++) if (Math.abs(Math.hypot(...sub(VERTS[i],VERTS[j]))-L)<1e-6) EDGES.push([i,j]); }
+
+// wheel position + depth -> point on the solid. Angle around the face = position inside the sign,
+// so corner k of every face is DIMENSIONS[k]; depth 0 = face centre (latent), 1 = face edge (expressed).
+function place(lon, depth) {
+  lon = ((lon % WHEEL) + WHEEL) % WHEEL;
+  const f = FACES[Math.floor(lon / SIGN)], t = (lon % SIGN) / SIGN * 5, k = Math.floor(t), fr = t - k;
+  const rim = lerp(f.vs[k], f.vs[(k+1)%5], fr);
+  return lerp(f.c, rim, 0.12 + 0.82 * depth);
+}
+
+// ---------- address of a wheel position (gate > line > color > tone), read from the data ----------
+function addressAt(g, off) { // off = arc-seconds inside this gate's span
+  const line = Math.min(6, Math.floor(off / LINE) + 1), inLine = off - (line-1)*LINE;
+  return { gate: g.n, line, color: Math.min(6, Math.floor(inLine / COLOR) + 1), tone: Math.min(6, Math.floor((inLine % COLOR) / TONE) + 1) };
+}
+// visual syntax from pure-synthia/state-space/colors.js: hue = wheel, sat = 30+line*10, light = 25+tone*7
+const colorOf = (lon, a) => `hsl(${(lon/WHEEL*360).toFixed(1)} ${30+a.line*10}% ${25+a.tone*7}%)`;
+
+// ---------- the swarm ----------
+// Units are letters. Each gate releases the first three letters of its own name; a unit can only
+// move inside its own gate's 20250" span. Dimension per letter = DIMENSIONS[alphabetIndex mod 5]
+// (the rule in pure-synthia/state-space/letters.js).
+// Motion per dimension (user's stated rules): Movement + Being move vertically (depth),
+// Evolution sideways at ~45deg, Design zigzags on the diagonal, Space has no stated rule -> free drift.
+const BIAS = {
+  Movement:  (u) => [0, 1],
+  Being:     (u) => [0, 1],
+  Evolution: (u) => [1, 1],
+  Design:    (u) => [1, (Math.floor(u.age / 25) % 2) ? 1 : -1],
+  Space:     (u) => [u.rng() - .5, u.rng() - .5],
+};
+let units = [], tick = 0, rng, bonds = new Map(), counts = {}, logLines = [];
+function seed(s) {
+  rng = mulberry32(s); units = []; tick = 0; bonds = new Map(); counts = { enter:0, cohere:0, harmonize:0, interfere:0, 'channel-open':0, 'channel-close':0 }; logLines = [];
+  for (const g of DATA.gates) {
+    const letters = g.name.toLowerCase().replace(/[^a-z]/g, '').slice(0, 3).split('');
+    letters.forEach((ch, i) => {
+      const dim = DIMENSIONS[(ch.charCodeAt(0) - 97) % 5];
+      const u = { id: units.length, g, ch, dim, off: rng()*GATE, depth: rng(), v:[0,0], energy: 1, age: 0, rng, cell: null, best: null, gid: i };
+      u.best = { off: u.off, depth: u.depth, e: 0 };
+      units.push(u);
+    });
+  }
+  log(`seeded ${units.length} units on ${DATA.gates.length} gates (seed ${s})`);
+}
+const lonOf = (u) => (u.g.start + u.off) % WHEEL;
+
+function step() {
+  tick++;
+  // social best per gate = position of the highest-energy unit of that gate
+  const gbest = {}; for (const u of units) if (!gbest[u.g.n] || u.energy > gbest[u.g.n].energy) gbest[u.g.n] = u;
+  for (const u of units) {
+    u.age++;
+    const b = BIAS[u.dim](u), gb = gbest[u.g.n];
+    const toP = [(u.best.off - u.off)/GATE, u.best.depth - u.depth], toG = [(gb.off - u.off)/GATE, gb.depth - u.depth];
+    for (let k=0;k<2;k++) u.v[k] = .86*u.v[k] + .02*rng()*toP[k] + .008*rng()*toG[k] + .006*b[k] + .004*(rng()-.5);
+    u.off += u.v[0]*GATE*.6; u.depth += u.v[1]*.6;
+    if (u.off < 0) { u.off = -u.off; u.v[0] = -u.v[0]; } if (u.off >= GATE) { u.off = 2*GATE - u.off - 1; u.v[0] = -u.v[0]; }
+    if (u.depth < 0) { u.depth = -u.depth; u.v[1] = -u.v[1]; } if (u.depth > 1) { u.depth = 2 - u.depth; u.v[1] = -u.v[1]; }
+    u.energy *= .995;
+    // self interaction: entering a new line cell, the unit reads that line
+    const a = addressAt(u.g, u.off), key = u.g.n + '.' + a.line;
+    if (key !== u.cell) { u.cell = key; u.addr = a; u.energy += .25; counts.enter++; }
+    if (u.energy > u.best.e) u.best = { off: u.off, depth: u.depth, e: u.energy };
+  }
+  // local contact: real distance on the solid (< 0.14). Latent units sit near their face centre,
+  // so different gates in the same sign meet there; expressed units meet at gate borders on the rim.
+  u_contacts = [];
+  for (const u of units) u.pos = place(lonOf(u), u.depth);
+  for (let i = 0; i < units.length; i++) for (let j = i + 1; j < units.length; j++) {
+    const u = units[i], w = units[j], d = sub(u.pos, w.pos);
+    if (Math.abs(d[0]) > .14 || Math.abs(d[1]) > .14 || Math.abs(d[2]) > .14 || Math.hypot(...d) > .14) continue;
+    let kind;
+    if (u.g === w.g) { kind = 'cohere'; u.energy += .02; w.energy += .02; }
+    else if (u.g.upper === w.g.upper || u.g.lower === w.g.lower || u.g.upper === w.g.lower || u.g.lower === w.g.upper) { kind = 'harmonize'; u.energy += .15; w.energy += .15; }
+    else { kind = 'interfere'; u.energy *= .9; w.energy *= .9; u.v[1] += .01; w.v[1] += .01; } // pushed outward toward expression
+    counts[kind]++; u_contacts.push([u, w, kind]);
+  }
+  // channel interaction: an expressed unit (depth > .6) in gate A line L and an expressed unit in the
+  // partner gate B on the same line L hold the channel open across the solid.
+  const live = new Map();
+  const expressed = {}; for (const u of units) if (u.depth > .6 && u.addr) (expressed[u.g.n + '.' + u.addr.line] ||= []).push(u);
+  for (const g of DATA.gates) for (const c of g.channels) {
+    if (c.partner < g.n) continue;
+    for (let L = 1; L <= 6; L++) {
+      const A = expressed[g.n + '.' + L], B = expressed[c.partner + '.' + L];
+      if (A && B) { live.set(`${g.n}-${c.partner}.${L}`, { a: A[0], b: B[0], name: c.name, L }); A[0].energy += .1; B[0].energy += .1; }
+    }
+  }
+  for (const [k, v] of live) if (!bonds.has(k)) { counts['channel-open']++; log(`<b>${k.split('.')[0]}</b> channel <span class="k">${v.name}</span> opened on line ${v.L} by ${v.a.ch}/${v.b.ch}`); }
+  for (const [k, v] of bonds) if (!live.has(k)) { counts['channel-close']++; log(`${k.split('.')[0]} channel ${v.name} closed (line ${v.L})`); }
+  bonds = live;
+}
+let u_contacts = [];
+function log(s) { logLines.unshift(`t${String(tick).padStart(5,'0')} ${s}`); if (logLines.length > 120) logLines.pop(); logDirty = true; }
+
+// ---------- rendering ----------
+const cv = document.getElementById('c'), ctx = cv.getContext('2d');
+let W, H, DPR, rotY = .6, rotX = -.35, zoom = 1, spin = true, running = true, layer = 'letter', selected = null, logDirty = true;
+function resize() { DPR = devicePixelRatio || 1; W = innerWidth; H = innerHeight; cv.width = W*DPR; cv.height = H*DPR; ctx.setTransform(DPR,0,0,DPR,0,0); }
+addEventListener('resize', resize); resize();
+function proj(p) {
+  const cy = Math.cos(rotY), sy = Math.sin(rotY), cx = Math.cos(rotX), sx = Math.sin(rotX);
+  let x = p[0]*cy + p[2]*sy, z = -p[0]*sy + p[2]*cy, y = p[1]*cx - z*sx; z = p[1]*sx + z*cx;
+  const s = Math.min(W, H) * .26 * zoom, persp = 4 / (4 - z);
+  return [W/2 + x*s*persp, H/2 - y*s*persp, z, persp];
+}
+function draw() {
+  ctx.clearRect(0,0,W,H);
+  // faces (back to front) with sign + corner dimension labels
+  const fs = FACES.map(f => ({ f, z: proj(f.c)[2] })).sort((a,b) => a.z - b.z);
+  for (const { f, z } of fs) {
+    ctx.beginPath(); f.vs.forEach((v,i) => { const p = proj(v); i ? ctx.lineTo(p[0],p[1]) : ctx.moveTo(p[0],p[1]); }); ctx.closePath();
+    ctx.fillStyle = `rgba(255,255,255,${z > 0 ? .025 : .01})`; ctx.fill();
+    if (z > .3) {
+      const c = proj(f.c); ctx.fillStyle = 'rgba(232,230,223,.28)'; ctx.font = '11px system-ui'; ctx.textAlign = 'center'; ctx.fillText(f.sign, c[0], c[1]);
+      f.vs.forEach((v,k) => { const p = proj(lerp(f.c, v, .9)); ctx.fillStyle = 'rgba(201,180,106,.35)'; ctx.font = '9px system-ui'; ctx.fillText(DIMENSIONS[k][0], p[0], p[1]); });
+    }
+  }
+  ctx.strokeStyle = 'rgba(255,255,255,.14)'; ctx.lineWidth = 1;
+  for (const [i,j] of EDGES) { const a = proj(VERTS[i]), b = proj(VERTS[j]); ctx.beginPath(); ctx.moveTo(a[0],a[1]); ctx.lineTo(b[0],b[1]); ctx.stroke(); }
+  // channel bonds: drawn through the interior, labelled with the channel name (edge = string of words)
+  ctx.font = '10px system-ui';
+  for (const [, b] of bonds) {
+    const pa = place(lonOf(b.a), b.a.depth), pb = place(lonOf(b.b), b.b.depth), mid = mul(add(pa,pb), .25);
+    const A = proj(pa), B = proj(pb), M = proj(mid);
+    ctx.strokeStyle = 'rgba(201,180,106,.55)'; ctx.beginPath(); ctx.moveTo(A[0],A[1]); ctx.quadraticCurveTo(M[0],M[1],B[0],B[1]); ctx.stroke();
+    ctx.fillStyle = 'rgba(201,180,106,.9)'; ctx.textAlign = 'center'; ctx.fillText(b.name, (A[0]+2*M[0]+B[0])/4, (A[1]+2*M[1]+B[1])/4);
+  }
+  // local contacts
+  for (const [u, w, kind] of u_contacts) {
+    const a = proj(place(lonOf(u), u.depth)), b = proj(place(lonOf(w), w.depth));
+    ctx.strokeStyle = kind === 'interfere' ? 'rgba(220,90,80,.6)' : kind === 'harmonize' ? 'rgba(120,200,160,.6)' : 'rgba(255,255,255,.25)';
+    ctx.beginPath(); ctx.moveTo(a[0],a[1]); ctx.lineTo(b[0],b[1]); ctx.stroke();
+  }
+  // units
+  const ps = units.map(u => { const lon = lonOf(u); return { u, lon, p: proj(place(lon, u.depth)) }; }).sort((a,b) => a.p[2] - b.p[2]);
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  for (const { u, lon, p } of ps) {
+    const a = u.addr || addressAt(u.g, u.off), alpha = (p[2] > 0 ? 1 : .35) * (.35 + .65*u.depth);
+    const size = (9 + Math.min(8, u.energy*1.5)) * p[3];
+    let txt;
+    if (layer === 'letter') txt = u.ch; else if (layer === 'address') txt = `${a.gate}.${a.line}`;
+    else if (layer === 'binary') txt = u.g.bits.join(''); else txt = u.dim[0];
+    ctx.globalAlpha = alpha; ctx.fillStyle = colorOf(lon, a);
+    ctx.font = `${u.depth > .6 ? 600 : 400} ${size.toFixed(1)}px ui-monospace, monospace`; ctx.fillText(txt, p[0], p[1]);
+    if (u === selected) { ctx.globalAlpha = 1; ctx.strokeStyle = '#c9b46a'; ctx.beginPath(); ctx.arc(p[0], p[1], size, 0, 7); ctx.stroke(); }
+    u._sx = p[0]; u._sy = p[1];
+  }
+  ctx.globalAlpha = 1; ctx.textBaseline = 'alphabetic';
+}
+function ui() {
+  document.getElementById('stats').textContent = `t ${tick} · ${units.length} units · ${bonds.size} channels open · contacts ${u_contacts.length}`;
+  if (logDirty) { document.getElementById('log').innerHTML = `<div class="k">observer — counts: ${Object.entries(counts).map(([k,v]) => `${k} ${v}`).join(' · ')}</div>` + logLines.join('<br>'); logDirty = false; }
+  if (selected) {
+    const u = selected, a = u.addr || addressAt(u.g, u.off), line = u.g.lines[a.line];
+    const myBonds = [...bonds.values()].filter(b => b.a === u || b.b === u).map(b => b.name);
+    document.getElementById('inspect').innerHTML =
+      `<b>“${u.ch}”</b> · ${u.dim} · gate ${u.g.n} ${u.g.name} (${u.g.title})<br>` +
+      `address ${a.gate}.${a.line} color ${a.color} tone ${a.tone} · ${u.g.upper}/${u.g.lower} · ${u.g.bits.join('')}<br>` +
+      `line theme: <span class="k">${line.theme}</span><br>` +
+      `depth ${u.depth.toFixed(2)} (${u.depth > .6 ? 'expressed' : 'latent'}) · energy ${u.energy.toFixed(2)}` +
+      (myBonds.length ? `<br>holding: ${myBonds.join(', ')}` : '') +
+      `<br>channels from this gate: ${u.g.channels.map(c => `${c.name} ↔ ${c.partner}`).join(', ')}`;
+  }
+}
+function loop() { if (running) { step(); step(); } if (spin) rotY += .0025; draw(); ui(); requestAnimationFrame(loop); }
+
+// ---------- input ----------
+const ptrs = new Map(); let dragged = 0, pinch0 = 0, zoom0 = 1;
+cv.addEventListener('pointerdown', e => { cv.setPointerCapture(e.pointerId); ptrs.set(e.pointerId, [e.clientX, e.clientY]); dragged = 0;
+  if (ptrs.size === 2) { const [a,b] = [...ptrs.values()]; pinch0 = Math.hypot(a[0]-b[0], a[1]-b[1]); zoom0 = zoom; } });
+cv.addEventListener('pointermove', e => { if (!ptrs.has(e.pointerId)) return; const [px,py] = ptrs.get(e.pointerId);
+  if (ptrs.size === 2) { ptrs.set(e.pointerId, [e.clientX, e.clientY]); const [a,b] = [...ptrs.values()]; zoom = Math.max(.5, Math.min(4, zoom0 * Math.hypot(a[0]-b[0], a[1]-b[1]) / pinch0)); dragged = 99; return; }
+  const dx = e.clientX - px, dy = e.clientY - py; dragged += Math.abs(dx) + Math.abs(dy);
+  rotY += dx * .008; rotX = Math.max(-1.5, Math.min(1.5, rotX + dy * .008)); ptrs.set(e.pointerId, [e.clientX, e.clientY]); });
+cv.addEventListener('pointerup', e => { ptrs.delete(e.pointerId); if (dragged < 6) {
+  let best = null, bd = 28; for (const u of units) { const d = Math.hypot(u._sx - e.clientX, u._sy - e.clientY); if (d < bd) { bd = d; best = u; } }
+  selected = best; if (!best) document.getElementById('inspect').innerHTML = ''; } });
+cv.addEventListener('wheel', e => { zoom = Math.max(.5, Math.min(4, zoom * (e.deltaY < 0 ? 1.1 : .9))); e.preventDefault(); }, { passive: false });
+const tog = (id, get, set, on, off) => { const b = document.getElementById(id); b.onclick = () => { set(!get()); b.classList.toggle('on', get()); if (on) b.textContent = get() ? on : off; }; };
+tog('play', () => running, v => running = v, 'Pause', 'Play');
+tog('spin', () => spin, v => spin = v);
+document.getElementById('layer').onchange = e => layer = e.target.value;
+document.getElementById('reset').onclick = () => { selected = null; document.getElementById('inspect').innerHTML = ''; seed((Math.random()*2**32)>>>0); };
+
+seed(64);
+if (location.hash === '#test') { for (let i = 0; i < 2000; i++) step(); window.__result = { tick, units: units.length, bonds: bonds.size, counts }; }
+loop();
+</script>
+</body>
+</html>
