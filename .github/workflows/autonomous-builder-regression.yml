@@ -1,0 +1,41 @@
+name: Autonomous builder resident regression
+on:
+  push:
+    branches: [integration/autonomous-android-builder]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  resident:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm --prefix computer ci
+      - run: npm --prefix computer/shell/kimi-linux ci
+      - run: npm run build:desktop
+      - name: Run resident tests
+        shell: bash
+        run: |
+          mkdir -p build-evidence
+          set -o pipefail
+          npm run test:computer 2>&1 | tee build-evidence/resident-tests.tap
+      - name: Preserve test evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: resident-regression-evidence
+          path: build-evidence/
+          if-no-files-found: warn
+      - name: Package existing desktop assets
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: resident-desktop-assets-not-apk
+          path: computer/shell/kimi-linux/dist/
+          if-no-files-found: error
