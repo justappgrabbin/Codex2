@@ -9,6 +9,7 @@
 import { createHostShell } from './host-shell.mjs';
 
 export function createTridentMcp({ vfs, shell, computer, githubToken = process.env.GITHUB_TOKEN ?? process.env.GH_TOKEN ?? '' } = {}) {
+  const android = createAndroidMcp();
   const tools = [
     { name: 'filesystem_list', description: "List files in the computer's filesystem.", inputSchema: { type: 'object', properties: { prefix: { type: 'string' } } } },
     { name: 'filesystem_read', description: 'Read a file from the computer filesystem.', inputSchema: { type: 'object', properties: { path: { type: 'string' } }, required: ['path'] } },
@@ -18,7 +19,14 @@ export function createTridentMcp({ vfs, shell, computer, githubToken = process.e
     { name: 'github_search', description: 'Search GitHub for RAG context when GITHUB_TOKEN is set.', inputSchema: { type: 'object', properties: { query: { type: 'string' } }, required: ['query'] } },
   ];
 
+  if (android.enabled) tools.push(
+    { name: 'android_list_tools', description: 'Discover available permissioned Android tools', inputSchema: { type: 'object' } },
+    { name: 'android_call_tool', description: 'Use explicitly enabled local Android MCP screen and interaction tools', inputSchema: { type: 'object', properties: { name: { type: 'string' }, arguments: { type: 'object' } }, required: ['name'] } }
+  );
+
   async function callTool(name, args = {}) {
+    if (name === 'android_list_tools') return { ok: true, tools: await android.listTools() };
+    if (name === 'android_call_tool') return { ok: true, result: await android.callTool(args.name, args.arguments) };
     switch (name) {
       case 'filesystem_list':
         return { ok: true, records: typeof vfs.list === 'function' ? vfs.list(args.prefix ?? '/') : [] };
@@ -80,5 +88,35 @@ export function createTridentMcp({ vfs, shell, computer, githubToken = process.e
     listTools() { return tools.map((t) => ({ ...t })); },
     callTool,
     handle,
+  };
+}
+
+// Explicit opt-in Android MCP transport. The native app retains permission and stop controls.
+export function createAndroidMcp({ token = process.env.SYNTHIA_ANDROID_MCP_TOKEN, fetcher = globalThis.fetch } = {}) {
+  const permitted = new Set(['mobile_list_available_devices','mobile_get_capabilities','mobile_get_screen_size','mobile_get_foreground_app','mobile_list_elements_on_screen','mobile_take_screenshot','mobile_click_on_screen_at_coordinates','mobile_swipe_on_screen','mobile_type_keys']);
+  let id = 0;
+  async function request(method, params = {}) {
+    if (!token) throw new Error('Android MCP is not configured');
+    const requestId = ++id;
+    const response = await fetcher('http://127.0.0.1:8765/mcp', {
+      method: 'POST', redirect: 'error', signal: AbortSignal.timeout(15000),
+      headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json', Accept: 'application/json, text/event-stream' },
+      body: JSON.stringify({ jsonrpc: '2.0', id: requestId, method, params })
+    });
+    if (!response.ok) throw new Error('Android MCP HTTP ' + response.status);
+    const data = await response.json();
+    if (data.id !== requestId || data.error || !data.result) throw new Error('Android MCP protocol error');
+    return data.result;
+  }
+  return {
+    enabled: Boolean(token),
+    async listTools() {
+      const result = await request('tools/list');
+      return (result.tools ?? []).filter(t => permitted.has(t.name));
+    },
+    async callTool(name, args = {}) {
+      if (!permitted.has(name)) throw new Error('Android tool not permitted');
+      return request('tools/call', { name, arguments: { ...args, device: 'local-android' } });
+    }
   };
 }
