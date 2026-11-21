@@ -20,11 +20,17 @@ export function createTridentMcp({ vfs, shell, computer, githubToken = process.e
   ];
 
   if (android.enabled) tools.push(
+    { name: 'android_start', description: 'Explicitly enable Android MCP calls for this process', inputSchema: { type: 'object' } },
+    { name: 'android_stop', description: 'Immediately stop and abort pending Android MCP calls', inputSchema: { type: 'object' } },
+    { name: 'android_status', description: 'Read Android MCP stop state', inputSchema: { type: 'object' } },
     { name: 'android_list_tools', description: 'Discover available permissioned Android tools', inputSchema: { type: 'object' } },
     { name: 'android_call_tool', description: 'Use explicitly enabled local Android MCP screen and interaction tools', inputSchema: { type: 'object', properties: { name: { type: 'string' }, arguments: { type: 'object' } }, required: ['name'] } }
   );
 
   async function callTool(name, args = {}) {
+    if (name === 'android_start' && android.enabled) return { ok: true, ...android.start() };
+    if (name === 'android_stop' && android.enabled) return { ok: true, ...android.stop() };
+    if (name === 'android_status' && android.enabled) return { ok: true, stopped: android.stopped };
     if (name === 'android_list_tools') return { ok: true, tools: await android.listTools() };
     if (name === 'android_call_tool') return { ok: true, result: await android.callTool(args.name, args.arguments) };
     switch (name) {
@@ -95,21 +101,50 @@ export function createTridentMcp({ vfs, shell, computer, githubToken = process.e
 export function createAndroidMcp({ token = process.env.SYNTHIA_ANDROID_MCP_TOKEN, fetcher = globalThis.fetch } = {}) {
   const permitted = new Set(['mobile_list_available_devices','mobile_get_capabilities','mobile_get_screen_size','mobile_get_foreground_app','mobile_list_elements_on_screen','mobile_take_screenshot','mobile_click_on_screen_at_coordinates','mobile_swipe_on_screen','mobile_type_keys']);
   let id = 0;
+  // Local, in-process emergency stop. No Android action is sent after stop.
+  // The native Android service must enforce its own permission and stop boundary.
+  let stopped = true;
+  let generation = 0;
+  const active = new Set();
+  function stop() {
+    stopped = true;
+    generation++;
+    for (const controller of active) controller.abort();
+    active.clear();
+    return { stopped: true };
+  }
+  function start() {
+    if (!token) throw new Error('Android MCP is not configured');
+    stopped = false;
+    generation++;
+    return { stopped: false };
+  }
   async function request(method, params = {}) {
     if (!token) throw new Error('Android MCP is not configured');
+    if (stopped) throw new Error('Android MCP stopped; explicit start required');
+    const epoch = generation;
+    const controller = new AbortController();
+    active.add(controller);
+    const timeout = setTimeout(() => controller.abort(), 15000);
     const requestId = ++id;
+    try {
     const response = await fetcher('http://127.0.0.1:8765/mcp', {
-      method: 'POST', redirect: 'error', signal: AbortSignal.timeout(15000),
+      method: 'POST', redirect: 'error', signal: controller.signal,
       headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json', Accept: 'application/json, text/event-stream' },
       body: JSON.stringify({ jsonrpc: '2.0', id: requestId, method, params })
     });
     if (!response.ok) throw new Error('Android MCP HTTP ' + response.status);
     const data = await response.json();
+    if (stopped || epoch !== generation) throw new Error('Android MCP stopped during request');
     if (data.id !== requestId || data.error || !data.result) throw new Error('Android MCP protocol error');
     return data.result;
+    } finally { clearTimeout(timeout); active.delete(controller); }
   }
   return {
     enabled: Boolean(token),
+    get stopped() { return stopped; },
+    start,
+    stop,
     async listTools() {
       const result = await request('tools/list');
       return (result.tools ?? []).filter(t => permitted.has(t.name));
