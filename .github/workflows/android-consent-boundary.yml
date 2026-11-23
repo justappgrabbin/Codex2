@@ -1,0 +1,18 @@
+name: Android consent boundary tests
+on:
+  push:
+    branches:
+      - feature/android-mcp-consent-adapter-20261123
+  workflow_dispatch:
+jobs:
+  consent-tests:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify Android permission boundary
+        run: node --test computer/tests/android-consent-adapter.test.mjs
