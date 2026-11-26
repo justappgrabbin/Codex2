@@ -25,6 +25,11 @@ jobs:
         with:
           gradle-version: '8.7'
       - run: sdkmanager 'platforms;android-35' 'ndk;27.0.12077973' 'cmake;3.22.1'
+      - name: Prepare existing isolated execution worker
+        run: |
+          IMAGE='node@sha256:e9f565d32859f0cbfb52125eafe8be39390f24dac302dc3cdf566e8ba3ab21ee'
+          docker pull "$IMAGE"
+          docker image inspect "$IMAGE" >/dev/null
       - run: npm --prefix computer ci && npm --prefix computer/shell/kimi-linux ci && npm --prefix computer run build && npm --prefix computer run test:integration
       - run: python computer/android/prepare-assets.py
       - name: Stage Node 18 mobile runtime
@@ -38,6 +43,7 @@ jobs:
           APK=computer/android/app/build/outputs/apk/debug/app-debug.apk
           test -s "$APK"
           unzip -t "$APK" > /tmp/computer-apk-zip-check.txt
+          "$ANDROID_HOME/build-tools/$(ls "$ANDROID_HOME/build-tools" | sort -V | tail -1)/apksigner" verify --verbose "$APK"
           sha256sum "$APK"
           stat -c 'APK bytes: %s' "$APK"
           mkdir -p /tmp/computer-apk-parts
