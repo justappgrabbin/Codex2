@@ -98,7 +98,10 @@ export function createTridentMcp({ vfs, shell, computer, githubToken = process.e
 }
 
 // Explicit opt-in Android MCP transport. The native app retains permission and stop controls.
-export function createAndroidMcp({ token = process.env.SYNTHIA_ANDROID_MCP_TOKEN, fetcher = globalThis.fetch } = {}) {
+export function createAndroidMcp({ token = process.env.SYNTHIA_ANDROID_MCP_TOKEN, fetcher = globalThis.fetch, port = process.env.SYNTHIA_ANDROID_MCP_PORT ?? '8765' } = {}) {
+  const portText = String(port);
+  if (!/^[0-9]{1,5}$/.test(portText) || Number(portText) < 1 || Number(portText) > 65535) throw new Error('Invalid Android MCP port');
+  const endpoint = `http://127.0.0.1:${Number(portText)}/mcp`;
   const permitted = new Set(['mobile_list_available_devices','mobile_get_capabilities','mobile_get_screen_size','mobile_get_foreground_app','mobile_list_elements_on_screen','mobile_take_screenshot','mobile_click_on_screen_at_coordinates','mobile_swipe_on_screen','mobile_type_keys']);
   let id = 0;
   // Local, in-process emergency stop. No Android action is sent after stop.
@@ -128,7 +131,7 @@ export function createAndroidMcp({ token = process.env.SYNTHIA_ANDROID_MCP_TOKEN
     const timeout = setTimeout(() => controller.abort(), 15000);
     const requestId = ++id;
     try {
-    const response = await fetcher('http://127.0.0.1:8765/mcp', {
+    const response = await fetcher(endpoint, {
       method: 'POST', redirect: 'error', signal: controller.signal,
       headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json', Accept: 'application/json, text/event-stream' },
       body: JSON.stringify({ jsonrpc: '2.0', id: requestId, method, params })
